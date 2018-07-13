@@ -9,6 +9,12 @@ number of rule | Priority queue （least curiosity）
 4 | 15.5s
 5 | 36min 54s
 
+#### before add theorem20+lemma2, exchange if and else
+number of rule | FIFO queue  | Priority queue （least curiosity） | Priority queue （least lbound）
+  ------------- | ------------- | ------------- | -------------
+3 | 909ms | 909ms | 874ms
+4 | 1min 9s | 1min 11s | 1min 30s
+
     
 ### serial-Copy3:
 #### multiple copies of tree with each only one leaf marked to be split
