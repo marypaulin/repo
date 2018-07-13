@@ -1,12 +1,13 @@
 ## Use priority queue
 
 ### serial-Copy2:
-#### one copy of tree with multiple leaves marked to be split
+#### one copy of tree with multiple leaves marked to be split, add theorem20+lemma2, exchange if and else
 
-number of rule | FIFO queue  | Priority queue （least curiosity） | Priority queue （least lbound）
-  ------------- | ------------- | ------------- | -------------
-3 | 1min 9s | 909ms | 874ms
-4 | 1min 9s | 1min 11s | 1min 30s
+number of rule | Priority queue （least curiosity）
+  ------------- | ------------- 
+3 | 441ms
+4 | 15.5s
+5 | 36min 54s
 
     
 ### serial-Copy3:
