@@ -5,7 +5,7 @@
 
 number of rule | FIFO queue  | Priority queue （least curiosity） | Priority queue （least lbound）
   ------------- | ------------- | ------------- | -------------
-3 | 850ms | 909ms | 874ms
+3 | 909ms | 909ms | 874ms
 4 | 1min 9s | 1min 11s | 1min 30s
 
     
