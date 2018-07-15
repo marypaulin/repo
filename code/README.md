@@ -4,7 +4,7 @@
 #### one copy of tree with multiple leaves marked to be split, add theorem20+lemma2, exchange if and else
 
 number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）
-  ------------- | ------------- 
+  ------------- | ------------- | ------------- | ------------- | ------------- 
 3 | 492ms | 430ms | 441ms | 453ms
 4 | 8.73s |  | 5.49s | 15.5s | 8.47s
 5 | 10min47s | 8min58s | 36min 54s | 11min9s
