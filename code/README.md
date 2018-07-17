@@ -2,6 +2,7 @@
 
 ### serial-Copy2:
 #### one copy of tree with multiple leaves marked to be split, add theorem20+lemma2, exchange if and else
+##### lambda=0.04, all 6907 data from compas-binary.csv
 
 number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）
   ------------- | ------------- | ------------- | ------------- | ------------- 
@@ -9,6 +10,13 @@ number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Pri
 4 | 8.73s | 5.49s | 15.5s | 8.47s
 5 | 10min47s | 8min58s | 36min 54s | 11min9s
 
+#### lambda=0.0025
+
+number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）
+  ------------- | ------------- | ------------- | ------------- | ------------- 
+3 | 492ms | 865ms | 1.05s | 468ms
+4 | 1min34s | 50min5s | 1h50min25s | 1min33s
+5 | too long | too long | too long | too long
 
 
 
