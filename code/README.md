@@ -10,7 +10,7 @@ number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Pri
 4 | 8.73s | 5.49s | 15.5s | 8.47s
 5 | 10min47s | 8min58s | 36min 54s | 11min9s
 
-#### lambda=0.0025
+##### lambda=0.0025
 
 number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）
   ------------- | ------------- | ------------- | ------------- | ------------- 
