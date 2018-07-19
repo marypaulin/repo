@@ -4,28 +4,27 @@
 #### one copy of tree with multiple leaves marked to be split, add theorem20+lemma2, exchange if and else
 ##### lambda=0.04, all 6907 data from compas-binary.csv
 
-number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）
-  ------------- | ------------- | ------------- | ------------- | ------------- 
-3 | 492ms | 430ms | 441ms | 453ms
-4 | 8.73s | 5.49s | 15.5s | 8.47s
-5 | 10min47s | 8min58s | 36min 54s | 11min9s
+number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）| Priority queue （least entropy） | Priority queue （least Gini index）
+  ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
+3 | 492ms | 430ms | 441ms | 453ms | 462ms | 464ms
+4 | 8.73s | 5.49s | 15.5s | 8.47s | 9.88s | 9.89s
+5 | 10min47s | 8min58s | 36min 54s | 11min9s | 21min26s | 21min40s
 
 ##### lambda=0.01
 
-number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）
-  ------------- | ------------- | ------------- | ------------- | ------------- 
-3 | 586ms | 610ms | 639ms | 543ms
-4 | 43s | 2min11s | 5min13s | 52.8s
-5 | too long | too long | too long | too long
+number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）| Priority queue （least entropy） | Priority queue （least Gini index）
+  ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
+3 | 586ms | 610ms | 639ms | 543ms | 678ms | 688ms
+4 | 43s | 2min11s | 5min13s | 52.8s | 3min31s | 3min32s
+5 | too long | too long | too long | too long | too long | too long
 
 ##### lambda=0.0025
 
-number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）
-  ------------- | ------------- | ------------- | ------------- | ------------- 
-3 | 492ms | 865ms | 1.05s | 468ms
-4 | 1min34s | 50min5s | 1h50min25s | 1min33s
-5 | too long | too long | too long | too long
-
+number of rule | FIFO queue  | Priority queue （but set all curiosity=1）| Priority queue （least curiosity） | Priority queue （least lbound）| Priority queue （least entropy） | Priority queue （least Gini index）
+  ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
+3 | 492ms | 865ms | 1.05s | 468ms | 982ms | 985ms
+4 | 1min34s | 50min5s | 1h50min25s | 1min33s | 1h9min23s | 1h7min39s
+5 | too long | too long | too long | too long | too long | too long
 
 
 #### before add theorem20+lemma2, exchange if and else
