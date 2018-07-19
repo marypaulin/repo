@@ -30,7 +30,7 @@ number of feature | FIFO queue | Priority queue （least curiosity） | Priority
 ##### number of trees, lambda=0.01
 
 number of feature| FIFO queue | Priority queue （least curiosity） | Priority queue （least lbound）| Priority queue （least entropy） | Priority queue （least Gini index）| No objective bound, lookahead bound, equiv points bound; FIFO Queue 
-  ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
+  ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
 3 | 158| 122 | 144 | 150 | 149 | 218 
 4 | 4193| 8562 | 4727| 7927 | 7944 | 10226 
 
