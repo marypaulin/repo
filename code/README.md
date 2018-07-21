@@ -4,48 +4,27 @@
 #### one copy of tree with multiple leaves marked to be split, add theorem20+lemma2, exchange if and else
 #### all 6907 data from compas-binary.csv
 
-#### FIFO queue,  lambda=0.04
-Algorithm variant | 3 features | 4 features
-  ------------- | ------------- | ------------- 
-all bounds | 527ms | 8.97s 
-No lookahead bound | 799ms | 25.4s 
-No equivalent points bound | 1.02s | 1min12s
+##### time; number of trees in the queue (lambda=0.04)
 
-##### time, lambda=0.04
-
-number of feature | FIFO queue  | Priority queue （least curiosity） | Priority queue （least lbound）| Priority queue （least entropy） | Priority queue （least Gini index）
+number of feature | FIFO queue  | Priority queue （min curiosity） | Priority queue （min lbound）| Priority queue （min entropy） | Priority queue （min Gini index）
   ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
-3 | 527ms | 454ms | 476ms | 462ms | 464ms
-4 | 8.97s | 15.5s | 8.62s | 9.88s | 9.89s
-5 | 10min53s | 36min 54s | 11min9s | 21min26s | 21min40s
+3 | 593ms; 72 | 447ms; 62 |  |  | 
+4 | 9.49s; 1679 | 8.58s; 2549 |  |  | 
+5 | 2min5s; 27688 | 2min7s; 28470 |  |  | 
 
-##### time, lambda=0.01
+##### time; number of trees in the queue (lambda=0.01)
 
-number of feature | FIFO queue | Priority queue （least curiosity） | Priority queue （least lbound）| Priority queue （least entropy） | Priority queue （least Gini index）
+number of feature | FIFO queue | Priority queue （min curiosity） | Priority queue （min lbound）| Priority queue （min entropy） | Priority queue （min Gini index）
   ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
-3 | 1.06s | 706ms | 990ms | 902ms | 899ms 
-4 | 1min22s | 4min52s | 1min45s | 5min | 5min09s 
-5 | too long | too long | too long | too long | too long
+3 | 981ms; 158 | 653ms; 122 | 923ms; 144 | 836ms; 150 | 830ms; 149 
+4 | 38.2s; 9517 | 31.1s; 8721 | 36.3s; 9191 | 29.2s; 8537 | 29.1s; 8552 
+5 | 45min39s; 791088 | NA | NA | NA | NA
 
-##### number of trees, lambda=0.01
+##### time; number of trees in the queue (lambda=0.005)
 
-number of feature| FIFO queue | Priority queue （least curiosity） | Priority queue （least lbound）| Priority queue （least entropy） | Priority queue （least Gini index）| No objective bound, lookahead bound, equiv points bound; FIFO Queue 
-  ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
-3 | 158| 122 | 144 | 150 | 149 | 218 
-4 | 4193| 8562 | 4727| 7927 | 7944 | 10226 
-
-
-#### before add theorem20+lemma2, exchange if and else
-number of feature | FIFO queue  | Priority queue （least curiosity） | Priority queue （least lbound）
-  ------------- | ------------- | ------------- | -------------
-3 | 909ms | 909ms | 874ms
-4 | 1min 9s | 1min 11s | 1min 30s
-
-    
-### serial-Copy3:
-#### multiple copies of tree with each only one leaf marked to be split
-number of feature | FIFO queue  | Priority queue （least curiosity） | Priority queue （least lbound）
-  ------------- | ------------- | ------------- | -------------
-3 | 1.2s | 1.18s | 1.18s
-4 | 3min 26s | 7min 54s | 6min 23s
+number of feature | FIFO queue | Priority queue （min curiosity） | Priority queue （min lbound）| Priority queue （min entropy） | Priority queue （min Gini index）
+  ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
+3 | 1.46s; 246 | 649ms; 135 |  |  | 
+4 | 2min33s; 38266 | 1min39s; 30748 |  |  | 
+5 | NA | NA | NA | NA | NA
             
