@@ -18,13 +18,5 @@ number of feature | FIFO queue | Priority queue （min curiosity） | Priority q
   ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
 3 | 945ms; 158 | 630ms; 122 | 878ms; 144 | 782ms; 150 | 772ms; 149
 4 | 1min3s; 14375 | 43.8s; 12069 | 52s; 12292 | 34.5s; 10106 | 34.1s; 10088
-5 |  | 1h20min38s; 1581030 |  |  | 
-
-##### time; number of trees in the queue (lambda=0.005)
-
-number of feature | FIFO queue | Priority queue （min curiosity） | Priority queue （min lbound）| Priority queue （min entropy） | Priority queue （min Gini index）
-  ------------- | ------------- | ------------- | ------------- | ------------- | ------------- 
-3 |  |  |  |  | 
-4 |  |  |  |  | 
-5 |  |  |  |  | 
+5 |  | 1h20min38s; 1581030 | 1h46min29s; 1747247 | 49min39s; 783097 | 48min53s; 778332
             
