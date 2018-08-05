@@ -127,6 +127,20 @@ def rules_init(xs, ys):
 def rule_copy(r):
     return copy.deepcopy(r)
 
+
+"""
+    Python implementation of rule_vectompz
+
+    Convert a binary vector to a mpz object
+
+    Note: in order to ensure you have a leading one,
+    add '1' in the front
+"""
+def rule_vectompz(vec):
+    return mpz('1'+re.sub('[\[\],\s+]','',str(list(vec))),2)
+
+
+
 """
 	Python implementation of rule_vand
 
