@@ -60,13 +60,13 @@ class CacheTree:
             self.entropy = [(-self.p[i] * math.log2(self.p[i]) - (1 - self.p[i]) * math.log2(1 - self.p[i])) * self.num_captured[i]
                             if self.p[i] != 0 and self.p[i] != 1 else 0 for i in range(l)]
             self.metric = min([sum(self.entropy[:i] + self.entropy[i + 1:]) / (ndata - self.num_captured[i])
-                               if ndata - self.num_captured[i] != 0 and self.deadleaf[i] == 0 else 0 for i in range(l)])
+                               if ndata - self.num_captured[i] != 0 and self.deadleaf[i] == 0 else float('Inf') for i in range(l)])
         elif prior_metric == "gini":
             # gini index weighted by number of points captured
             self.giniindex = [(2 * self.p[i] * (1 - self.p[i]))
                               * self.num_captured[i] for i in range(l)]
             self.metric = min([sum(self.giniindex[:i] + self.giniindex[i + 1:]) / (ndata - self.num_captured[i])
-                               if ndata - self.num_captured[i] != 0 and self.deadleaf[i] == 0 else 0 for i in range(l)])
+                               if ndata - self.num_captured[i] != 0 and self.deadleaf[i] == 0 else float('Inf') for i in range(l)])
         else:
             self.metric = 0
 
