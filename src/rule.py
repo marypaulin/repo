@@ -77,6 +77,15 @@ def make_all_ones(length):
     return default_tt
 
 """
+	Python implementation of make_zero
+
+	Returns a list of mpz object of 0
+"""
+
+def make_zeros(length):
+    return [mpz(0)]*length
+
+"""
 	Returns a rule that captures everything not captured in the prefix
 """
 

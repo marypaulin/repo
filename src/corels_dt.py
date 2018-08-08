@@ -2,19 +2,18 @@ import numpy as np
 import heapq
 import math
 import time
-from gmpy2 import mpz  # TODO: remove this, only use rule.py
 
-from rule import make_all_ones, rule_vand, rule_vectompz
+from rule import make_all_ones, make_zeros, rule_vand, rule_vectompz
 
 
 class CacheTree:
     """
     A tree data structure.
-    prefix: a 2-d tuple to encode the leaves
+    leaves: a 2-d tuple to encode the leaves
     num_captured: a list to record number of data captured by the leaves
     """
 
-    def __init__(self, x, y, prefix,
+    def __init__(self, x, y, leaves,
                  lamb, prior_metric=None,
                  num_captured=None,
                  deadleaf=None,
@@ -22,7 +21,7 @@ class CacheTree:
                  lbound=None,
                  p=None,
                  B0=None, points_cap=None, prediction=None):
-        self.prefix = prefix
+        self.leaves = leaves
         self.num_captured = num_captured
         #self.num_captured_incorrect = num_captured_incorrect
         self.p = p  # the proportion of misclassified data in each leaf
@@ -38,11 +37,11 @@ class CacheTree:
         self.prediction = prediction  # a list of predictions of every leaf
 
         ndata = len(y)
-        l = len(prefix)
+        l = len(leaves)
 
         self.risk = self.lbound[0] + (self.p[0] * self.num_captured[0]) / ndata
 
-        # print(self.prefix)
+        # print(self.leaves)
         # print(self.lbound)
         # print(self.splitleaf)
         # which metrics to use for the priority queue
@@ -87,7 +86,7 @@ class CacheTree:
                     current_node[direction] = {}
                 current_node = current_node[direction]
 
-            current_node['label'] = self.labels[i]
+            current_node['label'] = self.prediction[i]
 
         return tree
 
@@ -164,27 +163,27 @@ class Eliminate:
     def __init__(self, elim_dict=None):
         self.elim_dict = {}  # record these trees we have visited
 
-    def eliminate(self, prefix):
-        self.elim_dict[tuple(sorted(prefix))] = 1
+    def eliminate(self, leaves):
+        self.elim_dict[tuple(sorted(leaves))] = 1
 
-    def is_duplicated(self, prefix):
+    def is_duplicated(self, leaves):
         # if a tree is in the self.elim_dict, then we have already visited it
-        return tuple(sorted(prefix)) in self.elim_dict.keys()
+        return tuple(sorted(leaves)) in self.elim_dict.keys()
 
 
-def log(lines, lamb, tic, queue_size, prefix_old, tree_new, R, d_c, R_c):
+def log(lines, lamb, tic, queue_size, leaves_old, tree_new, R, d_c, R_c):
     "log"
-    t = tree_new.prefix
-    t_c = d_c.prefix
+    t = tree_new.leaves
+    t_c = d_c.leaves
 
     the_time = str(time.time() - tic)
     the_queue_size = str(queue_size)
-    the_split_tree = str(prefix_old)
+    the_split_tree = str(leaves_old)
     the_new_tree = str(t)
     the_new_tree_prediction = str(tree_new.prediction)
     the_new_tree_length = str(len(t))
     the_new_tree_objective = str(R)
-    the_new_tree_accuracy = str(1 - (R - lamb * len(tree_new.prefix)))
+    the_new_tree_accuracy = str(1 - (R - lamb * len(tree_new.leaves)))
     the_best_tree = str(t_c)
     the_best_tree_prediction = str(d_c.prediction)
     the_length = str(len(t_c))
@@ -325,7 +324,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
     # initialize the queue to include just empty root
     queue = []
     t = ((),)
-    tree0 = CacheTree(prefix=t, x=x, y=y, lamb=lamb, prior_metric=prior_metric,
+    tree0 = CacheTree(leaves=t, x=x, y=y, lamb=lamb, prior_metric=prior_metric,
                       num_captured=[ndata], deadleaf=[0], splitleaf=[[1]], lbound=[lamb],
                       p=[min(np.mean(y), 1 - np.mean(y))], B0=[np.sum(z) / ndata],
                       points_cap=[make_all_ones(ndata + 1)], prediction=[int(sum(y) / len(y) >= 0.5)])
@@ -337,10 +336,10 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
     log(lines, lamb, tic, len(queue), tuple(), tree0, R, d_c, R_c)
 
     COUNT = 0  # count the total number of trees in the queue
-    while (queue) and COUNT < niter:
+    while queue and COUNT < niter:
         #tree = queue.pop(0)
-        (curio, tree) = heapq.heappop(queue)
-        d = tree.prefix
+        curio, tree = heapq.heappop(queue)
+        d = tree.leaves
 
         # print("=======COUNT=======",COUNT)
         # print("d",d)
@@ -408,7 +407,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
                     incorr_l = [0] * 2
                     p_l = [0] * 2
                     B0_l = [0] * 2
-                    points_l = [mpz(0)] * 2
+                    points_l = make_zeros(2)
 
                     # for the two new leaves, if they have not been visited,
                     # calculate their predictions,
@@ -448,7 +447,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
                     # print('sl',sl)
 
                     # construct the new tree
-                    tree_new = CacheTree(x=x, y=y, prefix=t,
+                    tree_new = CacheTree(x=x, y=y, leaves=t,
                                          num_captured=tree.num_captured[
                                              :i] + tree.num_captured[i + 1:] + cap_l,
                                          #num_captured_incorrect = tree.num_captured_incorrect[:i]+tree.num_captured_incorrect[i+1:]+incorr_l,
@@ -498,13 +497,13 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
         f.write('%s\n' % ";".join(header))
         f.write('\n'.join(lines))
 
-    """for i in range(len(d_c.prefix)):
-        lea = d_c.prefix[i]
+    """for i in range(len(d_c.leaves)):
+        lea = d_c.leaves[i]
         leaves[lea].prediction"""
 
     print("time: ", time.time() - tic)
     print("lambda: ", lamb)
-    print("d_c: ", d_c.prefix)
+    print("d_c: ", d_c.leaves)
     print("d_c: ", d_c.prediction)
     print("R_c: ", R_c)
     print("C_c: ", C_c)
