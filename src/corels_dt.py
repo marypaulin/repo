@@ -482,11 +482,11 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
                         d_c = tree_new
                         R_c = R
                         C_c = COUNT
+                        time_c = time.time()-tic
 
                     if COUNT % 100000 == 0:
                         print("COUNT:", COUNT)
 
-        del tree
 
     header = ['time', 'queue_size', 'split_tree', 'new_tree', 'new_tree_prediction', 'new_tree_length', 'new_tree_objective', 'new_tree_accuracy',
               'best_tree', 'best_tree_prediction', 'best_tree_length', 'objective', 'lower_bound', 'accuracy', 'num_captured']
@@ -507,6 +507,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
     print("d_c: ", d_c.prediction)
     print("R_c: ", R_c)
     print("C_c: ", C_c)
+    print("time_c: ", time_c)
     print("COUNT: ", COUNT)
 
     return d_c
