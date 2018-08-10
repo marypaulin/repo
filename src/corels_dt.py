@@ -320,7 +320,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
         if tree in tree_cache:
             continue
         else:
-            tree_cache[tuple(sorted(leaf.rules for leaf in tree.leaves))] = True
+            tree_cache[tree] = True
 
         # the leaves we are going to split
         split_next = tree.splitleaf.copy()
@@ -364,11 +364,6 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
                     l1 = d0 + (-j,)
                     l2 = d0 + (j,)
                     # print("t",t)
-
-
-                    # if tree t is duplicated, continue
-                    if tuple(sorted([leaf.rules for leaf in unchanged_leaves]+[l1, l2])) in tree_cache:
-                        continue
 
                     pred_l = [0] * 2
                     cap_l = [0] * 2
@@ -433,6 +428,9 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
                                          lbound=new_lbound,
                                          )
 
+                    if tree_new in tree_cache:
+                        continue
+
                     # queue.append(tree_new)
                     """print("t:",t)
                     print("tree_new.num_captured:",tree_new.num_captured)
@@ -448,7 +446,6 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
                         d_c = tree_new
                         R_c = R
                         C_c = COUNT
-                        print("!!!C_c: ", C_c)
                         time_c = time.time()-tic
 
                     if COUNT % 100000 == 0:
