@@ -51,13 +51,9 @@ class CacheTree:
         else:
             self.metric = 0
 
-    def __hash__(self):
+    def sorted_leaves(self):
         # Used by the cache
-        return hash(tuple(sorted(leaf.rules for leaf in self.leaves)))
-
-    def __eq__(self, other):
-        # Used by the cache
-        return hash(self) == hash(other)
+        return tuple(sorted(leaf.rules for leaf in self.leaves))
 
     def __lt__(self, other):
         # define <, which will be used in the priority queue
@@ -309,7 +305,9 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
     COUNT = 0  # count the total number of trees in the queue
     while queue and COUNT < niter:
         #tree = queue.pop(0)
-        _, tree = heapq.heappop(queue)
+        curio, tree = heapq.heappop(queue)
+        #print([leaf.rules for leaf in tree.leaves])
+        #print("curio", curio)
         leaves = tree.leaves
 
         # print("=======COUNT=======",COUNT)
@@ -317,10 +315,10 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
         # print("R",tree.lbound[0]+(tree.num_captured_incorrect[0])/len(y))
 
         # if we have visited this tree
-        if tree in tree_cache:
+        if tree.sorted_leaves() in tree_cache:
             continue
         else:
-            tree_cache[tree] = True
+            tree_cache[tree.sorted_leaves()] = True
 
         # the leaves we are going to split
         split_next = tree.splitleaf.copy()
@@ -381,14 +379,10 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
                     tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
 
                     rule_index = j-1
-                    tag_rule1 = rule_vectompz(np.array(x[:, rule_index] == 0) * 1)
-                    new_points_cap1, new_num_captured1 = rule_vand(tag, tag_rule1)
-
-                    tag_rule2 = rule_vectompz(np.array(x[:, rule_index] == 1) * 1)
-                    new_points_cap2, new_num_captured2 = rule_vand(tag, tag_rule2)
-
 
                     if l1_sorted not in leaf_cache:
+                        tag_rule1 = rule_vectompz(np.array(x[:, rule_index] == 0) * 1)
+                        new_points_cap1, new_num_captured1 = rule_vand(tag, tag_rule1)
                         leaf_cache[l1_sorted] = CacheLeaf(l1, y, z, new_points_cap1, new_num_captured1, lamb)
 
                     Cache_l1 = leaf_cache[l1_sorted]
@@ -396,6 +390,8 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
                         0] = Cache_l1.num_captured, Cache_l1.num_captured_incorrect
 
                     if l2_sorted not in leaf_cache:
+                        tag_rule2 = rule_vectompz(np.array(x[:, rule_index] == 1) * 1)
+                        new_points_cap2, new_num_captured2 = rule_vand(tag, tag_rule2)
                         leaf_cache[l2_sorted] = CacheLeaf(l2, y, z, new_points_cap2, new_num_captured2, lamb)
 
                     Cache_l2 = leaf_cache[l2_sorted]
@@ -404,6 +400,11 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
 
 
                     new_leaves = [Cache_l1, Cache_l2]
+
+
+                    if tuple(sorted(leaf.rules for leaf in unchanged_leaves+new_leaves)) in tree_cache:
+                        continue
+
 
                     # calculate the bounds for each leaves in the new tree
                     loss_l1 = incorr_l[0] / ndata
@@ -428,8 +429,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
                                          lbound=new_lbound,
                                          )
 
-                    if tree_new in tree_cache:
-                        continue
+
 
                     # queue.append(tree_new)
                     """print("t:",t)
