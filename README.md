@@ -7,18 +7,27 @@
 #### all 6907 data from compas-binary.csv, manually selected 5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
 
 ##### lambda=0.001, MAXDEPTH=4, prior_metric="gini"
-Algorithm variant | time | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------
-All bounds | 1709s | 17,829,114 | 1,928,059
-No support bound | 4649s | 40,360,485 | 5,440,663
-No accurate support bound | 2096s | 20,603,649 | 1,928,059
-No equivalent points bound | 1795s | 18,519,745 | 1,993,743
-No one-step look ahead bound | 1703s | 17,813,838 | 1,928,223
+All bounds | 678s | 101s | 7,734,513 | 1,136,376
+No support bound | 1369s | 222s | 14,835,715 | 2,733,557
+No accurate support bound | 831s | 100s | 8,814,803 | 1,136,376
+No equivalent points bound | 710s | 106s | 8,104,054 | 1,189,412
+No one-step look ahead bound | 704s | 105s | 7,724,781 | 1,137,218
+
+##### lambda=0.001, MAXDEPTH=4, prior_metric="gini"
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+  ------------- | ------------- | ------------- | -------------
+All bounds | 318s | 144s | 3,825,748 | 1,743,704
+No support bound | 1222s | 449s | 12,059,364 | 4,841,444
+No accurate support bound | 401s | 193s | 4,606,894 | 2,205,574
+No equivalent points bound | 329s | 157s | 3,986,926 | 1,886,818
+No one-step look ahead bound | 324s | 144s | 3,827,758 | 1,744,720
 
 ##### lambda=0.001, MAXDEPTH=4, all bounds
-metric of the priority queue| time | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+metric of the priority queue| total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------
-gini | 1709s | 17,829,114 | 1,928,059
-entropy | 1806s | 17,646,553 | 1,915,737
-curiosity | 4295s | 35,409,302 | 711,626
-lower bound | 3691s | 41,007,671 | 2,295,989
+gini | 678s | 101s | 7,734,513 | 1,136,376
+entropy | 768s | 115s | 7,658,072 | 1,128,782
+curiosity | 1199s | 51s | 16,708,121 | 841,118
+lower bound | 1643s | 319s | 21,191,877 | 5,298,510

@@ -185,7 +185,7 @@ def generate_new_splitleaf(splitleaf_list, cap_l, incorr_l, ndata, nleaves, lb, 
     splitleaf2 = [0] * (nleaves - 2) + [1, 1]  # l1,l2 labeled as to be split
     splitleaf3 = [1] * (nleaves - 2) + [0, 0]  # dp labeled as to be split
 
-    if lb + b0 + lamb >= R_c or lb >= R_c:
+    if lb + b0 + lamb >= R_c:
         # print("lb+b0+lamb",lb+b0+lamb)
         # print("R_c",R_c)
         # if equivalent points bound combined with the lookahead bound doesn't hold
