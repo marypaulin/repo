@@ -1,0 +1,60 @@
+@incollection{Norouzi2015,
+title = {Efficient Non-greedy Optimization of Decision Trees},
+author = {Norouzi, Mohammad and Collins, Maxwell and Johnson, Matthew A and Fleet, David J and Kohli, Pushmeet},
+booktitle = {Advances in Neural Information Processing Systems {(NIPS)} 28},
+pages = {1729--1737},
+year = {2015}
+}
+ 
+ 
+ 
+@inproceedings{VerwerZh2017,
+author = {Verwer, Sicco and Zhang, Yingqian},
+year = {2017},
+month = {06},
+pages = {},
+title = {Learning decision trees with flexible constraints and objectives using integer optimization}
+booktitle={International Conference on {AI} and {OR} Techniques in Constraint Programming for Combinatorial Optimization Problems
+{(CPAIOR)}: Integration of AI and OR Techniques in Constraint Programming},
+pages={94--103}
+}
+ 
+
+ 
+@article{Chikalov,
+author = {Chikalov, Igor and Hussain, Shahid and Moshkov, Mikhail},
+year = {2013},
+month = {12},
+pages = {359-365},
+title = {Totally Optimal Decision Trees for Monotone Boolean Functions with at Most Five Variables},
+volume = {22},
+booktitle = {Procedia Computer Science}
+}
+ 
+
+@article{NijssenFromont2010,
+year={2010},
+issn={1384-5810},
+journal={Data Mining and Knowledge Discovery},
+volume={21},
+number={1},
+title={Optimal constraint-based decision tree induction from itemset lattices},
+publisher={Springer US},
+keywords={Decision tree learning; Formal concepts; Frequent itemset mining; Constraint based mining},
+author={Nijssen, Siegfried and Fromont, Elisa},
+pages={9-51},
+language={English}
+}
+
+ 
+@inproceedings{NijssenFromont2007,
+year={2007},
+author={Nijssen, Siegfried and Fromont, Elisa},
+title={Mining Optimal Decision Trees from Itemset Lattices},
+booktitle={Proceedings of the ACM SIGKDD Conference on Knowledge Discovery and Data Mining {(KDD)}}
+}
+
+
+
+
+https://urldefense.proofpoint.com/v2/url?u=http-3A__www.optimization-2Donline.org_DB-5FFILE_2018_01_6404.pdf&d=DwIFaQ&c=imBPVzF25OnBgGmVOlcsiEgHoG1i6YHLR0Sj_gZ4adc&r=fz26OdUO7EO5XFYVroxw0kuYrg2l0vToBaIitDe5AWY&m=N0BNLvHVOa9LQnr8yRk1vnbfDaaGT5q_crocUdy9Cko&s=-BZyw3EWfAfBO6WHHxV1Xkofl7StOzHFWYkbQzfexJw&e=
