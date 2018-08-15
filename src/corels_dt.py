@@ -314,12 +314,6 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
         # print("d",d)
         # print("R",tree.lbound[0]+(tree.num_captured_incorrect[0])/len(y))
 
-        # if we have visited this tree
-        if tree.sorted_leaves() in tree_cache:
-            continue
-        else:
-            tree_cache[tree.sorted_leaves()] = True
-
         # the leaves we are going to split
         split_next = tree.splitleaf.copy()
         spl = split_next.pop(0)
@@ -401,9 +395,12 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')):
 
                     new_leaves = [Cache_l1, Cache_l2]
 
-
-                    if tuple(sorted(leaf.rules for leaf in unchanged_leaves+new_leaves)) in tree_cache:
+                    # if we have visited the tree, continue
+                    sorted_new_tree_leaves = tuple(sorted(leaf.rules for leaf in unchanged_leaves+new_leaves))
+                    if sorted_new_tree_leaves in tree_cache:
                         continue
+                    else:
+                        tree_cache[sorted_new_tree_leaves] = True
 
 
                     # calculate the bounds for each leaves in the new tree
