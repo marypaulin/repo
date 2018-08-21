@@ -172,22 +172,21 @@ def log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new,sorted_n
     lines.append(line)
 
 
-def generate_new_splitleaf(tree_new_leaves, leaf_cache, splitleaf_list, ndata, nleaves, lamb, R_c, accu_support, equiv_points, lookahead):
+def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, splitleaf_list, ndata, nleaves, lamb, R_c, accu_support, equiv_points, lookahead):
     """
     generate the new splitleaf for the new tree
     """
     tree_new_rules = [leaf.rules for leaf in tree_new_leaves]
-    sorted_tree_new_rules = sorted(tree_new_rules)
     
     found = False
-    for r1 in sorted_tree_new_rules:
+    for r1 in sorted_new_tree_rules:
         for j in range(len(r1)):
             r2 = tuple(sorted(r1[:j]+(-r1[j],)+r1[j+1:]))
             r0 = r1[:j]+r1[j+1:]
             #print("r1:",r1)
             #print("r2:",r2)
             #print("sorted_tree_new_rules",sorted_tree_new_rules)
-            if r2 in sorted_tree_new_rules and r0 in leaf_cache:
+            if r2 in sorted_new_tree_rules and r0 in leaf_cache:
                 l1 = r1
                 l2 = r2
                 l0 = r0
@@ -485,7 +484,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
 
                     # generate the new splitleaf for the new tree
                     sl = generate_new_splitleaf(
-                        tree_new_leaves, leaf_cache, splitleaf_list, ndata, len(unchanged_leaves)+2, lamb, min(R_c, new_lbound[-1]+loss_l2),
+                        tree_new_leaves, sorted_new_tree_rules, leaf_cache, splitleaf_list, ndata, len(unchanged_leaves)+2, lamb, min(R_c, new_lbound[-1]+loss_l2),
                         accu_support, equiv_points, lookahead)
                     # print('sl',sl)
 
