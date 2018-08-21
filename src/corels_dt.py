@@ -213,9 +213,8 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
     sl = splitleaf_list.copy()
 
     #(Lower bound on accurate antecedent support)
-    if accu_support==True:
-        a_l = (sum(cap_l) - sum(incorr_l)) / ndata - sum(cap_l) / ndata / 2
-    else:
+    a_l = (sum(cap_l) - sum(incorr_l)) / ndata - sum(cap_l) / ndata / 2
+    if accu_support==False:
         a_l = float('Inf')
 
     # binary vector indicating split or not
@@ -227,15 +226,12 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
     splitleaf3[idx1]=0
     splitleaf3[idx2]=0
 
-
-    if lookahead==True:
-        lambbb = lamb
-    else:
+    lambbb = lamb
+    if lookahead==False:
         lambbb = 0
-
-    if equiv_points==True:
-        b00 = b0
-    else:
+    
+    b00 = b0
+    if equiv_points==False:
         b00 = 0
     
     if lb + b00 + lambbb >= R_c:
