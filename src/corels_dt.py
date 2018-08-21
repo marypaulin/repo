@@ -48,8 +48,8 @@ class CacheTree:
                               * leaves[i].num_captured for i in range(l)]
             self.metric = min([sum(self.giniindex[:i] + self.giniindex[i + 1:]) / (ndata - leaves[i].num_captured)
                                if leaves[i].is_dead == 0 else float('Inf') for i in range(l)])
-        else:
-            self.metric = 0
+        elif prior_metric == "objective":
+            self.metric = self.risk
 
     def sorted_leaves(self):
         # Used by the cache
