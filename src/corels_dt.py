@@ -317,6 +317,34 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
 
     return sl
 
+def gini_reduction(x,y,ndata,nrule):
+    """
+    calculate the gini reduction by each feature
+    return the rank of by descending
+    """
+    
+    p0 = sum(y==1)/ndata
+    gini0 = 2*p0*(1-p0)
+    
+    gr = []
+    for i in range(nrule):
+        xi = x[:,i]
+        y1 = y[xi == 0]
+        y2 = y[xi == 1]
+        ndata1 = len(y1)
+        ndata2 = len(y2)
+        p1 = sum(y1==1)/ndata1
+        p2 = sum(y2==1)/ndata2
+        gini1 = 2*p1*(1-p1)
+        gini2 = 2*p2*(1-p2)
+        gini_red = gini0 - ndata1/ndata*gini1 - ndata2/ndata*gini2
+        gr.append(gini_red)
+        
+    gr = pd.Series(gr)
+    rk = list(map(lambda x: int(x)-1, list(gr.rank(method = 'first'))[::-1])) 
+    
+    print("the rank of x's columns: ", rk)
+    return rk
 
 def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
            support=True, accu_support=True, equiv_points=True, lookahead=True):
@@ -334,7 +362,11 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
     ndata = len(y)
     print("nrule:", nrule)
     print("ndata:", ndata)
-
+    
+    # order the columns by descending gini reduction
+    idx = gini_reduction(x,y,ndata,nrule)
+    x = x[:,idx]
+    
     tic = time.time()
 
     lines = []  # a list for log
