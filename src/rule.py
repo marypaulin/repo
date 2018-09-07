@@ -180,6 +180,24 @@ def rule_vor(tt1, tt2):
     cnt = gmpy2.popcount(vor) - 1
     return vor, cnt
 
+
+"""
+	Python implementation of rule_vxor
+
+	Takes in two truthtables
+	Returns the 'xor' of the truthtables
+	as well as the number of ones in the 'xor'
+"""
+
+def rule_vxor(tt1, tt2):
+    vxor = tt1 ^ tt2
+    # because of XOR, the leading one will become 0, so add it back
+    vxor = pow(2,len(tt1)-1)+vxor
+    # subtract 1 to remove leading ones
+    cnt = gmpy2.popcount(vxor) - 1
+    return vxor, cnt 
+
+
 """
 	Python implementation of rule_vandnot
 
@@ -294,14 +312,3 @@ def count_corr(rs):
         corr += rule_vand(cap, labels[r.predict].tt)[1]
         unseen = rule_vandnot(unseen, r.tt)[0]
     return corr, unseen
-
-"""
-    Python implementation of make_default
-    Convert a binary vector to a mpz object
-    Note: in order to ensure you have a leading one,
-    add '1' in the front
-"""
-
-
-def rule_vectompz(vec):
-    return mpz('1' + re.sub('[\[\],\s+]', '', str(list(vec))), 2)

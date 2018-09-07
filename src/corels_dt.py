@@ -3,7 +3,7 @@ import heapq
 import math
 import time
 
-from rule import make_all_ones, make_zeros, rule_vand, rule_vectompz
+from rule import make_all_ones, make_zeros, rule_vand, rule_vxor, rule_vectompz
 
 class CacheTree:
     """
@@ -15,13 +15,17 @@ class CacheTree:
     def __init__(self, ndata, leaves,
                  prior_metric=None,
                  splitleaf=None,
-                 lbound=None
+                 lbound=None,
+                 similar_leafdead = None
                  ):
         self.leaves = leaves
         # a queue of lists indicating which leaves will be split in next rounds
         # (1 for split, 0 for not split)
         self.splitleaf = splitleaf
         self.lbound = lbound  # a list of lower bound
+        
+        # a binary vector indicating whether or not leaves in the tree are dead because of the similar support bound
+        self.similar_leafdead = similar_leafdead 
 
         l = len(leaves)
 
@@ -372,11 +376,12 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
     lines = []  # a list for log
     leaf_cache = {}  # cache leaves
     tree_cache = {}  # cache trees
+    deadprefix_cache = [] # cache dead prefix for the similar support bound
 
     # initialize the queue to include just empty root
     queue = []
     root_leaf = CacheLeaf((), y, z, make_all_ones(ndata+1), ndata, lamb, support)
-    tree0 = CacheTree(leaves=[root_leaf], ndata = ndata, prior_metric=prior_metric, splitleaf=[[1]], lbound=[lamb])
+    tree0 = CacheTree(leaves=[root_leaf], ndata = ndata, prior_metric=prior_metric, splitleaf=[[1]], lbound=[lamb], similar_leafdead=[0])
     heapq.heappush(queue, (tree0.metric, tree0))
     # queue.append(tree0)
     d_c = tree0
@@ -417,15 +422,39 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
 
         # enumerate through all the leaves
         for i in range(len(leaves)):
+            
+            lb = tree.lbound[i]  # the lower bound
+            pc = leaves[i].points_cap
+            
             # print("d!!!",d)
             # if the leaf is dead, then continue
             if tree.leaves[i].is_dead == 1:
+                # cache the lower bound of the prefix, and the points not captured by the prefix
+                if (lb, pc) not in deadprefix_cache:
+                    deadprefix_cache.append((lb, pc))
+                continue
+                
+            if tree.similar_leafdead[i] == 1:
                 continue
 
             # 0 for not split; 1 for split
             if spl[i] == 0:
                 continue
-
+                
+            is_similar = False
+            # similar support bound
+            for deadprefix_lb, deadprefix_cap in deadprefix_cache:
+                _, cnt = rule_vxor(pc, deadprefix_cap)
+                if lb + lamb - deadprefix_lb >= cnt/ndata:
+                    tree.similar_leafdead[i] == 1
+                    if (lb, pc) not in deadprefix_cache:
+                        deadprefix_cache.append((lb, pc))
+                    
+                    is_similar = True
+                    break
+            
+            if is_similar == True:
+                continue
 
             removed_leaf = leaves[i]
             unchanged_leaves = leaves[:i] + leaves[i+1:]
@@ -439,7 +468,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
             splitleaf_list = [split_next[k][:i] + split_next[k][i + 1:] + split_next[k][i:i + 1] * 2
                               for k in range(len(split_next))]
 
-            lb = tree.lbound[i]  # the lower bound
+            
             b0 = tree.leaves[i].B0  # the b0 defined in (28) of the paper
 
 
@@ -521,6 +550,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
                                          prior_metric=prior_metric,
                                          splitleaf=sl,
                                          lbound=new_lbound,
+                                         similar_leafdead = tree.similar_leafdead[:i]+tree.similar_leafdead[i+1:]+[0,0]
                                          )
 
 
