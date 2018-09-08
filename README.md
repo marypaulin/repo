@@ -10,4 +10,4 @@
 Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------  | -------------
 Without similar support bound | 5.385s | 3.387s | 32,126 | 16,360
-With similar support bound | 2701.553s | 553.822s | 21,107 | 13,984
+With similar support bound | 123.889s | 27.082s | 21,107 | 13,984

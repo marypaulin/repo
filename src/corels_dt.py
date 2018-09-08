@@ -444,7 +444,7 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
             is_similar = False
             # similar support bound
             for deadprefix_lb, deadprefix_cap in deadprefix_cache:
-                _, cnt = rule_vxor(pc, deadprefix_cap)
+                cnt = rule_vxor(pc, deadprefix_cap)
                 if lb + lamb - deadprefix_lb >= cnt/ndata:
                     tree.similar_leafdead[i] == 1
                     if (lb, pc) not in deadprefix_cache:

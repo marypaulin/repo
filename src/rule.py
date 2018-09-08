@@ -185,17 +185,14 @@ def rule_vor(tt1, tt2):
 	Python implementation of rule_vxor
 
 	Takes in two truthtables
-	Returns the 'xor' of the truthtables
-	as well as the number of ones in the 'xor'
+	Returns the number of ones in the 'xor'
 """
 
 def rule_vxor(tt1, tt2):
     vxor = tt1 ^ tt2
-    # because of XOR, the leading one will become 0, so add it back
-    vxor = pow(2,len(tt1)-1)+vxor
     # subtract 1 to remove leading ones
-    cnt = gmpy2.popcount(vxor) - 1
-    return vxor, cnt 
+    cnt = gmpy2.popcount(vxor)
+    return cnt 
 
 
 """
