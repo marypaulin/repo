@@ -3,6 +3,7 @@ import pandas as pd
 import heapq
 import math
 import time
+import re
 
 from rule import make_all_ones, make_zeros, rule_vand, rule_vxor, rule_vectompz
 
@@ -59,6 +60,10 @@ class CacheTree:
     def sorted_leaves(self):
         # Used by the cache
         return tuple(sorted(leaf.rules for leaf in self.leaves))
+    
+    def prefix(self,i):
+        # Used by the cache
+        return tuple(sorted(self.leaves[j].rules for j in range(len(self.leaves)) if j!=i))
 
     def __lt__(self, other):
         # define <, which will be used in the priority queue
@@ -351,12 +356,41 @@ def gini_reduction(x,y,ndata,nrule):
     print("the rank of x's columns: ", rk)
     return rk
 
-def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
+def corr_dic(x, corr_threshold):
+    '''
+    return a dictionary,
+    which records highly correlated rule indexs 
+    of each rule in the dictionary keys
+    
+    corr_threshold: highly correlated if correlation is larger than this threshold
+    '''
+    
+    corr = {}
+    corr_df = abs(pd.DataFrame(x).corr())>corr_threshold
+    s1, s2 = corr_df.shape
+    for i in range(s1):
+        corr[str(i+1)] = '['+str(i+1)+re.sub('[\[,\s+]','',str([j+1 for j in range(s2) if corr_df[i][j]==True and i!=j]))
+        
+    return corr
+
+def multiple_replace(dict_corr, prefix):
+    # Create a regular expression from the dictionary keys
+    regex = re.compile("(%s)" % "|".join(map(re.escape, dict_corr.keys())))
+    
+    text = re.sub('[\(\),\s+]','',str(prefix))
+    
+    # For each match, look-up corresponding value in dictionary
+    return regex.sub(lambda mo: dict_corr[mo.string[mo.start():mo.end()]], text)+'$'
+
+def bbound(x, y, z, lamb, corr_threshold, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
            support=True, accu_support=True, equiv_points=True, lookahead=True):
     """
     An implementation of Algorithm
     ## one copy of tree
     ## mark which leaves to be split
+    
+    ## calculate similar support bound when the highly correlated features substitue each other
+    ## regular expression is used
     """
 
     # Initialize best rule list and objective
@@ -372,12 +406,15 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
     idx = gini_reduction(x,y,ndata,nrule)
     x = x[:,idx]
     
+    # get the dictionary of highly correlated features
+    dict_corr = corr_dic(x, corr_threshold)
+    
     tic = time.time()
 
     lines = []  # a list for log
     leaf_cache = {}  # cache leaves
     tree_cache = {}  # cache trees
-    deadprefix_cache = [] # cache dead prefix for the similar support bound
+    deadprefix_cache = {} # cache dead prefix for the similar support bound
 
     # initialize the queue to include just empty root
     queue = []
@@ -431,8 +468,11 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
             # if the leaf is dead, then continue
             if tree.leaves[i].is_dead == 1:
                 # cache the lower bound of the prefix, and the points not captured by the prefix
-                if (lb, pc) not in deadprefix_cache:
-                    deadprefix_cache.append((lb, pc))
+                tree_prefix_regex = multiple_replace(dict_corr, tree.prefix(i))
+                #print("tree.prefix(i):", tree.prefix(i))
+                if tree_prefix_regex not in deadprefix_cache:
+                    deadprefix_cache[tree_prefix_regex] = (lb, pc)
+                    #print("=============!!!Dead!!!=============")
                 continue
                 
             if tree.similar_leafdead[i] == 1:
@@ -441,18 +481,31 @@ def bbound(x, y, z, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), log
             # 0 for not split; 1 for split
             if spl[i] == 0:
                 continue
-                
+            
+            tree_prefix_string = re.sub('[\(\),\s+]','',str(tree.prefix(i)))
+            len_prefix = len(tree_prefix_string)
+            
             is_similar = False
             # similar support bound
-            for deadprefix_lb, deadprefix_cap in deadprefix_cache:
-                cnt = rule_vxor(pc, deadprefix_cap)
-                if lb + lamb - deadprefix_lb >= cnt/ndata:
-                    tree.similar_leafdead[i] == 1
-                    if (lb, pc) not in deadprefix_cache:
-                        deadprefix_cache.append((lb, pc))
-                    
-                    is_similar = True
-                    break
+            # calculate similar support bound only for prefixes 
+            # where highly correlated features are substituted for each other
+            for deadprefix_regex, deadprefix_lb_cap in deadprefix_cache.items():
+                deadprefix_lb, deadprefix_cap = deadprefix_lb_cap
+                
+                pattern = re.compile(deadprefix_regex)
+                m = pattern.match(tree_prefix_string)
+                if m != None:
+                    #print("=============!!!Matched!!!=============")
+                    print(deadprefix_regex)
+                    print(tree_prefix_string)
+
+                    cnt = rule_vxor(pc, deadprefix_cap)
+                    if lb + lamb - deadprefix_lb >= cnt/ndata:
+                        #print("||||||||||||||||||SIMILAR!|||||||||||||")
+                        tree.similar_leafdead[i] == 1
+
+                        is_similar = True
+                        break
             
             if is_similar == True:
                 continue
