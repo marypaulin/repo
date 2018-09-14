@@ -382,7 +382,7 @@ def multiple_replace(dict_corr, prefix):
     # For each match, look-up corresponding value in dictionary
     return regex.sub(lambda mo: dict_corr[mo.string[mo.start():mo.end()]], text)+'$'
 
-def bbound(x, y, z, lamb, corr_threshold, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
+def bbound_similar_when_sub(x, y, z, lamb, corr_threshold, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
            support=True, accu_support=True, equiv_points=True, lookahead=True):
     """
     An implementation of Algorithm
