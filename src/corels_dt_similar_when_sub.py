@@ -382,7 +382,7 @@ def multiple_replace(dict_corr, prefix):
     # For each match, look-up corresponding value in dictionary
     return regex.sub(lambda mo: dict_corr[mo.string[mo.start():mo.end()]], text)+'$'
 
-def bbound_similar_when_sub(x, y, z, lamb, corr_threshold, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
+def bbound_similar_when_sub(x, y, lamb, corr_threshold, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
            support=True, accu_support=True, equiv_points=True, lookahead=True):
     """
     An implementation of Algorithm
@@ -405,6 +405,28 @@ def bbound_similar_when_sub(x, y, z, lamb, corr_threshold, prior_metric=None, MA
     # order the columns by descending gini reduction
     idx = gini_reduction(x,y,ndata,nrule)
     x = x[:,idx]
+
+    """
+        calculate z, which is for the equivalent points bound
+        z is the vector defined in algorithm 5 of the CORELS paper
+        z is a binary vector indicating the data with a minority lable in its equivalent set
+    """
+    z = pd.DataFrame([-1] * ndata).as_matrix()
+    # enumerate through theses samples
+    for i in range(ndata):
+        # if z[i,0]==-1, this sample i has not been put into its equivalent set
+        if z[i, 0] == -1:
+            tag1 = np.array([True] * ndata)
+            for j in range(nrule):
+                rule_label = x[i][j]
+                # tag1 indicates which samples have exactly the same features with sample i
+                tag1 = (x[:, j] == rule_label) * tag1
+
+            y_l = y[tag1]
+            pred = int(y_l.sum() / len(y_l) >= 0.5)
+            # tag2 indicates the samples in a equiv set which have the minority label
+            tag2 = (y_l != pred)
+            z[tag1, 0] = tag2
     
     # get the dictionary of highly correlated features
     dict_corr = corr_dic(x, corr_threshold)
