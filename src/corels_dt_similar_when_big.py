@@ -445,13 +445,19 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
 
         # enumerate through all the leaves
         for i in range(len(leaves)):
+
+            removed_leaf = leaves[i]
+
+            # Restrict the depth of the tree
+            if len(removed_leaf.rules) >= MAXDEPTH:
+                continue
             
             lb = tree.lbound[i]  # the lower bound
-            pc = leaves[i].points_cap
+            pc = removed_leaf.points_cap
             
             # print("d!!!",d)
             # if the leaf is dead, then continue
-            if tree.leaves[i].is_dead == 1:
+            if removed_leaf.is_dead == 1:
                 # cache the lower bound of the prefix, and the points not captured by the prefix
                 if (lb, pc) not in deadprefix_cache:
                     deadprefix_cache.append((lb, pc))
@@ -480,21 +486,15 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
             if is_similar == True:
                 continue
 
-            removed_leaf = leaves[i]
+
             unchanged_leaves = leaves[:i] + leaves[i+1:]
 
-            # Restrict the depth of the tree
-            if len(removed_leaf.rules) >= MAXDEPTH:
-                continue
+
 
             # we are going to split leaf i, and get 2 new leaves
             # we will add the two new leaves to the end of the list
             splitleaf_list = [split_next[k][:i] + split_next[k][i + 1:] + split_next[k][i:i + 1] * 2
                               for k in range(len(split_next))]
-
-            
-            b0 = tree.leaves[i].B0  # the b0 defined in (28) of the paper
-
 
             d0 = removed_leaf.rules
 
@@ -506,12 +506,8 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
                     l2 = d0 + (j,)
                     # print("t",t)
 
-                    pred_l = [0] * 2
                     cap_l = [0] * 2
                     incorr_l = [0] * 2
-                    p_l = [0] * 2
-                    B0_l = [0] * 2
-                    points_l = make_zeros(2)
 
                     # for the two new leaves, if they have not been visited,
                     # calculate their predictions,
@@ -556,7 +552,7 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
                     # calculate the bounds for each leaves in the new tree
                     loss_l1 = incorr_l[0] / ndata
                     loss_l2 = incorr_l[1] / ndata
-                    loss_d0 = tree.leaves[i].p * tree.leaves[i].num_captured / ndata
+                    loss_d0 = removed_leaf.p * removed_leaf.num_captured / ndata
                     delta = loss_l1 + loss_l2 - loss_d0 + lamb
                     old_lbound = tree.lbound[:i] + tree.lbound[i + 1:]
                     new_lbound = [b + delta for b in old_lbound] + \
