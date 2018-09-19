@@ -138,13 +138,15 @@ class CacheLeaf:
             self.num_captured_incorrect = 0
             self.p = 0
 
+          
+        self.loss = float(self.num_captured_incorrect) / len(y)
+        
         # Lower bound on antecedent support
         if support == True:
-            self.is_dead = self.num_captured / len(y) / 2 < lamb
+            #self.is_dead = self.num_captured / len(y) / 2 <= lamb
+            self.is_dead = self.loss <= lamb
         else:
             self.is_dead = 0
-
-        self.loss = float(self.num_captured_incorrect) / len(y)
 
 
 
@@ -203,10 +205,12 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
     
     idx1 = tree_new_rules.index(l1)
     idx2 = tree_new_rules.index(l2)
-    
-    cap_l = [tree_new_leaves[idx1].points_cap, tree_new_leaves[idx2].points_cap]
-    incorr_l = [tree_new_leaves[idx1].num_captured_incorrect, tree_new_leaves[idx2].num_captured_incorrect]
-    lb = sum([leaf.loss for leaf in tree_new_leaves]) - tree_new_leaves[idx1].loss - tree_new_leaves[idx2].loss + lamb*(len(tree_new_leaves)-1)
+
+    loss1 = tree_new_leaves[idx1].loss
+    loss2 = tree_new_leaves[idx2].loss
+    loss0 = leaf_cache[l0].loss
+
+    lb = sum([leaf.loss for leaf in tree_new_leaves]) - loss1 - loss2 + lamb*(len(tree_new_leaves)-1)
     
     #print("l1",l1)
     #print("l2",l2)
@@ -218,7 +222,9 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
     sl = splitleaf_list.copy()
 
     #(Lower bound on accurate antecedent support)
-    a_l = (sum(cap_l) - sum(incorr_l)) / ndata - sum(cap_l) / ndata / 2
+    #a_l = (sum(cap_l) - sum(incorr_l)) / ndata - sum(cap_l) / ndata / 2
+    a_l = loss0 - loss1 - loss2
+
     if accu_support==False:
         a_l = float('Inf')
 
@@ -246,7 +252,7 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
         # or if the hierarchical objective lower bound doesn't hold
         # we need to split at least one leaf in dp
 
-        if a_l < lamb:
+        if a_l <= lamb:
             # if the bound doesn't hold, we need to split the leaf l1/l2
             # further
 
@@ -299,7 +305,7 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
                 sl.append(splitleaf3)
     else:
 
-        if a_l < lamb:
+        if a_l <= lamb:
             # if the bound doesn't hold, we need to split the leaf l1/l2
             # further
 
@@ -522,18 +528,22 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
                     if l1_sorted not in leaf_cache:
                         tag_rule1 = rule_vectompz(np.array(x[:, rule_index] == 0) * 1)
                         new_points_cap1, new_num_captured1 = rule_vand(tag, tag_rule1)
-                        leaf_cache[l1_sorted] = CacheLeaf(l1_sorted, y, z, new_points_cap1, new_num_captured1, lamb, support)
+                        Cache_l1 = CacheLeaf(l1_sorted, y, z, new_points_cap1, new_num_captured1, lamb, support)
+                        leaf_cache[l1_sorted] = Cache_l1
+                    else:
+                        Cache_l1 = leaf_cache[l1_sorted]
 
-                    Cache_l1 = leaf_cache[l1_sorted]
                     cap_l[0], incorr_l[
                         0] = Cache_l1.num_captured, Cache_l1.num_captured_incorrect
 
                     if l2_sorted not in leaf_cache:
                         tag_rule2 = rule_vectompz(np.array(x[:, rule_index] == 1) * 1)
                         new_points_cap2, new_num_captured2 = rule_vand(tag, tag_rule2)
-                        leaf_cache[l2_sorted] = CacheLeaf(l2_sorted, y, z, new_points_cap2, new_num_captured2, lamb, support)
+                        Cache_l2 = CacheLeaf(l2_sorted, y, z, new_points_cap2, new_num_captured2, lamb, support)
+                        leaf_cache[l2_sorted] = Cache_l2
+                    else:
+                        Cache_l2 = leaf_cache[l2_sorted]
 
-                    Cache_l2 = leaf_cache[l2_sorted]
                     cap_l[1], incorr_l[
                         1] = Cache_l2.num_captured, Cache_l2.num_captured_incorrect
 

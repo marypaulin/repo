@@ -10,7 +10,15 @@
 
 ##### This version:
 
-Algorithm variant (This version) | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+
+###### use leaves' actual loss for support bound and accurate support bound
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+  ------------- | ------------- | ------------- | -------------  | -------------
+Without similar support bound | 184.813s | 14.327s | 1,477,303 | 121,295
+With similar support bound (add to the head of the deadprefix list) | 739.245s | 103.848s | 264,202 | 119,783
+
+
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------  | -------------
 Without similar support bound | 249.140s | 62.677s | 2,053,987 | 499,510
 With similar support bound (append to the end of the deadprefix list) | 1119.532s | 387.051s | 471,927 | 299,831
