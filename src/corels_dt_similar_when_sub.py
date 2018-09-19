@@ -524,11 +524,15 @@ def bbound_similar_when_sub(x, y, lamb, corr_threshold, prior_metric=None, MAXDE
                 m = pattern.match(tree_prefix_string)
                 if m != None:
                     #print("=============!!!Matched!!!=============")
-                    print(deadprefix_regex)
-                    print(tree_prefix_string)
+                    #print(deadprefix_regex)
+                    #print(tree_prefix_string)
+                    
+                    similar = lb + lamb - deadprefix_lb
+                    if similar < 0:
+                        continue
 
                     cnt = rule_vxor(pc, deadprefix_cap)
-                    if lb + lamb - deadprefix_lb >= cnt/ndata:
+                    if similar >= cnt/ndata:
                         #print("||||||||||||||||||SIMILAR!|||||||||||||")
                         tree.similar_leafdead[i] == 1
 

@@ -461,8 +461,8 @@ def bbound_similar(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')
                 # cache the lower bound of the prefix, and the points not captured by the prefix
                 ## if (tree.risk, (lb, pc)) not in deadprefix_cache:
                 if (lb, pc) not in deadprefix_cache:
-                    deadprefix_cache.append((lb, pc))
-                    #deadprefix_cache = [(lb, pc)]+deadprefix_cache
+                    #deadprefix_cache.append((lb, pc))
+                    deadprefix_cache = [(lb, pc)]+deadprefix_cache
                     ## heapq.heappush(deadprefix_cache, (tree.risk, (lb, pc)))
                 continue
                 
@@ -516,16 +516,17 @@ def bbound_similar(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')
             for deadprefix_lb_cap in deadprefix_cache:
                 deadprefix_lb, deadprefix_cap = deadprefix_lb_cap
 
-                if lb + lamb - deadprefix_lb < 0.01:
+                similar = lb + lamb - deadprefix_lb
+                if similar < 0:
                     continue
 
                 cnt = rule_vxor(pc, deadprefix_cap)
-                if lb + lamb - deadprefix_lb >= cnt/ndata:
+                if similar >= cnt/ndata:
                     tree.similar_leafdead[i] == 1
                     ## if (tree.risk, (lb, pc)) not in deadprefix_cache:
                     if (lb, pc) not in deadprefix_cache:
-                        deadprefix_cache.append((lb, pc))
-                        #deadprefix_cache = [(lb, pc)]+deadprefix_cache
+                        #deadprefix_cache.append((lb, pc))
+                        deadprefix_cache = [(lb, pc)]+deadprefix_cache
                         ## heapq.heappush(deadprefix_cache, (tree.risk, (lb, pc)))
                     
                     is_similar = True

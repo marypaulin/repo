@@ -7,7 +7,19 @@
 #### all 6907 data from compas-binary.csv
 
 ##### lambda=0.0035, MAXDEPTH=4, prior_metric="objective",5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
-Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+
+##### This version
+
+Algorithm variant (last version, Sep 14) | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+  ------------- | ------------- | ------------- | -------------  | -------------
+Without similar support bound | 249.140s | 62.677s | 2,053,987 | 499,510
+With similar support bound (append to the end of the deadprefix list) | 1119.532s | 387.051s | 471,927 | 299,831
+With similar support bound (add to the head of the deadprefix list) | 824.534s | 286.960s | 471,927 | 299,831
+
+
+##### last version (Sep 14):
+
+Algorithm variant (last version, Sep 14) | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------  | -------------
 Without similar support bound | 274.843s | 68.281s | 2,053,987 | 499,510
 With similar support bound (activate when highly correlated features substitute each other; use regular expression) | >10h |  |  | 
