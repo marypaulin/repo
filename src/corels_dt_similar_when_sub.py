@@ -114,18 +114,19 @@ class CacheLeaf:
     A data structure to cache every single leaf (symmetry aware)
     """
 
-    def __init__(self, rules, y, z, points_cap, num_captured, lamb, support):
+    def __init__(self, rules, y, z, points_cap, num_captured, lamb, support, is_feature_dead):
         self.rules = rules
         self.points_cap = points_cap
         self.num_captured = num_captured
+        self.is_feature_dead = is_feature_dead
 
         # the y's of these data captured by leaf antecedent[0]
-        #y_leaf = y[tag]
+        # y_leaf = y[tag]
         # print("tag",tag)
         # print("y",y)
         _, num_ones = rule_vand(points_cap, rule_vectompz(y))
 
-        #b0 is defined in (28)
+        # b0 is defined in (28)
 
         tag_z = rule_vectompz(z.reshape(1, -1)[0])
         _, num_errors = rule_vand(points_cap, tag_z)
@@ -143,12 +144,11 @@ class CacheLeaf:
             self.num_captured_incorrect = 0
             self.p = 0
 
-          
         self.loss = float(self.num_captured_incorrect) / len(y)
-        
+
         # Lower bound on antecedent support
         if support == True:
-            #self.is_dead = self.num_captured / len(y) / 2 <= lamb
+            # self.is_dead = self.num_captured / len(y) / 2 <= lamb
             self.is_dead = self.loss <= lamb
         else:
             self.is_dead = 0
@@ -446,7 +446,7 @@ def bbound_similar_when_sub(x, y, lamb, corr_threshold, prior_metric=None, MAXDE
 
     # initialize the queue to include just empty root
     queue = []
-    root_leaf = CacheLeaf((), y, z, make_all_ones(ndata+1), ndata, lamb, support)
+    root_leaf = CacheLeaf((), y, z, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
     tree0 = CacheTree(leaves=[root_leaf], ndata = ndata, prior_metric=prior_metric, splitleaf=[[1]], lbound=[lamb], similar_leafdead=[0])
     heapq.heappush(queue, (tree0.metric, tree0))
     # queue.append(tree0)
@@ -561,6 +561,13 @@ def bbound_similar_when_sub(x, y, lamb, corr_threshold, prior_metric=None, MAXDE
 
             # split the leaf d0 with feature j
             for j in range(1, nrule + 1):
+
+                rule_index = j - 1
+
+                # test if the feature is dead (because of incremental support bound)
+                if removed_leaf.is_feature_dead[rule_index] == 1:
+                    continue
+
                 if j not in d0 and -j not in d0:
                     # split leaf d0 with feature j, and get 2 leaves l1 and l2
                     l1 = d0 + (-j,)
@@ -575,15 +582,16 @@ def bbound_similar_when_sub(x, y, lamb, corr_threshold, prior_metric=None, MAXDE
                     l1_sorted = tuple(sorted(l1))
                     l2_sorted = tuple(sorted(l2))
 
-
                     tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
 
-                    rule_index = j-1
+
+                    parent_is_feature_dead = removed_leaf.is_feature_dead.copy()
 
                     if l1_sorted not in leaf_cache:
                         tag_rule1 = rule_vectompz(np.array(x[:, rule_index] == 0) * 1)
                         new_points_cap1, new_num_captured1 = rule_vand(tag, tag_rule1)
-                        Cache_l1 = CacheLeaf(l1_sorted, y, z, new_points_cap1, new_num_captured1, lamb, support)
+                        Cache_l1 = CacheLeaf(l1_sorted, y, z, new_points_cap1, new_num_captured1,
+                                             lamb, support, parent_is_feature_dead)
                         leaf_cache[l1_sorted] = Cache_l1
                     else:
                         Cache_l1 = leaf_cache[l1_sorted]
@@ -591,10 +599,16 @@ def bbound_similar_when_sub(x, y, lamb, corr_threshold, prior_metric=None, MAXDE
                     cap_l[0], incorr_l[
                         0] = Cache_l1.num_captured, Cache_l1.num_captured_incorrect
 
+                    # incremental support bound
+                    if cap_l[0] / ndata <= lamb:
+                        removed_leaf.is_feature_dead[rule_index] = 1
+                        continue
+
                     if l2_sorted not in leaf_cache:
                         tag_rule2 = rule_vectompz(np.array(x[:, rule_index] == 1) * 1)
                         new_points_cap2, new_num_captured2 = rule_vand(tag, tag_rule2)
-                        Cache_l2 = CacheLeaf(l2_sorted, y, z, new_points_cap2, new_num_captured2, lamb, support)
+                        Cache_l2 = CacheLeaf(l2_sorted, y, z, new_points_cap2, new_num_captured2,
+                                             lamb, support, parent_is_feature_dead)
                         leaf_cache[l2_sorted] = Cache_l2
                     else:
                         Cache_l2 = leaf_cache[l2_sorted]
@@ -602,6 +616,10 @@ def bbound_similar_when_sub(x, y, lamb, corr_threshold, prior_metric=None, MAXDE
                     cap_l[1], incorr_l[
                         1] = Cache_l2.num_captured, Cache_l2.num_captured_incorrect
 
+                    # incremental support bound
+                    if cap_l[1] / ndata <= lamb:
+                        removed_leaf.is_feature_dead[rule_index] = 1
+                        continue
 
                     new_leaves = [Cache_l1, Cache_l2]
                     

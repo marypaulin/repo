@@ -562,8 +562,10 @@ def bbound_similar(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')
             # split the leaf d0 with feature j
             for j in range(1, nrule + 1):
 
+                rule_index = j - 1
+
                 # test if the feature is dead (because of incremental support bound)
-                if removed_leaf.is_feature_dead[j - 1] == 1:
+                if removed_leaf.is_feature_dead[rule_index] == 1:
                     continue
 
                 if j not in d0 and -j not in d0:
@@ -582,7 +584,6 @@ def bbound_similar(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')
 
                     tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
 
-                    rule_index = j - 1
 
                     parent_is_feature_dead = removed_leaf.is_feature_dead.copy()
 
@@ -600,7 +601,7 @@ def bbound_similar(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')
 
                     # incremental support bound
                     if cap_l[0] / ndata <= lamb:
-                        removed_leaf.is_feature_dead[j - 1] = 1
+                        removed_leaf.is_feature_dead[rule_index] = 1
                         continue
 
                     if l2_sorted not in leaf_cache:
@@ -617,7 +618,7 @@ def bbound_similar(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')
 
                     # incremental support bound
                     if cap_l[1] / ndata <= lamb:
-                        removed_leaf.is_feature_dead[j - 1] = 1
+                        removed_leaf.is_feature_dead[rule_index] = 1
                         continue
 
                     new_leaves = [Cache_l1, Cache_l2]
