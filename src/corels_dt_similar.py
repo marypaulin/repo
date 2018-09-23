@@ -600,7 +600,7 @@ def bbound_similar(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')
                         0] = Cache_l1.num_captured, Cache_l1.num_captured_incorrect
 
                     # incremental support bound
-                    if cap_l[0] / ndata <= lamb:
+                    if (cap_l[0]-incorr_l[0]) / ndata <= lamb:
                         removed_leaf.is_feature_dead[rule_index] = 1
                         continue
 
@@ -617,7 +617,7 @@ def bbound_similar(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')
                         1] = Cache_l2.num_captured, Cache_l2.num_captured_incorrect
 
                     # incremental support bound
-                    if cap_l[1] / ndata <= lamb:
+                    if (cap_l[1]-incorr_l[1]) / ndata <= lamb:
                         removed_leaf.is_feature_dead[rule_index] = 1
                         continue
 
