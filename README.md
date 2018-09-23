@@ -20,6 +20,7 @@ With similar support bound (5 features, MAXDEPTH=5) | 91.424s | 6.013s | 20,197 
 ##### try 6 features, lambda = 0.01, MAXDEPTH=6
 
 Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+  ------------- | ------------- | ------------- | -------------  | -------------
 Without similar support bound (incremental support bound)  | 206.155s | 0.498s | 1,336,065 | 11
 Without similar support bound (tighter incremental support bound)  | 11.318s | 0.498s | 20,382 | 11
 
