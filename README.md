@@ -24,6 +24,13 @@ Algorithm variant | total time | time to find the optimal tree | total number of
 Without similar support bound (incremental support bound)  | 206.155s | 0.498s | 1,336,065 | 11
 Without similar support bound (tighter incremental support bound)  | 11.318s | 0.498s | 20,382 | 11
 
+##### lambda=0.0035, prior_metric="objective",5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
+
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+  ------------- | ------------- | ------------- | -------------  | -------------
+With tighter incremental support bound (5 features, MAXDEPTH=4)| 4.477s | 2.795s | 6,864 | 1,794
+Without tighter incremental support bound (5 features, MAXDEPTH=4) | 184.813s | 14.327s | 1,477,303 | 121,295
+
 
 
 ##### This version with incremental support bound (support <= lambda):
