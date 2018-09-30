@@ -482,7 +482,7 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
                 for deadprefix_lb, deadprefix_cap in deadprefix_cache:
                     cnt = rule_vxor(pc, deadprefix_cap)
                     if lb + lamb - deadprefix_lb >= cnt/ndata:
-                        tree.similar_leafdead[i] == 1
+                        tree.similar_leafdead[i] = 1
                         if (lb, pc) not in deadprefix_cache:
                             deadprefix_cache.append((lb, pc))
 

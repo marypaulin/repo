@@ -537,7 +537,7 @@ def bbound_similar(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf')
 
                 cnt = rule_vxor(pc, deadprefix_cap)
                 if similar >= cnt / ndata:
-                    tree.similar_leafdead[i] == 1
+                    tree.similar_leafdead[i] = 1
                     ## if (tree.risk, (lb, pc)) not in deadprefix_cache:
                     if (lb, pc) not in deadprefix_cache:
                         # deadprefix_cache.append((lb, pc))
