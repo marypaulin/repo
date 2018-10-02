@@ -12,10 +12,14 @@
 
 Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------  | -------------
-Without similar support bound (5 features, MAXDEPTH=4)| 4.477s | 2.795s | 6,864 | 1,794
-With similar support bound (5 features, MAXDEPTH=4) | 8.365s | 2.854s | 6,178 | 1,794
-Without similar support bound (5 features, MAXDEPTH=5)  | 6.143s | 3.407s | 18,855 | 5,525
-With similar support bound (5 features, MAXDEPTH=5) | 91.424s | 6.013s | 20,197 | 5,525
+Without similar support bound (MAXDEPTH=4)| 4.477s | 2.795s | 6,864 | 1,794
+With similar support bound (MAXDEPTH=4) | 7.858s | 3.014s | 6,161 | 1,794
+With SSB when big (MAXDEPTH=4, SSB_cache_thres=5, SSB_check_thres=6) | 4.631s | 2.767s | 6,618 | 1,794
+With SSB using priority queue ordered by #similarity (MAXDEPTH=4) | 8.540s | 3.027s | 6,161 | 1,794
+Without similar support bound (MAXDEPTH=5)  | 6.143s | 3.407s | 18,855 | 5,525
+With similar support bound (MAXDEPTH=5) | 54.607s | 5.776s | 17,633 | 5,525
+With SSB when big (MAXDEPTH=5, SSB_cache_thres=5, SSB_check_thres=6) | 7.613s | 3.545s | 18,693 | 5,255
+With SSB using priority queue ordered by #similarity (MAXDEPTH=5) | 65.060s | 6.389s | 17,633 | 5,525
 
 ##### try 6 features, lambda = 0.01, MAXDEPTH=6
 

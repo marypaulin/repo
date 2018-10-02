@@ -366,11 +366,16 @@ def gini_reduction(x, y, ndata, nrule):
 
 
 def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
-                   support=True, accu_support=True, equiv_points=True, lookahead=True):
+                            support=True, accu_support=True, equiv_points=True, lookahead=True,
+                            SSB_cache_thres = 0, SSB_check_thres = 1000):
     """
     An implementation of Algorithm
     ## one copy of tree
     ## mark which leaves to be split
+
+    ## SSB similar support bound
+    ## SSB_cache_thres: when the #leaves of a dead prefix > SSB_cache_thres, we cache it
+    ## SSB_check_thres: when the #leaves of a new prefix < SSB_check_thres, we check SSB
     """
 
     # Initialize best rule list and objective
@@ -474,8 +479,9 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
             # if the leaf is dead, then continue
             if removed_leaf.is_dead == 1:
                 # cache the lower bound of the prefix, and the points not captured by the prefix
+                ## SSB_cache_thres: when the #leaves of a dead prefix > SSB_cache_thres, we cache it
                 ## if (tree.risk, (lb, pc)) not in deadprefix_cache:
-                if len(leaves)>3 and (lb, pc) not in deadprefix_cache:
+                if len(leaves) > SSB_cache_thres and (lb, pc) not in deadprefix_cache:
                     # deadprefix_cache.append((lb, pc))
                     deadprefix_cache = [(lb, pc)] + deadprefix_cache
                     ## heapq.heappush(deadprefix_cache, (tree.risk, (lb, pc)))
@@ -488,64 +494,30 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
             if spl[i] == 0:
                 continue
 
-            '''
             is_similar = False
             # similar support bound
-            for deadprefix_lb, deadprefix_cap in deadprefix_cache:
-                cnt = rule_vxor(pc, deadprefix_cap)
-                if lb + lamb - deadprefix_lb >= cnt/ndata:
-                    tree.similar_leafdead[i] == 1
-                    if (lb, pc) not in deadprefix_cache:
-                        #deadprefix_cache.append((lb, pc))
-                        deadprefix_cache = [(lb, pc)]+deadprefix_cache
+            ## SSB_check_thres: when the #leaves of a new prefix < SSB_check_thres, we check SSB
+            if len(leaves) < SSB_check_thres:
+                ## for _, deadprefix_lb_cap in deadprefix_cache:
+                for deadprefix_lb_cap in deadprefix_cache:
 
-                    is_similar = True
-                    break
-            '''
+                    deadprefix_lb, deadprefix_cap = deadprefix_lb_cap
 
-            '''
-            is_similar = False
-            # similar support bound
-            #for deadprefix_lb, deadprefix_cap in deadprefix_cache:
-            ndeadprefix = len(deadprefix_cache)
-            for k in range(ndeadprefix):
-                deadprefix_lb, deadprefix_cap = deadprefix_cache[k]
+                    similar = lb + lamb - deadprefix_lb
+                    if similar < 0:
+                        continue
 
-                cnt = rule_vxor(pc, deadprefix_cap)
-                if lb + lamb - deadprefix_lb >= cnt/ndata:
+                    cnt = rule_vxor(pc, deadprefix_cap)
+                    if similar >= cnt / ndata:
+                        tree.similar_leafdead[i] = 1
+                        ## if (tree.risk, (lb, pc)) not in deadprefix_cache:
+                        if (lb, pc) not in deadprefix_cache:
+                            # deadprefix_cache.append((lb, pc))
+                            deadprefix_cache = [(lb, pc)] + deadprefix_cache
+                            ## heapq.heappush(deadprefix_cache, (tree.risk, (lb, pc)))
 
-                    deadprefix_cache = deadprefix_cache[:k]+deadprefix_cache[k+1:]
-
-                    tree.similar_leafdead[i] == 1
-                    if (lb, pc) not in deadprefix_cache:
-                        #deadprefix_cache.append((lb, pc))
-                        deadprefix_cache = [(lb, pc)]+deadprefix_cache
-
-                    is_similar = True
-                    break
-            '''
-
-            is_similar = False
-            # similar support bound
-            ## for _, deadprefix_lb_cap in deadprefix_cache:
-            for deadprefix_lb_cap in deadprefix_cache:
-                deadprefix_lb, deadprefix_cap = deadprefix_lb_cap
-
-                similar = lb + lamb - deadprefix_lb
-                if similar < 0:
-                    continue
-
-                cnt = rule_vxor(pc, deadprefix_cap)
-                if similar >= cnt / ndata:
-                    tree.similar_leafdead[i] = 1
-                    ## if (tree.risk, (lb, pc)) not in deadprefix_cache:
-                    if (lb, pc) not in deadprefix_cache:
-                        # deadprefix_cache.append((lb, pc))
-                        deadprefix_cache = [(lb, pc)] + deadprefix_cache
-                        ## heapq.heappush(deadprefix_cache, (tree.risk, (lb, pc)))
-
-                    is_similar = True
-                    break
+                        is_similar = True
+                        break
 
             if is_similar == True:
                 continue
@@ -584,7 +556,6 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
 
                     tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
 
-
                     parent_is_feature_dead = removed_leaf.is_feature_dead.copy()
 
                     if l1_sorted not in leaf_cache:
@@ -600,7 +571,7 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
                         0] = Cache_l1.num_captured, Cache_l1.num_captured_incorrect
 
                     # incremental support bound
-                    if (cap_l[0]-incorr_l[0]) / ndata <= lamb:
+                    if (cap_l[0] - incorr_l[0]) / ndata <= lamb:
                         removed_leaf.is_feature_dead[rule_index] = 1
                         continue
 
@@ -617,7 +588,7 @@ def bbound_similar_when_big(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
                         1] = Cache_l2.num_captured, Cache_l2.num_captured_incorrect
 
                     # incremental support bound
-                    if (cap_l[1]-incorr_l[1]) / ndata <= lamb:
+                    if (cap_l[1] - incorr_l[1]) / ndata <= lamb:
                         removed_leaf.is_feature_dead[rule_index] = 1
                         continue
 
