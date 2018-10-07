@@ -7,8 +7,23 @@
 #### all 6907 data from compas-binary.csv
 
 ##### lambda=0.0035, prior_metric="objective",5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
+##### MAXDEPTH = 5, Without similar support bound
 
-##### This version with tighter incremental support bound (#corr/ndata <= lambda):
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+  ------------- | ------------- | ------------- | -------------  | -------------
+One copy for each tree (prior_metric="objective") | 6.171s | 3.385s | 18,855 | 5,525
+Multiple copies for each tree (prior_metric="objective") | 4.960s | 3.650s | 47,780 | 26,561
+One copy for each tree (prior_metric="bound") | 6.355s | 4.699s | 17,714 | 5,598
+Multiple copies for each tree (prior_metric="bound") | 31.165s | 3.397s | 773,889 | 3,862
+One copy for each tree (prior_metric="curiosity") | 5.796s | 5.222s | 10,672 | 7,136
+Multiple copies for each tree (prior_metric="curiosity") | 6.391s | 5.025s | 86,712 | 46,334
+One copy for each tree (prior_metric="gini") | 6.170s | 2.762s | 13,679 | 1,059
+Multiple copies for each tree (prior_metric="gini") | 7.997s | 0.769s | 112,619 | 44
+
+
+##### lambda=0.0035, prior_metric="objective",5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
+
+##### The version (Oct 2) with tighter incremental support bound (#corr/ndata <= lambda):
 
 Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------  | -------------
