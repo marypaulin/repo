@@ -6,7 +6,7 @@
 #### one copy of tree with multiple leaves marked to be split 
 #### all 6907 data from compas-binary.csv
 
-##### lambda=0.0035, prior_metric="objective",5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
+##### lambda=0.0035, 5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
 ##### MAXDEPTH = 5, Without similar support bound
 
 Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
