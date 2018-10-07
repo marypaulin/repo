@@ -160,24 +160,27 @@ def log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new, sorted_
 
     the_count_pop = str(COUNT_POP)
     the_count = str(COUNT)
-    the_queue_size = str(len(queue))
+    the_queue_size = str(0)  # str(len(queue))
     the_metric = str(metric)
     the_Rc = str(R_c)
 
-    the_old_tree = str(sorted([leaf.rules for leaf in tree_old.leaves]))
-    the_old_tree_splitleaf = str(tree_old.splitleaf)
-    the_new_tree = str(list(sorted_new_tree_rules))
-    the_new_tree_splitleaf = str(tree_new.splitleaf)
+    the_old_tree = str(0)  # str(sorted([leaf.rules for leaf in tree_old.leaves]))
+    the_old_tree_splitleaf = str(0)  # str(tree_old.splitleaf)
+    the_old_tree_objective = str(tree_old.risk)
+    the_old_tree_lbound = str(tree_old.lb)
+    the_new_tree = str(0)  # str(list(sorted_new_tree_rules))
+    the_new_tree_splitleaf = str(0)  # str(tree_new.splitleaf)
 
     the_new_tree_objective = str(tree_new.risk)
-    the_new_tree_lbound = str(min(tree_new.lbound))
+    the_new_tree_lbound = str(tree_new.lb)
     the_new_tree_length = str(len(tree_new.leaves))
-    the_new_tree_depth = str(max([len(leaf.rules) for leaf in tree_new.leaves]))
+    the_new_tree_depth = str(0)  # str(max([len(leaf.rules) for leaf in tree_new.leaves]))
 
-    the_queue = str([[leaf.rules for leaf in thetree.leaves] for _, thetree in queue])
+    the_queue = str(0)  # str([[ leaf.rules for leaf in thetree.leaves]  for _,thetree in queue])
 
     line = ";".join([the_count_pop, the_count, the_queue_size, the_metric, the_Rc,
-                     the_old_tree, the_old_tree_splitleaf, the_new_tree, the_new_tree_splitleaf,
+                     the_old_tree, the_old_tree_splitleaf, the_old_tree_objective, the_old_tree_lbound,
+                     the_new_tree, the_new_tree_splitleaf,
                      the_new_tree_objective, the_new_tree_lbound, the_new_tree_length, the_new_tree_depth,
                      the_queue
                      ])
@@ -681,7 +684,8 @@ def bbound_similar_priority(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
                         print("COUNT:", COUNT)
 
     header = ['#pop', '#push', 'queue_size', 'metric', 'R_c',
-              'the_old_tree', 'the_old_tree_splitleaf', 'the_new_tree', 'the_new_tree_splitleaf',
+              'the_old_tree', 'the_old_tree_splitleaf', 'the_old_tree_objective', 'the_old_tree_lbound',
+              'the_new_tree', 'the_new_tree_splitleaf',
               'the_new_tree_objective', 'the_new_tree_lbound', 'the_new_tree_length', 'the_new_tree_depth', 'queue']
 
     fname = "_".join([str(nrule), str(ndata), prior_metric,
