@@ -591,6 +591,13 @@ def bbound_similar_priority(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
                     l1_sorted = tuple(sorted(l1))
                     l2_sorted = tuple(sorted(l2))
 
+                    sorted_new_tree_rules = tuple(
+                        sorted([leaf.rules for leaf in unchanged_leaves] + [l1_sorted, l2_sorted]))
+                    if sorted_new_tree_rules in tree_cache:
+                        continue
+                    else:
+                        tree_cache[sorted_new_tree_rules] = True
+
                     tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
 
 
@@ -634,11 +641,6 @@ def bbound_similar_priority(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=flo
 
                     tree_new_leaves = unchanged_leaves + new_leaves
 
-                    sorted_new_tree_rules = tuple(sorted(leaf.rules for leaf in tree_new_leaves))
-                    if sorted_new_tree_rules in tree_cache:
-                        continue
-                    else:
-                        tree_cache[sorted_new_tree_rules] = True
 
                     # calculate the bounds for each leaves in the new tree
                     loss_l1 = incorr_l[0] / ndata
