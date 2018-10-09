@@ -21,6 +21,16 @@ One copy for each tree (prior_metric="gini") | 6.170s | 2.762s | 13,679 | 1,059
 Multiple copies for each tree (prior_metric="gini") | 7.997s | 0.769s | 112,619 | 44
 
 
+##### lambda=0.0035, 6 features: 5 features+1 manually added highly correlated feature of age:21-22 (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
+##### MAXDEPTH = 4, One copy, prior_metric="objective"
+
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+  ------------- | ------------- | ------------- | -------------  | -------------
+Without similar support bound | 15.236s | 7.316s | 71,282 | 23,402
+With SSB when sub v2 | 14.871s | 7.335s | 66,473 | 21,948
+
+
+
 ##### lambda=0.0035, prior_metric="objective",5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
 
 ##### The version (Oct 2) with tighter incremental support bound (#corr/ndata <= lambda):
