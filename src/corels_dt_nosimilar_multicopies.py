@@ -413,11 +413,14 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
     queue = []
     root_leaf = CacheLeaf((), y, z, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
     tree0 = CacheTree(leaves=[root_leaf], ndata=ndata, prior_metric=prior_metric, splitleaf=[[1]], lbound=[lamb])
-    heapq.heappush(queue, (tree0.metric, tree0))
-    # queue.append(tree0)
     d_c = tree0
     R_c = tree0.risk
     R = tree0.risk
+
+    heapq.heappush(queue, (tree0.metric, tree0))
+    #heapq.heappush(queue, (2*tree0.metric - R_c, tree0))
+    # queue.append(tree0)
+
     #log(lines, lamb, tic, len(queue), tuple(), tree0, R, d_c, R_c)
 
     leaf_cache[()] = root_leaf
@@ -597,7 +600,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
 
                             # queue.append(tree_new)
 
-                            heapq.heappush(queue, (tree_new.metric, tree_new))
+
                             COUNT = COUNT + 1
                             R = tree_new.risk
                             if R < R_c:
@@ -605,6 +608,9 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
                                 R_c = R
                                 C_c = COUNT
                                 time_c = time.time()-tic
+
+                            #heapq.heappush(queue, (2*tree_new.metric - R_c, tree_new))
+                            heapq.heappush(queue, (tree_new.metric, tree_new))
 
                             if logon==True:
                                 log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree, tree_new, sorted_new_tree_rules)

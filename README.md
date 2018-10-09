@@ -12,13 +12,15 @@
 Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------  | -------------
 One copy for each tree (prior_metric="objective") | 6.171s | 3.385s | 18,855 | 5,525
-Multiple copies for each tree (prior_metric="objective") | 4.960s | 3.650s | 47,780 | 26,561
 One copy for each tree (prior_metric="bound") | 6.355s | 4.699s | 17,714 | 5,598
-Multiple copies for each tree (prior_metric="bound") | 31.165s | 3.397s | 773,889 | 3,862
 One copy for each tree (prior_metric="curiosity") | 5.796s | 5.222s | 10,672 | 7,136
-Multiple copies for each tree (prior_metric="curiosity") | 6.391s | 5.025s | 86,712 | 46,334
 One copy for each tree (prior_metric="gini") | 6.170s | 2.762s | 13,679 | 1,059
+One copy for each tree (prior_metric=2*lb-R_c) | 6.771s | 4.709s | 19,662 | 5,874
+Multiple copies for each tree (prior_metric="objective") | 4.960s | 3.650s | 47,780 | 26,561
+Multiple copies for each tree (prior_metric="bound") | 31.165s | 3.397s | 773,889 | 3,862
+Multiple copies for each tree (prior_metric="curiosity") | 6.391s | 5.025s | 86,712 | 46,334
 Multiple copies for each tree (prior_metric="gini") | 7.997s | 0.769s | 112,619 | 44
+Multiple copies for each tree (prior_metric=2*lb-R_c) | 31.006s | 3.181s | 771,830 | 3,862
 
 
 ##### lambda=0.0035, 6 features: 5 features+1 manually added highly correlated feature of age:21-22 (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
