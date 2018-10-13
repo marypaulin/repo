@@ -6,6 +6,7 @@ import time
 
 from rule import make_all_ones, make_zeros, rule_vand, rule_vectompz
 
+
 class CacheTree:
     """
     A tree data structure.
@@ -13,56 +14,19 @@ class CacheTree:
     num_captured: a list to record number of data captured by the leaves
     """
 
-    def __init__(self, ndata, leaves,
-                 prior_metric=None,
-                 splitleaf=None,
-                 lbound=None
-                 ):
+    def __init__(self, ndata, leaves,lbound=None):
         self.leaves = leaves
-        # a queue of lists indicating which leaves will be split in next rounds
-        # (1 for split, 0 for not split)
-        self.splitleaf = splitleaf
         self.lbound = lbound  # lower bound
 
-        l_split = splitleaf[0].index(1)
+        self.risk = lbound[0] + (leaves[0].p * leaves[0].num_captured) / ndata
 
-        self.lb = lbound[l_split]
 
-        l = len(leaves)
-
-        self.risk = self.lb + (leaves[l_split].p * leaves[l_split].num_captured) / ndata
-
-        # which metrics to use for the priority queue
-        if leaves[0].num_captured == ndata:
-            # this case is when constructing the null tree ((),)
-            self.metric = 0
-        elif prior_metric == "curiosity":
-            self.metric = self.lb / ((ndata - leaves[l_split].num_captured) / ndata) \
-                if leaves[l_split].is_dead == 0 else float('Inf')
-        elif prior_metric == "bound":
-            self.metric = self.lb if leaves[l_split].is_dead == 0 else float('Inf')
-        elif prior_metric == "entropy":
-            # entropy weighted by number of points captured
-            self.entropy = [(-leaves[i].p * math.log2(leaves[i].p) - (1 - leaves[i].p) * math.log2(1 - leaves[i].p)) * leaves[i].num_captured
-                            if leaves[i].p != 0 and leaves[i].p != 1 else 0 for i in range(l)]
-            self.metric = sum(self.entropy[:l_split] + self.entropy[l_split + 1:]) / (ndata - leaves[l_split].num_captured) \
-                if leaves[l_split].is_dead == 0 else float('Inf')
-        elif prior_metric == "gini":
-            # gini index weighted by number of points captured
-            self.giniindex = [(2 * leaves[i].p * (1 - leaves[i].p))
-                              * leaves[i].num_captured for i in range(l)]
-            self.metric = sum(self.giniindex[:l_split] + self.giniindex[l_split + 1:]) / (ndata - leaves[l_split].num_captured) \
-                if leaves[l_split].is_dead == 0 else float('Inf')
-        elif prior_metric == "objective":
-            self.metric = self.risk
 
     def sorted_leaves(self):
         # Used by the cache
         return tuple(sorted(leaf.rules for leaf in self.leaves))
 
-    def __lt__(self, other):
-        # define <, which will be used in the priority queue
-        return self.metric < other.metric
+
 """
     def _to_nested_dict(self):
         tree = {}
@@ -103,6 +67,58 @@ class CacheTree:
     def __str__(self):
         return self._format_dict(self._to_nested_dict())
 """
+
+
+class Tree:
+    """
+        A tree data structure, based on CacheTree
+        cache_tree: a CacheTree
+        num_captured: a list to record number of data captured by the leaves
+        """
+
+    def __init__(self, cache_tree, ndata, splitleaf=None, prior_metric=None):
+        self.cache_tree = cache_tree
+        # a queue of lists indicating which leaves will be split in next rounds
+        # (1 for split, 0 for not split)
+        self.splitleaf = splitleaf
+
+        l_split = splitleaf[0].index(1)
+
+        self.lb = cache_tree.lbound[l_split]
+
+        leaves = cache_tree.leaves
+        l = len(leaves)
+
+        # which metrics to use for the priority queue
+        if leaves[0].num_captured == ndata:
+            # this case is when constructing the null tree ((),)
+            self.metric = 0
+        elif prior_metric == "curiosity":
+            self.metric = self.lb / ((ndata - leaves[l_split].num_captured) / ndata) \
+                if leaves[l_split].is_dead == 0 else float('Inf')
+        elif prior_metric == "bound":
+            self.metric = self.lb if leaves[l_split].is_dead == 0 else float('Inf')
+        elif prior_metric == "entropy":
+            # entropy weighted by number of points captured
+            self.entropy = [
+                (-leaves[i].p * math.log2(leaves[i].p) - (1 - leaves[i].p) * math.log2(1 - leaves[i].p)) * leaves[
+                    i].num_captured if leaves[i].p != 0 and leaves[i].p != 1 else 0 for i in range(l)]
+            self.metric = sum(self.entropy[:l_split] + self.entropy[l_split + 1:]) / (ndata - leaves[l_split].num_captured) \
+                if leaves[l_split].is_dead == 0 else float('Inf')
+        elif prior_metric == "gini":
+            # gini index weighted by number of points captured
+            self.giniindex = [(2 * leaves[i].p * (1 - leaves[i].p))
+                              * leaves[i].num_captured for i in range(l)]
+            self.metric = sum(self.giniindex[:l_split] + self.giniindex[l_split + 1:]) / (
+                    ndata - leaves[l_split].num_captured) \
+                if leaves[l_split].is_dead == 0 else float('Inf')
+        elif prior_metric == "objective":
+            self.metric = cache_tree.risk
+
+    def __lt__(self, other):
+        # define <, which will be used in the priority queue
+        return self.metric < other.metric
+
 
 class CacheLeaf:
     """
@@ -149,7 +165,6 @@ class CacheLeaf:
             self.is_dead = 0
 
 
-
 def log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new,sorted_new_tree_rules):
     "log"
 
@@ -161,14 +176,14 @@ def log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new,sorted_n
     
     the_old_tree = str(0)#str(sorted([leaf.rules for leaf in tree_old.leaves]))
     the_old_tree_splitleaf = str(0)#str(tree_old.splitleaf)
-    the_old_tree_objective = str(tree_old.risk)
+    the_old_tree_objective = str(tree_old.cache_tree.risk)
     the_old_tree_lbound = str(tree_old.lb)
     the_new_tree = str(0)#str(list(sorted_new_tree_rules))
     the_new_tree_splitleaf = str(0)#str(tree_new.splitleaf)
     
-    the_new_tree_objective = str(tree_new.risk)
+    the_new_tree_objective = str(tree_new.cache_tree.risk)
     the_new_tree_lbound = str(tree_new.lb)
-    the_new_tree_length = str(len(tree_new.leaves))
+    the_new_tree_length = str(len(tree_new.cache_tree.leaves))
     the_new_tree_depth = str(0)#str(max([len(leaf.rules) for leaf in tree_new.leaves]))
 
     the_queue = str(0)#str([[ leaf.rules for leaf in thetree.leaves]  for _,thetree in queue])
@@ -331,6 +346,7 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
 
     return sl
 
+
 def gini_reduction(x,y,ndata,nrule):
     """
     calculate the gini reduction by each feature
@@ -360,6 +376,7 @@ def gini_reduction(x,y,ndata,nrule):
     print("the rank of x's columns: ", rk)
     return rk
 
+
 def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
            support=True, accu_support=True, equiv_points=True, lookahead=True):
     """
@@ -369,8 +386,8 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
     """
 
     # Initialize best rule list and objective
-    #d_c = None
-    #R_c = 1
+    # d_c = None
+    # R_c = 1
 
     nrule = x.shape[1]
     ndata = len(y)
@@ -412,16 +429,16 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
     # initialize the queue to include just empty root
     queue = []
     root_leaf = CacheLeaf((), y, z, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
-    tree0 = CacheTree(leaves=[root_leaf], ndata=ndata, prior_metric=prior_metric, splitleaf=[[1]], lbound=[lamb])
+    tree0 = Tree(cache_tree=CacheTree(leaves=[root_leaf], ndata=ndata,  lbound=[lamb]),
+                 ndata=ndata, splitleaf=[[1]], prior_metric=prior_metric)
     d_c = tree0
-    R_c = tree0.risk
-    R = tree0.risk
+    R_c = tree0.cache_tree.risk
 
     heapq.heappush(queue, (tree0.metric, tree0))
-    #heapq.heappush(queue, (2*tree0.metric - R_c, tree0))
+    # heapq.heappush(queue, (2*tree0.metric - R_c, tree0))
     # queue.append(tree0)
 
-    #log(lines, lamb, tic, len(queue), tuple(), tree0, R, d_c, R_c)
+    # log(lines, lamb, tic, len(queue), tuple(), tree0, R, d_c, R_c)
 
     leaf_cache[()] = root_leaf
 
@@ -429,14 +446,14 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
 
     COUNT_POP = 0
     while queue and COUNT < niter:
-        #tree = queue.pop(0)
+        # tree = queue.pop(0)
         metric, tree = heapq.heappop(queue)
 
         COUNT_POP = COUNT_POP + 1
 
-        #print([leaf.rules for leaf in tree.leaves])
-        #print("curio", curio)
-        leaves = tree.leaves
+        # print([leaf.rules for leaf in tree.leaves])
+        # print("curio", curio)
+        leaves = tree.cache_tree.leaves
 
         # print("=======COUNT=======",COUNT)
         # print("d",d)
@@ -472,16 +489,12 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
             if removed_leaf.is_dead == 1:
                 continue
 
-
             unchanged_leaves = leaves[:i] + leaves[i+1:]
-
-
 
             # we are going to split leaf i, and get 2 new leaves
             # we will add the two new leaves to the end of the list
             splitleaf_list = [split_next[k][:i] + split_next[k][i + 1:] + split_next[k][i:i + 1] * 2
                               for k in range(len(split_next))]
-
 
             d0 = removed_leaf.rules
 
@@ -516,7 +529,6 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
                         tree_cache[sorted_new_tree_rules] = True
 
                     tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
-
 
                     parent_is_feature_dead = removed_leaf.is_feature_dead.copy()
 
@@ -558,23 +570,25 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
                     
                     tree_new_leaves = unchanged_leaves+new_leaves
 
-
+                    tree_lbound = tree.cache_tree.lbound
 
                     # calculate the bounds for each leaves in the new tree
                     loss_l1 = incorr_l[0] / ndata
                     loss_l2 = incorr_l[1] / ndata
                     loss_d0 = removed_leaf.p * removed_leaf.num_captured / ndata
                     delta = loss_l1 + loss_l2 - loss_d0 + lamb
-                    old_lbound = tree.lbound[:i] + tree.lbound[i + 1:]
+                    old_lbound = tree_lbound[:i] + tree_lbound[i + 1:]
                     new_lbound = [b + delta for b in old_lbound] + \
-                        [tree.lbound[i] + loss_l2 + lamb,
-                            tree.lbound[i] + loss_l1 + lamb]
+                        [tree_lbound[i] + loss_l2 + lamb,
+                         tree_lbound[i] + loss_l1 + lamb]
 
                     # generate the new splitleaf for the new tree
                     sl = generate_new_splitleaf(
                         tree_new_leaves, sorted_new_tree_rules, leaf_cache, splitleaf_list, ndata, len(unchanged_leaves)+2, lamb, min(R_c, new_lbound[-1]+loss_l2),
                         accu_support, equiv_points, lookahead)
                     # print('sl',sl)
+
+                    cache_tree = CacheTree(ndata=ndata, leaves=tree_new_leaves, lbound=new_lbound)
 
                     sl0 = sl[0]
                     sl1 = sl[1:]
@@ -591,33 +605,27 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
                             sl_new = sl_new + sl1
 
                             # construct the new tree
-                            tree_new = CacheTree(ndata=ndata, leaves=tree_new_leaves,
-                                                 prior_metric=prior_metric,
-                                                 splitleaf=sl_new,
-                                                 lbound=new_lbound)
-
-
+                            tree_new = Tree(cache_tree=cache_tree, ndata=ndata,
+                                            splitleaf=sl_new, prior_metric=prior_metric)
 
                             # queue.append(tree_new)
 
-
                             COUNT = COUNT + 1
-                            R = tree_new.risk
+                            R = tree_new.cache_tree.risk
                             if R < R_c:
                                 d_c = tree_new
                                 R_c = R
                                 C_c = COUNT
                                 time_c = time.time()-tic
 
-                            #heapq.heappush(queue, (2*tree_new.metric - R_c, tree_new))
+                            # heapq.heappush(queue, (2*tree_new.metric - R_c, tree_new))
                             heapq.heappush(queue, (tree_new.metric, tree_new))
 
-                            if logon==True:
+                            if logon:
                                 log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree, tree_new, sorted_new_tree_rules)
 
                             if COUNT % 100000 == 0:
                                 print("COUNT:", COUNT)
-
 
     header = ['#pop', '#push', 'queue_size', 'metric', 'R_c',
               'the_old_tree', 'the_old_tree_splitleaf', 'the_old_tree_objective', 'the_old_tree_lbound',
@@ -638,10 +646,10 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
 
     print("total time: ", time.time() - tic)
     print("lambda: ", lamb)
-    print("leaves: ", [leaf.rules for leaf in d_c.leaves])
-    #print("lbound: ", d_c.lbound)
-    #print("d_c.num_captured: ", [leaf.num_captured for leaf in d_c.leaves])
-    print("prediction: ", [leaf.prediction for leaf in d_c.leaves])
+    print("leaves: ", [leaf.rules for leaf in d_c.cache_tree.leaves])
+    # print("lbound: ", d_c.cache_tree.lbound)
+    # print("d_c.num_captured: ", [leaf.num_captured for leaf in d_c.cache_tree.leaves])
+    print("prediction: ", [leaf.prediction for leaf in d_c.cache_tree.leaves])
     print("Objective: ", R_c)
     print("COUNT of the best tree: ", C_c)
     print("time when the best tree is achieved: ", time_c)
