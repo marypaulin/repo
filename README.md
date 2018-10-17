@@ -1,13 +1,17 @@
 # CORELS DT
 
-## Use priority queue
+corels_dt:
+all 6907 data from compas-binary.csv
 
-### corels_dt:
-#### one copy of tree with multiple leaves marked to be split 
-#### all 6907 data from compas-binary.csv
+##### lambda=0.0035
 
-##### lambda=0.0035, 5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3)
-##### MAXDEPTH = 5, Without similar support bound
+##### Try 6 features(sex:Female, age:18-20,age:21-22, juvenile-crimes:=0, priors:2-3, priors:>3), MAXDEPTH = 5
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+  ------------- | ------------- | ------------- | -------------  | -------------
+This Version, prior_metric="objective" | 257.973s | 10.576s | 657,173 | 51,646
+Last Version, prior_metric="objective"  | 1734.942s | 1114.673s | 48,858,192 | 31,007,691
+
+##### 5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3), MAXDEPTH = 5, Without similar support bound
 
 ##### This Version (Oct 16th), Multiple copies for each tree, each time split one or more leaves
 ##### For each copy, if we don't split some leaves, then in its children trees these leaves will not be split either. In this way, we can avoid duplications of new trees.
