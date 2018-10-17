@@ -4,6 +4,7 @@ import heapq
 import math
 import time
 
+from itertools import product, compress
 from rule import make_all_ones, make_zeros, rule_vand, rule_vectompz
 
 
@@ -14,13 +15,9 @@ class CacheTree:
     num_captured: a list to record number of data captured by the leaves
     """
 
-    def __init__(self, ndata, leaves,lbound=None):
+    def __init__(self, lamb, leaves):
         self.leaves = leaves
-        self.lbound = lbound  # lower bound
-
-        self.risk = lbound[0] + (leaves[0].p * leaves[0].num_captured) / ndata
-
-
+        self.risk = sum([l.loss for l in leaves])+lamb*len(leaves)
 
     def sorted_leaves(self):
         # Used by the cache
@@ -76,44 +73,56 @@ class Tree:
         num_captured: a list to record number of data captured by the leaves
         """
 
-    def __init__(self, cache_tree, ndata, splitleaf=None, prior_metric=None):
+    def __init__(self, cache_tree, ndata, lamb, splitleaf=None, prior_metric=None):
         self.cache_tree = cache_tree
         # a queue of lists indicating which leaves will be split in next rounds
         # (1 for split, 0 for not split)
         self.splitleaf = splitleaf
 
-        l_split = splitleaf[0].index(1)
-
-        self.lb = cache_tree.lbound[l_split]
-
         leaves = cache_tree.leaves
         l = len(leaves)
+
+        self.lb = sum([cache_tree.leaves[i].loss for i in range(l)
+                       if splitleaf[i] == 0]) + lamb*l
 
         # which metrics to use for the priority queue
         if leaves[0].num_captured == ndata:
             # this case is when constructing the null tree ((),)
             self.metric = 0
-        elif prior_metric == "curiosity":
-            self.metric = self.lb / ((ndata - leaves[l_split].num_captured) / ndata) \
-                if leaves[l_split].is_dead == 0 else float('Inf')
+        elif prior_metric == "objective":
+            self.metric = cache_tree.risk
         elif prior_metric == "bound":
-            self.metric = self.lb if leaves[l_split].is_dead == 0 else float('Inf')
+            self.metric = self.lb
+        elif prior_metric == "curiosity":
+            removed_leaves = list(compress(leaves, splitleaf))
+            num_cap_rm = sum(leaf.num_captured for leaf in removed_leaves)
+            if num_cap_rm<ndata:
+                self.metric = self.lb / ((ndata - num_cap_rm) / ndata)
+            else:
+                self.metric = self.lb / (0.01 / ndata)
         elif prior_metric == "entropy":
+            removed_leaves = list(compress(leaves, splitleaf))
+            num_cap_rm = sum(leaf.num_captured for leaf in removed_leaves)
             # entropy weighted by number of points captured
             self.entropy = [
                 (-leaves[i].p * math.log2(leaves[i].p) - (1 - leaves[i].p) * math.log2(1 - leaves[i].p)) * leaves[
                     i].num_captured if leaves[i].p != 0 and leaves[i].p != 1 else 0 for i in range(l)]
-            self.metric = sum(self.entropy[:l_split] + self.entropy[l_split + 1:]) / (ndata - leaves[l_split].num_captured) \
-                if leaves[l_split].is_dead == 0 else float('Inf')
+            if num_cap_rm < ndata:
+                self.metric = sum(self.entropy[i] for i in range(l) if splitleaf[i] == 0) / (
+                        ndata - sum(leaf.num_captured for leaf in removed_leaves))
+            else:
+                self.metric = sum(self.entropy[i] for i in range(l) if splitleaf[i] == 0) / 0.01
         elif prior_metric == "gini":
+            removed_leaves = list(compress(leaves, splitleaf))
+            num_cap_rm = sum(leaf.num_captured for leaf in removed_leaves)
             # gini index weighted by number of points captured
             self.giniindex = [(2 * leaves[i].p * (1 - leaves[i].p))
                               * leaves[i].num_captured for i in range(l)]
-            self.metric = sum(self.giniindex[:l_split] + self.giniindex[l_split + 1:]) / (
-                    ndata - leaves[l_split].num_captured) \
-                if leaves[l_split].is_dead == 0 else float('Inf')
-        elif prior_metric == "objective":
-            self.metric = cache_tree.risk
+            if num_cap_rm < ndata:
+                self.metric = sum(self.giniindex[i] for i in range(l) if splitleaf[i] == 0) / (
+                        ndata - sum(leaf.num_captured for leaf in removed_leaves))
+            else:
+                self.metric = sum(self.giniindex[i] for i in range(l) if splitleaf[i] == 0) / 0.01
 
     def __lt__(self, other):
         # define <, which will be used in the priority queue
@@ -158,7 +167,7 @@ class CacheLeaf:
         self.loss = float(self.num_captured_incorrect) / len(y)
 
         # Lower bound on antecedent support
-        if support == True:
+        if support:
             # self.is_dead = self.num_captured / len(y) / 2 <= lamb
             self.is_dead = self.loss <= lamb
         else:
@@ -174,16 +183,16 @@ def log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new,sorted_n
     the_metric = str(metric)
     the_Rc = str(R_c)
     
-    the_old_tree = str(0)#str(sorted([leaf.rules for leaf in tree_old.leaves]))
-    the_old_tree_splitleaf = str(0)#str(tree_old.splitleaf)
+    the_old_tree = str(sorted([leaf.rules for leaf in tree_old.cache_tree.leaves]))
+    the_old_tree_splitleaf = str(tree_old.splitleaf)
     the_old_tree_objective = str(tree_old.cache_tree.risk)
     the_old_tree_lbound = str(tree_old.lb)
-    the_new_tree = str(0)#str(list(sorted_new_tree_rules))
+    the_new_tree = str(list(sorted_new_tree_rules))
     the_new_tree_splitleaf = str(0)#str(tree_new.splitleaf)
     
-    the_new_tree_objective = str(tree_new.cache_tree.risk)
-    the_new_tree_lbound = str(tree_new.lb)
-    the_new_tree_length = str(len(tree_new.cache_tree.leaves))
+    the_new_tree_objective = str(0)#str(tree_new.cache_tree.risk)
+    the_new_tree_lbound = str(0)#str(tree_new.lb)
+    the_new_tree_length = str(0)#str(len(tree_new.cache_tree.leaves))
     the_new_tree_depth = str(0)#str(max([len(leaf.rules) for leaf in tree_new.leaves]))
 
     the_queue = str(0)#str([[ leaf.rules for leaf in thetree.leaves]  for _,thetree in queue])
@@ -197,7 +206,8 @@ def log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new,sorted_n
     lines.append(line)
 
 
-def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, splitleaf_list, ndata, nleaves, lamb, R_c, accu_support, equiv_points, lookahead):
+def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, nleaves, lamb,
+                           R_c, accu_support, equiv_points, lookahead):
     """
     generate the new splitleaf for the new tree
     """
@@ -235,9 +245,7 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
     #print("l0",l0)
     #print("leaf_cache",leaf_cache)
     b0 = leaf_cache[l0].B0
-    
-    splitleaf_array = np.array(splitleaf_list)
-    sl = splitleaf_list.copy()
+
 
     #(Lower bound on accurate antecedent support)
     #a_l = (sum(cap_l) - sum(incorr_l)) / ndata - sum(cap_l) / ndata / 2
@@ -262,6 +270,12 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
     b00 = b0
     if equiv_points==False:
         b00 = 0
+
+    sl = []
+
+    #print("a_l:",a_l)
+    #print("lb + b00 + lambbb",lb + b00 + lambbb )
+    #print("R_c",R_c)
     
     if lb + b00 + lambbb >= R_c:
         # print("lb+b0+lamb",lb+b0+lamb)
@@ -274,72 +288,19 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, s
             # if the bound doesn't hold, we need to split the leaf l1/l2
             # further
 
-            if len(splitleaf_list) > 0:
-                split_l1_l2 = splitleaf_array[
-                    :, idx1].sum() + splitleaf_array[:, idx2].sum()
-
-                # if dp will have been split
-                if splitleaf_array.sum() - split_l1_l2 > 0:
-
-                    # if l1/l2 will have been split
-                    if split_l1_l2 > 0:
-                        sl.append(splitleaf1)
-
-                    # if l1/l2 will not have been split, we need to split l1/l2
-                    else:
-                        sl.append(splitleaf2)
-
-                # and we need to split leaves in dp, if dp will not have been
-                # split
-                else:
-
-                    # if l1/l2 will have been split
-                    if split_l1_l2 > 0:
-                        sl.append(splitleaf3)
-
-                    # if l1/l2 will not have been split, we need to split l1/l2
-                    else:
-                        sl.append(splitleaf2)
-                        sl.append(splitleaf3)
-            else:
-                sl.append(splitleaf2)
-                sl.append(splitleaf3)
+            sl.append(splitleaf2)
+            sl.append(splitleaf3)
 
         else:
 
-            if len(splitleaf_list) > 0:
-                split_l1_l2 = splitleaf_array[
-                    :, idx1].sum() + splitleaf_array[:, idx2].sum()
-
-                # if dp will have been split
-                if splitleaf_array.sum() - split_l1_l2 > 0:
-                    sl.append(splitleaf1)
-
-                # and we need to split leaves in dp, if dp will not have been
-                # split
-                else:
-                    sl.append(splitleaf3)
-            else:
-                sl.append(splitleaf3)
+            sl.append(splitleaf3)
     else:
 
         if a_l <= lamb:
             # if the bound doesn't hold, we need to split the leaf l1/l2
             # further
 
-            if len(splitleaf_list) > 0:
-                split_l1_l2 = splitleaf_array[
-                    :, -1].sum() + splitleaf_array[:, -2].sum()
-
-                # if l1/l2 will have been split
-                if split_l1_l2 > 0:
-                    sl.append(splitleaf1)
-
-                # if l1/l2 will not have been split, we need to split l1/l2
-                else:
-                    sl.append(splitleaf2)
-            else:
-                sl.append(splitleaf2)
+            sl.append(splitleaf2)
 
         else:
             sl.append(splitleaf1)
@@ -429,10 +390,11 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
     # initialize the queue to include just empty root
     queue = []
     root_leaf = CacheLeaf((), y, z, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
-    tree0 = Tree(cache_tree=CacheTree(leaves=[root_leaf], ndata=ndata,  lbound=[lamb]),
-                 ndata=ndata, splitleaf=[[1]], prior_metric=prior_metric)
+    tree0 = Tree(cache_tree=CacheTree(leaves=[root_leaf], lamb=lamb), lamb=lamb,
+                 ndata=ndata, splitleaf=[1], prior_metric=prior_metric)
     d_c = tree0
     R_c = tree0.cache_tree.risk
+    #print("Tree0 R_c", R_c)
 
     heapq.heappush(queue, (tree0.metric, tree0))
     # heapq.heappush(queue, (2*tree0.metric - R_c, tree0))
@@ -449,6 +411,12 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
         # tree = queue.pop(0)
         metric, tree = heapq.heappop(queue)
 
+        '''
+        if prior_metric == "bound":
+            if tree.lb + lamb*len(tree.splitleaf) >= R_c:
+                break
+        '''
+
         COUNT_POP = COUNT_POP + 1
 
         # print([leaf.rules for leaf in tree.leaves])
@@ -459,173 +427,148 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
         # print("d",d)
         # print("R",tree.lbound[0]+(tree.num_captured_incorrect[0])/len(y))
 
-        """
-        # if we have visited this tree
-        if tree.sorted_leaves() in tree_cache:
-            continue
-        else:
-            tree_cache[tree.sorted_leaves()] = True
-        """
+        leaf_split = tree.splitleaf
+        leaf_no_split = [not split for split in leaf_split]
+        removed_leaves = list(compress(leaves, leaf_split))
+        unchanged_leaves = list(compress(leaves, leaf_no_split))
 
-        # the leaves we are going to split
-        split_next = tree.splitleaf.copy()
-        spl = split_next.pop(0)
+        # lb = sum(l.loss for l in unchanged_leaves)
+        # b0 = sum(l.b0 for l in removed_leaves)
 
-        # enumerate through all the leaves
-        for i in range(len(leaves)):
+        # Generate all assignments of rules to the leaves that are due to be split
+        rules_for_leaf = [set(range(1, nrule + 1)) -
+                          set(map(abs, l.rules)) for l in removed_leaves]
 
-            # 0 for not split; 1 for split
-            if spl[i] == 0:
-                continue
+        for leaf_rules in product(*rules_for_leaf):
+            new_leaves = []
+            flag_increm = False  # a flag for jump out of the loops (incremental support bound)
+            for rule, removed_leaf in zip(leaf_rules, removed_leaves):
 
-            removed_leaf = leaves[i]
+                rule_index = rule - 1
+                tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
+                parent_is_feature_dead = removed_leaf.is_feature_dead.copy()
 
-            # Restrict the depth of the tree
-            if len(removed_leaf.rules) >= MAXDEPTH:
-                continue
 
-            # print("d!!!",d)
-            # if the leaf is dead, then continue
-            if removed_leaf.is_dead == 1:
-                continue
+                for new_rule in (-rule, rule):
+                    new_rule_label = int(new_rule > 0)
+                    new_rules = tuple(
+                        sorted(removed_leaf.rules + (new_rule,)))
+                    if new_rules not in leaf_cache:
+                        tag_rule = rule_vectompz(np.array(x[:, rule_index] == new_rule_label) * 1)
+                        new_points_cap, new_num_captured = rule_vand(tag, tag_rule)
+                        #print("tag:", tag)
+                        #print("tag_rule:", tag_rule)
+                        #print("new_points_cap:", new_points_cap)
+                        #rint("new_num_captured:", new_num_captured)
 
-            unchanged_leaves = leaves[:i] + leaves[i+1:]
-
-            # we are going to split leaf i, and get 2 new leaves
-            # we will add the two new leaves to the end of the list
-            splitleaf_list = [split_next[k][:i] + split_next[k][i + 1:] + split_next[k][i:i + 1] * 2
-                              for k in range(len(split_next))]
-
-            d0 = removed_leaf.rules
-
-            # split the leaf d0 with feature j
-            for j in range(1, nrule + 1):
-
-                rule_index = j - 1
-
-                # test if the feature is dead (because of incremental support bound)
-                if removed_leaf.is_feature_dead[rule_index] == 1:
-                    continue
-
-                if j not in d0 and -j not in d0:
-                    # split leaf d0 with feature j, and get 2 leaves l1 and l2
-                    l1 = d0 + (-j,)
-                    l2 = d0 + (j,)
-                    # print("t",t)
-
-                    cap_l = [0] * 2
-                    incorr_l = [0] * 2
-
-                    # for the two new leaves, if they have not been visited,
-                    # calculate their predictions,
-                    l1_sorted = tuple(sorted(l1))
-                    l2_sorted = tuple(sorted(l2))
-
-                    sorted_new_tree_rules = tuple(
-                        sorted([leaf.rules for leaf in unchanged_leaves] + [l1_sorted, l2_sorted]))
-                    if sorted_new_tree_rules in tree_cache:
-                        continue
-                    else:
-                        tree_cache[sorted_new_tree_rules] = True
-
-                    tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
-
-                    parent_is_feature_dead = removed_leaf.is_feature_dead.copy()
-
-                    if l1_sorted not in leaf_cache:
-                        tag_rule1 = rule_vectompz(np.array(x[:, rule_index] == 0) * 1)
-                        new_points_cap1, new_num_captured1 = rule_vand(tag, tag_rule1)
-                        Cache_l1 = CacheLeaf(l1_sorted, y, z, new_points_cap1, new_num_captured1,
+                        new_leaf = CacheLeaf(new_rules, y, z, new_points_cap, new_num_captured,
                                              lamb, support, parent_is_feature_dead)
-                        leaf_cache[l1_sorted] = Cache_l1
+                        leaf_cache[new_rules] = new_leaf
+                        new_leaves.append(new_leaf)
                     else:
-                        Cache_l1 = leaf_cache[l1_sorted]
+                        new_leaf = leaf_cache[new_rules]
+                        new_leaves.append(new_leaf)
 
-                    cap_l[0], incorr_l[
-                        0] = Cache_l1.num_captured, Cache_l1.num_captured_incorrect
+                    #print("new_leaf:", new_leaf.rules)
+                    #print("leaf loss:", new_leaf.loss)
+                    #print("new_leaf.num_captured:",new_leaf.num_captured)
+                    #print("new_leaf.num_captured_incorrect",new_leaf.num_captured_incorrect)
 
                     # incremental support bound
-                    if (cap_l[0] - incorr_l[0]) / ndata <= lamb:
+                    if (new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata <= lamb:
                         removed_leaf.is_feature_dead[rule_index] = 1
-                        continue
+                        flag_increm = True
+                        break
 
-                    if l2_sorted not in leaf_cache:
-                        tag_rule2 = rule_vectompz(np.array(x[:, rule_index] == 1) * 1)
-                        new_points_cap2, new_num_captured2 = rule_vand(tag, tag_rule2)
-                        Cache_l2 = CacheLeaf(l2_sorted, y, z, new_points_cap2, new_num_captured2,
-                                             lamb, support, parent_is_feature_dead)
-                        leaf_cache[l2_sorted] = Cache_l2
-                    else:
-                        Cache_l2 = leaf_cache[l2_sorted]
+                if flag_increm:
+                    break
 
-                    cap_l[1], incorr_l[
-                        1] = Cache_l2.num_captured, Cache_l2.num_captured_incorrect
+            if flag_increm:
+                continue
 
-                    # incremental support bound
-                    if (cap_l[1] - incorr_l[1]) / ndata <= lamb:
-                        removed_leaf.is_feature_dead[rule_index] = 1
-                        continue
+            new_tree_leaves = unchanged_leaves + new_leaves
 
-                    new_leaves = [Cache_l1, Cache_l2]
-                    
-                    tree_new_leaves = unchanged_leaves+new_leaves
+            sorted_new_tree_rules = tuple(sorted(leaf.rules for leaf in new_tree_leaves))
 
-                    tree_lbound = tree.cache_tree.lbound
 
-                    # calculate the bounds for each leaves in the new tree
-                    loss_l1 = incorr_l[0] / ndata
-                    loss_l2 = incorr_l[1] / ndata
-                    loss_d0 = removed_leaf.p * removed_leaf.num_captured / ndata
-                    delta = loss_l1 + loss_l2 - loss_d0 + lamb
-                    old_lbound = tree_lbound[:i] + tree_lbound[i + 1:]
-                    new_lbound = [b + delta for b in old_lbound] + \
-                        [tree_lbound[i] + loss_l2 + lamb,
-                         tree_lbound[i] + loss_l1 + lamb]
 
-                    # generate the new splitleaf for the new tree
-                    sl = generate_new_splitleaf(
-                        tree_new_leaves, sorted_new_tree_rules, leaf_cache, splitleaf_list, ndata, len(unchanged_leaves)+2, lamb, min(R_c, new_lbound[-1]+loss_l2),
-                        accu_support, equiv_points, lookahead)
-                    # print('sl',sl)
+            if logon:
+                log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree, tree, sorted_new_tree_rules)
 
-                    cache_tree = CacheTree(ndata=ndata, leaves=tree_new_leaves, lbound=new_lbound)
 
-                    sl0 = sl[0]
-                    sl1 = sl[1:]
-                    n_new_leaves = len(tree_new_leaves)
-                    for k in range(n_new_leaves):
-                        sl_new0 = [0]*n_new_leaves
 
-                        sl_new = []
+            if sorted_new_tree_rules in tree_cache:
+                #print("====== New Tree Duplicated!!! ======")
+                #print("sorted_new_tree_rules:", sorted_new_tree_rules)
+                continue
+            else:
+                tree_cache[sorted_new_tree_rules] = True
 
-                        if sl0[k] == 1:
-                            sl_new0[k] = 1
-                            sl_new.append(sl_new0)
+            child = CacheTree(leaves=new_tree_leaves, lamb=lamb)
 
-                            sl_new = sl_new + sl1
+            R = child.risk
+            #print("child:", child.sorted_leaves())
+            #print("R:",R)
+            if R < R_c:
+                d_c = child
+                R_c = R
+                C_c = COUNT+1
+                time_c = time.time() - tic
 
-                            # construct the new tree
-                            tree_new = Tree(cache_tree=cache_tree, ndata=ndata,
-                                            splitleaf=sl_new, prior_metric=prior_metric)
+            num_unchanged_leaves = len(unchanged_leaves)
+            new_tree_length = len(new_tree_leaves)
 
-                            # queue.append(tree_new)
+            # generate the new splitleaf for the new tree
+            sl = generate_new_splitleaf(new_tree_leaves, sorted_new_tree_rules, leaf_cache, new_tree_length,
+                                        lamb, R_c, accu_support, equiv_points, lookahead)
+            #print("sl:", sl)
 
-                            COUNT = COUNT + 1
-                            R = tree_new.cache_tree.risk
-                            if R < R_c:
-                                d_c = tree_new
-                                R_c = R
-                                C_c = COUNT
-                                time_c = time.time()-tic
+            # A leaf cannot be split if
+            # 1. the MAXDEPTH has been reached
+            # 2. the leaf is dead (because of antecedent support)
+            # 3. all the features that have not been used are dead
+            cannot_split = [len(l.rules) >= MAXDEPTH or l.is_dead or
+                            all([l.is_feature_dead[r - 1] for r in range(1, nrule + 1)
+                                 if r not in map(abs, l.rules)])
+                            for l in new_tree_leaves]
+            if len(sl) == 1:
+                # For each copy, we don't split leaves which are not split in its parent tree.
+                # In this way, we can avoid duplications.
+                can_split_leaf = [(0,)]*num_unchanged_leaves +\
+                                 [(0,) if cannot_split[i] or sl[0][i] == 0
+                                  else (0, 1) for i in range(num_unchanged_leaves, new_tree_length)]
+                # Discard the first element of leaf_splits, since we must split at least one leaf
+                new_leaf_splits = sorted(product(*can_split_leaf))[1:]
+                #print("num_unchanged_leaves:",num_unchanged_leaves)
+                #print("cannot_split:", cannot_split)
+                #print("can_split_leaf:",can_split_leaf)
+                #print("new_leaf_splits:",new_leaf_splits)
+            else:
+                # For each copy, we don't split leaves which are not split in its parent tree.
+                # In this way, we can avoid duplications.
+                can_split_leaf = [(0,)] * num_unchanged_leaves + \
+                                 [(0,) if cannot_split[i]
+                                  else (0, 1) for i in range(num_unchanged_leaves, new_tree_length)]
+                # Discard the first element of leaf_splits, since we must split at least one leaf
+                new_leaf_splits0 = sorted(product(*can_split_leaf))[1:]
+                # Filter out those which split at least one leaf in dp and split at least one leaf in d0
+                new_leaf_splits = [ls for ls in new_leaf_splits0
+                                   if sum(np.array(ls)*sl[0]) > 0 and sum(np.array(ls)*sl[1]) > 0]
 
-                            # heapq.heappush(queue, (2*tree_new.metric - R_c, tree_new))
-                            heapq.heappush(queue, (tree_new.metric, tree_new))
+            for new_leaf_split in new_leaf_splits:
+                # construct the new tree
+                tree_new = Tree(cache_tree=child, ndata=ndata, lamb=lamb,
+                                splitleaf=new_leaf_split, prior_metric=prior_metric)
 
-                            if logon:
-                                log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree, tree_new, sorted_new_tree_rules)
+                # heapq.heappush(queue, (2*tree_new.metric - R_c, tree_new))
+                heapq.heappush(queue, (tree_new.metric, tree_new))
+                COUNT = COUNT+1
 
-                            if COUNT % 100000 == 0:
-                                print("COUNT:", COUNT)
+                #if logon:
+                #    log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree, tree_new, sorted_new_tree_rules)
+
+                if COUNT % 100000 == 0:
+                    print("COUNT:", COUNT)
 
     header = ['#pop', '#push', 'queue_size', 'metric', 'R_c',
               'the_old_tree', 'the_old_tree_splitleaf', 'the_old_tree_objective', 'the_old_tree_lbound',
@@ -646,10 +589,10 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
 
     print("total time: ", time.time() - tic)
     print("lambda: ", lamb)
-    print("leaves: ", [leaf.rules for leaf in d_c.cache_tree.leaves])
+    print("leaves: ", [leaf.rules for leaf in d_c.leaves])
     # print("lbound: ", d_c.cache_tree.lbound)
     # print("d_c.num_captured: ", [leaf.num_captured for leaf in d_c.cache_tree.leaves])
-    print("prediction: ", [leaf.prediction for leaf in d_c.cache_tree.leaves])
+    print("prediction: ", [leaf.prediction for leaf in d_c.leaves])
     print("Objective: ", R_c)
     print("COUNT of the best tree: ", C_c)
     print("time when the best tree is achieved: ", time_c)
