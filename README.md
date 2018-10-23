@@ -6,27 +6,27 @@ all 6907 data from compas-binary.csv
 ##### lambda=0.0035
 
 ##### Try 6 features(sex:Female, age:18-20,age:21-22, juvenile-crimes:=0, priors:2-3, priors:>3), MAXDEPTH = 5
+
+
+##### # Use the first pair of leaves as d0
 Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------  | -------------
-This Version, prior_metric="objective" | 257.973s | 10.576s | 657,173 | 51,646
-Last Version, prior_metric="objective"  | 1734.942s | 1114.673s | 48,858,192 | 31,007,691
+order x's columns according to gini_reduction | 1123.931s | 15.665s | 3,162,248 | 132,285
+manually order of x's columns to be [5, 1, 4, 2, 3, 0] (this is the order in the optimal tree)  | 1004.697s | 14.418s | 2,671,375 | 81,090
+manually order of x's columns to be [5, 0, 4, 1, 2, 3] | 569.988s | 13.845s | 1,568,859 | 100,001
 
-##### 5 features (sex:Female, age:18-20, age:21-22, priors:2-3, priors:>3), MAXDEPTH = 5, Without similar support bound
 
-##### This Version (Oct 16th), Multiple copies for each tree, each time split one or more leaves
-##### For each copy, if we don't split some leaves, then in its children trees these leaves will not be split either. In this way, we can avoid duplications of new trees.
+##### # order x's columns according to gini_reduction
+Algorithm variant (for function generate_new_splitleaf) | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
+  ------------- | ------------- | ------------- | -------------  | -------------
+Use the first pair of leaves as d0 | 1123.931s | 15.665s | 3,162,248 | 132,285
+Use the leaf with the maximum loss to find a pair of leaves as d0 | 1550.824s | 16.360s | 3,648,455 | 118,063
+Use the leaf with the minimum loss to find a pair of leaves as d0 | 454.551s | 16.187s | 1,009,994 | 155,108
+
+
+##### # use the leaf with the minimum loss to find a pair of leaves as d0, order x's columns according to gini_reduction
 Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
   ------------- | ------------- | ------------- | -------------  | -------------
-prior_metric="objective" | 4.774s | 2.276s | 1,672 | 516
-prior_metric="bound" | 7.236s | 7.119s | 22,211 | 22,194
-prior_metric="curiosity" | 5.902s | 1.636s | 7,172 | 137
-prior_metric="gini" | 6.191s | 5.374s | 9,138 | 6,439
-
-
-##### Last Version (Oct 9th), Multiple copies for each tree, each time split only one leaf
-Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
-  ------------- | ------------- | ------------- | -------------  | -------------
-prior_metric="objective" | 4.960s | 3.650s | 47,780 | 26,561
-prior_metric="bound" | 31.165s | 3.397s | 773,889 | 3,862
-prior_metric="curiosity" | 6.391s | 5.025s | 86,712 | 46,334
-prior_metric="gini" | 7.997s | 0.769s | 112,619 | 44
+Don't reorder the features for each leaf | 454.551s | 16.187s | 1,009,994 | 155,108
+Reorder features according to gini reduction for every leaf | 634.584s | 2.778s | 962,812 | 594
+Reorder features according to gini reduction (only for leaves with 2 or less feature) | 435.271s | 3.129s | 841,856 | 846

@@ -145,17 +145,30 @@ def rule_copy(r):
     Note: in order to ensure you have a leading one,
     add '1' in the front
 """
+
 def rule_vectompz(vec):
     return mpz('1'+re.sub('[\[\],\s+]','',str(list(vec))),2)
 
 
+"""
+    Python implementation of rule_mpztovec
+
+    Convert a mpz object to a binary vector
+"""
+
+
+def rule_mpztovec(tt):
+    # remove the leading one
+    vec = list(tt.digits(2)[1:])
+    return list(map(int, vec))
+
 
 """
-	Python implementation of rule_vand
+    Python implementation of rule_vand
 
-	Takes in two truthtables
-	Returns the and of the truthtables
-	as well as the number of ones in the and
+    Takes in two truthtables
+    Returns the and of the truthtables
+    as well as the number of ones in the and
 """
 
 
