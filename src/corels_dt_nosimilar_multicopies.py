@@ -207,70 +207,35 @@ def log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new, sorted_
     lines.append(line)
 
 
-def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, nleaves, lamb,
+def generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves, lamb,
                            R_c, accu_support, equiv_points, lookahead):
     """
     generate the new splitleaf for the new tree
     """
-    tree_new_rules = [leaf.rules for leaf in tree_new_leaves]
 
-    # use the leaf with the minimum loss to find a pair of leaves as d0
-    losses = np.array([leaf.loss for leaf in tree_new_leaves])
-    order = list(losses.argsort())
+    n_removed_leaves = len(removed_leaves)
+    n_unchanged_leaves = len(unchanged_leaves)
+    n_new_leaves = len(new_leaves)
 
-    # use the leaf with the maximum loss to find a pair of leaves as d0
-    #losses = np.array([leaf.loss for leaf in tree_new_leaves])
-    #order = list(losses.argsort())[::-1]
-
-    found = False
-    for idx1 in order:
-        r1 = tree_new_rules[idx1]
-        for j in range(len(r1)):
-            r2 = tuple(sorted(r1[:j] + (-r1[j],) + r1[j + 1:]))
-            r0 = r1[:j] + r1[j + 1:]
-            # print("r1:",r1)
-            # print("r2:",r2)
-            # print("sorted_tree_new_rules",sorted_tree_new_rules)
-            if r2 in sorted_new_tree_rules and r0 in leaf_cache:
-                #l1 = r1
-                l2 = r2
-                l0 = r0
-                found = True
-                break
-                # print("l1",l1)
-        if found == True:
-            break
-
-    #idx1 = tree_new_rules.index(l1)
-    idx2 = tree_new_rules.index(l2)
-
-    loss1 = tree_new_leaves[idx1].loss
-    loss2 = tree_new_leaves[idx2].loss
-    loss0 = leaf_cache[l0].loss
-
-    lb = sum([leaf.loss for leaf in tree_new_leaves]) - loss1 - loss2 + lamb * (len(tree_new_leaves) - 1)
+    lb = sum([leaf.loss for leaf in unchanged_leaves]) + lamb * (n_unchanged_leaves+n_removed_leaves)
 
     # print("l1",l1)
     # print("l2",l2)
     # print("l0",l0)
     # print("leaf_cache",leaf_cache)
-    b0 = leaf_cache[l0].B0
+    b0 = sum([leaf.B0 for leaf in removed_leaves])
 
     # (Lower bound on accurate antecedent support)
     # a_l = (sum(cap_l) - sum(incorr_l)) / ndata - sum(cap_l) / ndata / 2
-    a_l = loss0 - loss1 - loss2
+    a_l = sum([leaf.loss for leaf in removed_leaves]) - sum([leaf.loss for leaf in new_leaves])
 
     if accu_support == False:
         a_l = float('Inf')
 
     # binary vector indicating split or not
-    splitleaf1 = [1] * nleaves  # all leaves labeled as to be split
-    splitleaf2 = [0] * (nleaves)  # l1,l2 labeled as to be split
-    splitleaf2[idx1] = 1
-    splitleaf2[idx2] = 1
-    splitleaf3 = [1] * (nleaves)  # dp labeled as to be split
-    splitleaf3[idx1] = 0
-    splitleaf3[idx2] = 0
+    splitleaf1 = [1] * (n_unchanged_leaves+n_new_leaves)  # all leaves labeled as to be split
+    splitleaf2 = [0] * n_unchanged_leaves + [1] * n_new_leaves  # l1,l2 labeled as to be split
+    splitleaf3 = [1] * n_unchanged_leaves + [0] * n_new_leaves  # dp labeled as to be split
 
     lambbb = lamb
     if lookahead == False:
@@ -286,14 +251,14 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, n
     # print("lb + b00 + lambbb",lb + b00 + lambbb )
     # print("R_c",R_c)
 
-    if lb + b00 + lambbb >= R_c:
+    if lb + b00 + n_removed_leaves * lambbb >= R_c:
         # print("lb+b0+lamb",lb+b0+lamb)
         # print("R_c",R_c)
         # if equivalent points bound combined with the lookahead bound doesn't hold
         # or if the hierarchical objective lower bound doesn't hold
         # we need to split at least one leaf in dp
 
-        if a_l <= lamb:
+        if a_l <= n_removed_leaves * lamb:
             # if the bound doesn't hold, we need to split the leaf l1/l2
             # further
 
@@ -305,7 +270,7 @@ def generate_new_splitleaf(tree_new_leaves, sorted_new_tree_rules, leaf_cache, n
             sl.append(splitleaf3)
     else:
 
-        if a_l <= lamb:
+        if a_l <= n_removed_leaves * lamb:
             # if the bound doesn't hold, we need to split the leaf l1/l2
             # further
 
@@ -628,8 +593,6 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
             if flag_increm:
                 continue
 
-
-
             new_tree_leaves = unchanged_leaves + new_leaves
 
             sorted_new_tree_rules = tuple(sorted(leaf.rules for leaf in new_tree_leaves))
@@ -656,7 +619,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
             num_unchanged_leaves = len(unchanged_leaves)
 
             # generate the new splitleaf for the new tree
-            sl = generate_new_splitleaf(new_tree_leaves, sorted_new_tree_rules, leaf_cache, new_tree_length,
+            sl = generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves,
                                         lamb, R_c, accu_support, equiv_points, lookahead)
             # print("sl:", sl)
 
