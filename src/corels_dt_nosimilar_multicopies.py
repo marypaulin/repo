@@ -515,16 +515,17 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
 
         # Generate all assignments of rules to the leaves that are due to be split
 
-        # rules_for_leaf = [set(range(1, nrule + 1)) - set(map(abs, l.rules)) -
-        #                  set([i+1 for i in range(nrule) if l.is_feature_dead[i] == 1]) for l in removed_leaves]
-
-        rules_for_leaf = [set(range(1, nrule + 1)) - set(map(abs, l.rules)) for l in removed_leaves]
+        rules_for_leaf = [set(range(1, nrule + 1)) - set(map(abs, l.rules)) -
+                          set([i+1 for i in range(nrule) if l.is_feature_dead[i] == 1]) for l in removed_leaves]
 
         #if rules_for_leaf111 != rules_for_leaf:
         #    print("rules_for_leaf111:", rules_for_leaf111)
         #    print("rules_for_leaf:", rules_for_leaf)
         #    print([l.is_feature_dead for l in removed_leaves])
 
+        # for l in removed_leaves:
+        #    if l.rules == (-2, -1):
+        #        print("=====(-2, -1).is_feature_dead:=====", l.is_feature_dead)
 
         """
         # for each leaf, reorder the index of features
@@ -541,10 +542,11 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
             rules_for_leaf.append(rule_for_l)
         """
 
-        # print([l.rules for l in removed_leaves])
-        # print(rules_for_leaf)
+        #print([l.rules for l in removed_leaves])
+        #print("rules_for_leaf:",rules_for_leaf)
+        #print("is_feature_dead:",[l.is_feature_dead for l in removed_leaves])
 
-        print("rules_for_leaf0:", rules_for_leaf)
+        #print("rules_for_leaf0:", rules_for_leaf)
 
         for leaf_rules in product(*rules_for_leaf):
 
@@ -554,7 +556,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
 
                 rule_index = rule - 1
                 tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
-                parent_is_feature_dead = removed_leaf.is_feature_dead.copy()
+
 
                 for new_rule in (-rule, rule):
                     new_rule_label = int(new_rule > 0)
@@ -568,8 +570,9 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
                         # print("new_points_cap:", new_points_cap)
                         # print("new_num_captured:", new_num_captured)
 
+                        #parent_is_feature_dead =
                         new_leaf = CacheLeaf(ndata, new_rules, y, z, new_points_cap, new_num_captured,
-                                             lamb, support, parent_is_feature_dead)
+                                             lamb, support, removed_leaf.is_feature_dead.copy())
                         leaf_cache[new_rules] = new_leaf
                         new_leaves.append(new_leaf)
                     else:
@@ -581,9 +584,41 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
                     # print("new_leaf.num_captured:",new_leaf.num_captured)
                     # print("new_leaf.num_captured_incorrect",new_leaf.num_captured_incorrect)
 
+                    # print("******* old_rules:", removed_leaf.rules)
+                    # print("******* new_rules:", new_rules)
+
                     # incremental support bound
+                    # if (new_leaf.num_captured) / ndata <= lamb:
                     if (new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata <= lamb:
+
+                        # print("========removed_leaf:", removed_leaf.rules)
+                        # print("new_rules:", new_rules)
+                        # print("corr/ndata:",(new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata)
+                        # print("is_feature_dead0:", removed_leaf.is_feature_dead)
+
+                        # if removed_leaf.rules == (2,):
+                        #    print("***************removed_leaf.rules == (2,)***************")
+                        #    for le in leaf_cache.values():
+                        #        print("le.rules", le.rules)
+                        #        print("is_feature_dead:", le.is_feature_dead)
+                        #    print("******************************")
+
+
                         removed_leaf.is_feature_dead[rule_index] = 1
+
+                        #print("is_feature_dead1:", removed_leaf.is_feature_dead)
+
+                        #if removed_leaf.is_feature_dead == [0, 0, 1, 0]:
+                        #    print("!!!!!!!!!!!!!!!!!!!ABOVE!!!!!!!!!!!!!!!!!!!!")
+                        #    print("leaf_cache[(-2,)].is_feature_dead", leaf_cache[(-2,)].is_feature_dead)
+
+                        #if removed_leaf.rules == (2,):
+                        #    print("***************removed_leaf.rules == (2,)***************")
+                        #    for le in leaf_cache.values():
+                        #        print("le.rules", le.rules)
+                        #        print("is_feature_dead:", le.is_feature_dead)
+                        #    print("******************************")
+
                         flag_increm = True
                         break
 
@@ -634,9 +669,9 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
                                  if r not in map(abs, l.rules)])
                             for l in new_tree_leaves]
 
-            if len(new_tree_leaves)!=new_tree_length:
-                print("len(new_tree_leaves):",len(new_tree_leaves))
-                print("new_tree_length:", new_tree_length)
+            # if len(new_tree_leaves)!=new_tree_length:
+            #    print("len(new_tree_leaves):",len(new_tree_leaves))
+            #    print("new_tree_length:", new_tree_length)
 
             # For each copy, we don't split leaves which are not split in its parent tree.
             # In this way, we can avoid duplications.
@@ -672,6 +707,11 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
 
                 if COUNT % 100000 == 0:
                     print("COUNT:", COUNT)
+
+    # for le in leaf_cache.values():
+    #    print("le.rules", le.rules)
+    #    print("correct / ndata:", (le.num_captured - le.num_captured_incorrect) / ndata)
+    #    print("is_feature_dead:", le.is_feature_dead)
 
     if logon:
         header = ['#pop', '#push', 'queue_size', 'metric', 'R_c',
