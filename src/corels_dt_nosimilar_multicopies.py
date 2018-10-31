@@ -217,65 +217,47 @@ def generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves, lamb,
     n_unchanged_leaves = len(unchanged_leaves)
     n_new_leaves = len(new_leaves)
 
-    lb = sum([leaf.loss for leaf in unchanged_leaves]) + lamb * (n_unchanged_leaves+n_removed_leaves)
-
-    # print("l1",l1)
-    # print("l2",l2)
-    # print("l0",l0)
-    # print("leaf_cache",leaf_cache)
-    b0 = sum([leaf.B0 for leaf in removed_leaves])
+    n_new_tree_leaves = n_unchanged_leaves + n_new_leaves
 
     # (Lower bound on accurate antecedent support)
     # a_l = (sum(cap_l) - sum(incorr_l)) / ndata - sum(cap_l) / ndata / 2
     a_l = sum([leaf.loss for leaf in removed_leaves]) - sum([leaf.loss for leaf in new_leaves])
 
-    if accu_support == False:
+    if not accu_support:
         a_l = float('Inf')
 
+
+    '''
     # binary vector indicating split or not
     splitleaf1 = [1] * (n_unchanged_leaves+n_new_leaves)  # all leaves labeled as to be split
     splitleaf2 = [0] * n_unchanged_leaves + [1] * n_new_leaves  # l1,l2 labeled as to be split
-    splitleaf3 = [1] * n_unchanged_leaves + [0] * n_new_leaves  # dp labeled as to be split
-
-    lambbb = lamb
-    if lookahead == False:
-        lambbb = 0
-
-    b00 = b0
-    if equiv_points == False:
-        b00 = 0
 
     sl = []
 
-    # print("a_l:",a_l)
-    # print("lb + b00 + lambbb",lb + b00 + lambbb )
-    # print("R_c",R_c)
+    if a_l <= n_removed_leaves * lamb:
+        # if the bound doesn't hold, we need to split the leaf l1/l2
+        # further
 
-    if lb + b00 + n_removed_leaves * lambbb >= R_c:
-        # print("lb+b0+lamb",lb+b0+lamb)
-        # print("R_c",R_c)
-        # if equivalent points bound combined with the lookahead bound doesn't hold
-        # or if the hierarchical objective lower bound doesn't hold
-        # we need to split at least one leaf in dp
+        sl.append(splitleaf2)
 
-        if a_l <= n_removed_leaves * lamb:
-            # if the bound doesn't hold, we need to split the leaf l1/l2
-            # further
-
-            sl.append(splitleaf2)
-            sl.append(splitleaf3)
-
-        else:
-
-            sl.append(splitleaf3)
     else:
+        sl.append(splitleaf1)
+    '''
 
-        if a_l <= n_removed_leaves * lamb:
-            # if the bound doesn't hold, we need to split the leaf l1/l2
-            # further
+    splitleaf1 = [0] * n_unchanged_leaves + [1] * n_new_leaves  # all new leaves labeled as to be split
 
-            sl.append(splitleaf2)
+    sl = []
+    for i in range(n_removed_leaves):
 
+        splitleaf = [0] * n_new_tree_leaves
+
+        idx1 = 2*i
+        idx2 = 2*i+1
+        a_l = removed_leaves[i].loss - new_leaves[idx1].loss - new_leaves[idx2].loss
+        if a_l <= lamb:
+            splitleaf[n_unchanged_leaves + idx1] = 1
+            splitleaf[n_unchanged_leaves + idx2] = 1
+            sl.append(splitleaf)
         else:
             sl.append(splitleaf1)
 
@@ -460,6 +442,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
         # print("R",tree.lbound[0]+(tree.num_captured_incorrect[0])/len(y))
 
         leaf_split = tree.splitleaf
+        removed_leaves = list(compress(leaves, leaf_split))
         old_tree_length = len(leaf_split)
         new_tree_length = len(leaf_split) + sum(leaf_split)
 
@@ -469,10 +452,17 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
             #print("toolong===COUNT:", COUNT)
             continue
 
+        n_removed_leaves = sum(leaf_split)
+        n_unchanged_leaves = old_tree_length - n_removed_leaves
 
+        # equivalent points bound combined with the lookahead bound
+        lb = tree.lb
+        b0 = sum([leaf.B0 for leaf in removed_leaves]) if equiv_points else 0
+        lambbb = lamb if lookahead else 0
+        if lb + b0 + n_removed_leaves * lambbb >= R_c:
+            continue
 
         leaf_no_split = [not split for split in leaf_split]
-        removed_leaves = list(compress(leaves, leaf_split))
         unchanged_leaves = list(compress(leaves, leaf_no_split))
 
         # lb = sum(l.loss for l in unchanged_leaves)
@@ -616,8 +606,6 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
                 C_c = COUNT + 1
                 time_c = time.time() - tic
 
-            num_unchanged_leaves = len(unchanged_leaves)
-
             # generate the new splitleaf for the new tree
             sl = generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves,
                                         lamb, R_c, accu_support, equiv_points, lookahead)
@@ -638,23 +626,24 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
 
             # For each copy, we don't split leaves which are not split in its parent tree.
             # In this way, we can avoid duplications.
-            can_split_leaf = [(0,)] * num_unchanged_leaves + \
+            can_split_leaf = [(0,)] * n_unchanged_leaves + \
                              [(0,) if cannot_split[i]
-                              else (0, 1) for i in range(num_unchanged_leaves, new_tree_length)]
+                              else (0, 1) for i in range(n_unchanged_leaves, new_tree_length)]
             # Discard the first element of leaf_splits, since we must split at least one leaf
-            new_leaf_splits0 = sorted(product(*can_split_leaf))[1:]
-            if len(sl) == 1:
+            new_leaf_splits0 = np.array(list(product(*can_split_leaf))[1:])#sorted(product(*can_split_leaf))[1:]
+            len_sl = len(sl)
+            if len_sl == 1:
                 # Filter out those which split at least one leaf in dp (d0)
                 new_leaf_splits = [ls for ls in new_leaf_splits0
-                                   if sum(np.array(ls) * sl[0]) > 0]
-                # print("num_unchanged_leaves:",num_unchanged_leaves)
+                                   if np.dot(ls, sl[0]) > 0]
+                # print("n_unchanged_leaves:",n_unchanged_leaves)
                 # print("cannot_split:", cannot_split)
                 # print("can_split_leaf:",can_split_leaf)
                 # print("new_leaf_splits:",new_leaf_splits)
             else:
                 # Filter out those which split at least one leaf in dp and split at least one leaf in d0
                 new_leaf_splits = [ls for ls in new_leaf_splits0
-                                   if sum(np.array(ls) * sl[0]) > 0 and sum(np.array(ls) * sl[1]) > 0]
+                                   if all([np.dot(ls, sl[i]) > 0 for i in range(len_sl)])]
 
             for new_leaf_split in new_leaf_splits:
                 # construct the new tree
