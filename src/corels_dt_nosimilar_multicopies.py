@@ -343,7 +343,7 @@ def gini_reduction(x_mpz, y_mpz, ndata, rule_idx, points_cap=None):
     return odr
 
 
-def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, niter=float('Inf'), logon=False,
+def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), niter=float('Inf'), logon=False,
                                  support=True, accu_support=True, equiv_points=True, lookahead=True, lenbound=True, R_c0 = 1):
     """
     An implementation of Algorithm
@@ -374,7 +374,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
     z is the vector defined in algorithm 5 of the CORELS paper
     z is a binary vector indicating the data with a minority lable in its equivalent set
     """
-    z = pd.DataFrame([-1] * ndata).as_matrix()
+    z = pd.DataFrame([-1] * ndata).values
     # enumerate through theses samples
     for i in range(ndata):
         # if z[i,0]==-1, this sample i has not been put into its equivalent set
@@ -400,10 +400,13 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
     # initialize the queue to include just empty root
     queue = []
     root_leaf = CacheLeaf(ndata, (), y, z, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
-    tree0 = Tree(cache_tree=CacheTree(leaves=[root_leaf], lamb=lamb), lamb=lamb,
+
+    d_c = CacheTree(leaves=[root_leaf], lamb=lamb)
+    R_c = d_c.risk
+
+    tree0 = Tree(cache_tree=d_c, lamb=lamb,
                  ndata=ndata, splitleaf=[1], prior_metric=prior_metric)
-    d_c = tree0
-    R_c = tree0.cache_tree.risk
+
 
     if R_c0<R_c:
         R_c = R_c0
@@ -419,6 +422,8 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
     leaf_cache[()] = root_leaf
 
     COUNT = 0  # count the total number of trees in the queue
+    C_c = 0
+    time_c = 0
 
     COUNT_POP = 0
     while queue and COUNT < niter:
@@ -657,7 +662,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=4, nite
                 if logon:
                     log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree, tree_new, sorted_new_tree_rules)
 
-                if COUNT % 100000 == 0:
+                if COUNT % 1000000 == 0:
                     print("COUNT:", COUNT)
 
     # for le in leaf_cache.values():

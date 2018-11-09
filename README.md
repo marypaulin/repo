@@ -1,29 +1,37 @@
 # CORELS DT
 
-corels_dt:
-all 6907 data from compas-binary.csv
+##### compas-binary.csv, 13 features, 6907 data
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue | optimal tree size
+  ------------- | ------------- | ------------- | -------------  | -------------  | -------------
+lambda=0.0035 | 3365.399s | 474.551s | 57,221,882 | 8,559,870 | 6
+lambda=0.005 | 542.960s | 33.879s | 10,337,041 | 530,556 | 3
+lambda=0.05 | 0.369s | 0.038s | 26 | 1 | 2
 
-##### lambda=0.0035
 
-##### Try 6 features(sex:Female, age:18-20,age:21-22, juvenile-crimes:=0, priors:2-3, priors:>3)
+#### [MONK's Problems dataset](https://archive.ics.uci.edu/ml/datasets/MONK's+Problems)
+#### [MONK's Problems](https://www.researchgate.net/profile/Yoram_Reich/publication/2293492_The_MONK's_Problems_A_Performance_Comparison_of_Different_Learning_Algorithms/links/57358d6208ae9f741b2987fb/The-MONKs-Problems-A-Performance-Comparison-of-Different-Learning-Algorithms.pdf)
 
-##### # order x's columns according to gini_reduction
-Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
-  ------------- | ------------- | ------------- | -------------  | -------------
-Last Version. Use the leaf with the minimum loss to find a pair of leaves as d0 (MAXDEPTH = 5) | 2257.721s | 15.745s | 9,844,529 | 341,986
-use removed_leaves as d0, unchanged_leaves as dp (MAXDEPTH = 5) | 117.383s | 20.328s | 49,173 | 35,314
-use removed_leaves as d0, unchanged_leaves as dp (MAXDEPTH = 6) | 119.512s | 21.726s | 49,215 | 35,344
-and check equivalent points bound right after the tree pushed out of the queue (MAXDEPTH = 6) | 5.069s | 2.537s | 53,644 | 35,727
-and check accurate support bound for each pair of leaves in new_leaves, rather than check them altogether (MAXDEPTH = 6) | 5.084s | 2.504s | 9,483 | 17,878
+##### monk1-train.csv, 11 features, 124 data
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue | optimal tree size
+  ------------- | ------------- | ------------- | -------------  | -------------  | -------------
+lambda=0.05 | 0.368s | 0.103s | 4,748 | 749 | 5
+lambda=0.02 | 47.817s | 0.107s | 1,158,145 | 687 | 8
 
-##### Try 8 features, MAXDEPTH = 8
+##### monk2-train.csv, 11 features, 169 data
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue | optimal tree size
+  ------------- | ------------- | ------------- | -------------  | -------------  | -------------
+lambda=0.035 | 880.414s | 0s | 4,291,599 | 0 | 0
 
-Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
-  ------------- | ------------- | ------------- | -------------  | -------------
-try 8 features | 30.170s | 5.409s | 435,108 | 40,372
 
-##### Try all 13 features, MAXDEPTH = 13
+##### monk3-train.csv, 11 features, 169 data
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue | optimal tree size
+  ------------- | ------------- | ------------- | -------------  | -------------  | -------------
+lambda=0.02 | 5542.682s | 10.326s | 70,428,060 | 68,021 | 9
+lambda=0.03 | 700.427s | 0.330s | 9,121,614 | 2,921 | 5
 
-Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue
-  ------------- | ------------- | ------------- | -------------  | -------------
-try all 13 features | 3229.861s | 468.189s | 57,221,882 | 8,559,870
+
+#### [Voting Records dataset](https://archive.ics.uci.edu/ml/datasets/congressional+voting+records)
+##### voting-records-binary.csv, 16 features, 232 data
+Algorithm variant | total time | time to find the optimal tree | total number of trees pushed into the queue | when is the optimal tree pushed into the queue | optimal tree size
+  ------------- | ------------- | ------------- | -------------  | -------------  | -------------
+lambda=0.0035 | >10h |  |  |  | 
