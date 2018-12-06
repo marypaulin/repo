@@ -208,7 +208,7 @@ def log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new, sorted_
 
 
 def generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves, lamb,
-                           R_c, accu_support, equiv_points, lookahead):
+                           R_c, accu_support):
     """
     generate the new splitleaf for the new tree
     """
@@ -219,31 +219,6 @@ def generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves, lamb,
 
     n_new_tree_leaves = n_unchanged_leaves + n_new_leaves
 
-    # (Lower bound on accurate antecedent support)
-    # a_l = (sum(cap_l) - sum(incorr_l)) / ndata - sum(cap_l) / ndata / 2
-    a_l = sum([leaf.loss for leaf in removed_leaves]) - sum([leaf.loss for leaf in new_leaves])
-
-    if not accu_support:
-        a_l = float('Inf')
-
-
-    '''
-    # binary vector indicating split or not
-    splitleaf1 = [1] * (n_unchanged_leaves+n_new_leaves)  # all leaves labeled as to be split
-    splitleaf2 = [0] * n_unchanged_leaves + [1] * n_new_leaves  # l1,l2 labeled as to be split
-
-    sl = []
-
-    if a_l <= n_removed_leaves * lamb:
-        # if the bound doesn't hold, we need to split the leaf l1/l2
-        # further
-
-        sl.append(splitleaf2)
-
-    else:
-        sl.append(splitleaf1)
-    '''
-
     splitleaf1 = [0] * n_unchanged_leaves + [1] * n_new_leaves  # all new leaves labeled as to be split
 
     sl = []
@@ -253,7 +228,13 @@ def generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves, lamb,
 
         idx1 = 2*i
         idx2 = 2*i+1
+        # (Lower bound on accurate antecedent support)
+
         a_l = removed_leaves[i].loss - new_leaves[idx1].loss - new_leaves[idx2].loss
+
+        if not accu_support:
+            a_l = float('Inf')
+
         if a_l <= lamb:
             splitleaf[n_unchanged_leaves + idx1] = 1
             splitleaf[n_unchanged_leaves + idx2] = 1
@@ -344,10 +325,10 @@ def gini_reduction(x_mpz, y_mpz, ndata, rule_idx, points_cap=None):
 
 
 def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), niter=float('Inf'), logon=False,
-                                 support=True, accu_support=True, equiv_points=True, lookahead=True, lenbound=True, R_c0 = 1):
+                                 support=True, accu_support=True, incre_support=True, equiv_points=True, lookahead=True, lenbound=True, R_c0 = 1):
     """
     An implementation of Algorithm
-    ## one copy of tree
+    ## multiple copies of tree
     ## mark which leaves to be split
     """
 
@@ -478,35 +459,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
         rules_for_leaf = [set(range(1, nrule + 1)) - set(map(abs, l.rules)) -
                           set([i+1 for i in range(nrule) if l.is_feature_dead[i] == 1]) for l in removed_leaves]
 
-        #if rules_for_leaf111 != rules_for_leaf:
-        #    print("rules_for_leaf111:", rules_for_leaf111)
-        #    print("rules_for_leaf:", rules_for_leaf)
-        #    print([l.is_feature_dead for l in removed_leaves])
 
-        # for l in removed_leaves:
-        #    if l.rules == (-2, -1):
-        #        print("=====(-2, -1).is_feature_dead:=====", l.is_feature_dead)
-
-        """
-        # for each leaf, reorder the index of features
-        rules_for_leaf = []
-        for l in removed_leaves:
-            #cap_vec = rule_mpztovec(l.points_cap)  # a binary vector of points captured
-            #cap_idx = [xi for xi in range(len(cap_vec)) if cap_vec[xi] == 1]
-            rule_idx = [r for r in range(nrule) if r+1 not in set(map(abs, l.rules))]
-            if len(l.rules) > 2:
-                rule_for_l = [r+1 for r in rule_idx]
-            else:
-                # for each leaf, reorder the index of features
-                rule_for_l = [r+1 for r in gini_reduction(x_mpz, y_mpz, ndata, rule_idx, points_cap=l.points_cap)]
-            rules_for_leaf.append(rule_for_l)
-        """
-
-        #print([l.rules for l in removed_leaves])
-        #print("rules_for_leaf:",rules_for_leaf)
-        #print("is_feature_dead:",[l.is_feature_dead for l in removed_leaves])
-
-        #print("rules_for_leaf0:", rules_for_leaf)
 
         for leaf_rules in product(*rules_for_leaf):
 
@@ -549,35 +502,9 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
 
                     # incremental support bound
                     # if (new_leaf.num_captured) / ndata <= lamb:
-                    if (new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata <= lamb:
-
-                        # print("========removed_leaf:", removed_leaf.rules)
-                        # print("new_rules:", new_rules)
-                        # print("corr/ndata:",(new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata)
-                        # print("is_feature_dead0:", removed_leaf.is_feature_dead)
-
-                        # if removed_leaf.rules == (2,):
-                        #    print("***************removed_leaf.rules == (2,)***************")
-                        #    for le in leaf_cache.values():
-                        #        print("le.rules", le.rules)
-                        #        print("is_feature_dead:", le.is_feature_dead)
-                        #    print("******************************")
-
+                    if incre_support == True and (new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata <= lamb:
 
                         removed_leaf.is_feature_dead[rule_index] = 1
-
-                        #print("is_feature_dead1:", removed_leaf.is_feature_dead)
-
-                        #if removed_leaf.is_feature_dead == [0, 0, 1, 0]:
-                        #    print("!!!!!!!!!!!!!!!!!!!ABOVE!!!!!!!!!!!!!!!!!!!!")
-                        #    print("leaf_cache[(-2,)].is_feature_dead", leaf_cache[(-2,)].is_feature_dead)
-
-                        #if removed_leaf.rules == (2,):
-                        #    print("***************removed_leaf.rules == (2,)***************")
-                        #    for le in leaf_cache.values():
-                        #        print("le.rules", le.rules)
-                        #        print("is_feature_dead:", le.is_feature_dead)
-                        #    print("******************************")
 
                         flag_increm = True
                         break
@@ -613,7 +540,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
 
             # generate the new splitleaf for the new tree
             sl = generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves,
-                                        lamb, R_c, accu_support, equiv_points, lookahead)
+                                        lamb, R_c, accu_support)
             # print("sl:", sl)
 
             # A leaf cannot be split if
@@ -665,10 +592,8 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
                 if COUNT % 1000000 == 0:
                     print("COUNT:", COUNT)
 
-    # for le in leaf_cache.values():
-    #    print("le.rules", le.rules)
-    #    print("correct / ndata:", (le.num_captured - le.num_captured_incorrect) / ndata)
-    #    print("is_feature_dead:", le.is_feature_dead)
+
+    totaltime = time.time() - tic
 
     if logon:
         header = ['#pop', '#push', 'queue_size', 'metric', 'R_c',
@@ -688,7 +613,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
     print(">>> equiv points bound:", equiv_points)
     print(">>> lookahead bound:", lookahead)
 
-    print("total time: ", time.time() - tic)
+    print("total time: ", totaltime)
     print("lambda: ", lamb)
     print("leaves: ", [leaf.rules for leaf in d_c.leaves])
     print("num_captured: ", [leaf.num_captured for leaf in d_c.leaves])
@@ -701,4 +626,4 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
     print("time when the best tree is achieved: ", time_c)
     print("TOTAL COUNT: ", COUNT)
 
-    return d_c
+    return nrule, ndata, totaltime, time_c
