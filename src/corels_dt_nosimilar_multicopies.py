@@ -8,6 +8,8 @@ from itertools import product, compress
 from gmpy2 import mpz
 from rule import make_all_ones, make_zeros, rule_vand, rule_vandnot, rule_vectompz, rule_mpztovec, count_ones
 
+import sklearn.tree
+
 
 class CacheTree:
     """
@@ -124,6 +126,8 @@ class Tree:
                         ndata - sum(leaf.num_captured for leaf in removed_leaves))
             else:
                 self.metric = sum(self.giniindex[i] for i in range(l) if splitleaf[i] == 0) / 0.01
+        elif prior_metric == "FIFO":
+            self.metric = 0
 
     def __lt__(self, other):
         # define <, which will be used in the priority queue
@@ -321,11 +325,62 @@ def gini_reduction(x_mpz, y_mpz, ndata, rule_idx, points_cap=None):
     print("order:", order)
     print("odr:", odr)
     #print("the rank of x's columns: ", rank)
-    return odr
+
+    dic = dict(zip(np.array(rule_idx)+1, odr))
+
+    return odr, dic
 
 
-def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), niter=float('Inf'), logon=False,
-                                 support=True, accu_support=True, incre_support=True, equiv_points=True, lookahead=True, lenbound=True, R_c0 = 1):
+def get_code(tree, feature_names, target_names, spacer_base="    "):
+    """Produce psuedo-code for scikit-leant DescisionTree.
+
+        Args
+        ----
+        tree -- scikit-leant DescisionTree.
+        feature_names -- list of feature names.
+        target_names -- list of target (class) names.
+        spacer_base -- used for spacing code (default: "    ").
+
+        Notes
+        -----
+        based on http://stackoverflow.com/a/30104792.
+        http://chrisstrelioff.ws/sandbox/2015/06/08/decision_trees_in_python_with_scikit_learn_and_pandas.html
+        """
+    #tree  # = dt
+    #feature_names   #= features
+    #target_names   #= targets
+
+    left = tree.tree_.children_left
+    right = tree.tree_.children_right
+    threshold = tree.tree_.threshold
+    feats = [feature_names[i] for i in tree.tree_.feature]
+    value = tree.tree_.value
+
+    def recurse(left, right, threshold, features, node, depth):
+        spacer = spacer_base * depth
+        if (threshold[node] != -2):
+            print((spacer + "if ( " + feats[node] + " <= " + str(threshold[node]) + " ) {"))
+            if left[node] != -1:
+                recurse(left, right, threshold, feats, left[node], depth + 1)
+            print((spacer + "}\n" + spacer + "else {"))
+            if right[node] != -1:
+                recurse(left, right, threshold, feats, right[node], depth + 1)
+            print((spacer + "}"))
+        else:
+            target = value[node]
+            print((spacer + "return " + str(target)))
+            for i, v in zip(np.nonzero(target)[1], target[np.nonzero(target)]):
+                target_name = target_names[i]
+                target_count = int(v)
+                print((spacer + "return " + str(target_name) + " " + str(i) + " " \
+                                                                              " ( " + str(
+                    target_count) + " examples )"))
+
+    recurse(left, right, threshold, feature_names, 0, 0)
+
+def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=float('Inf'), niter=float('Inf'), logon=False,
+           support=True, accu_support=True, incre_support=True, equiv_points=True,
+           lookahead=True, lenbound=True, R_c0 = 1, timelimit=float('Inf'), init_cart = False):
     """
     An implementation of Algorithm
     ## multiple copies of tree
@@ -346,7 +401,7 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
     y_mpz = rule_vectompz(y)
 
     # order the columns by descending gini reduction
-    idx = gini_reduction(x_mpz, y_mpz, ndata, range(nrule))
+    idx, dic = gini_reduction(x_mpz, y_mpz, ndata, range(nrule))
     x = x[:, idx]
     print("the order of x's columns: ", idx)
 
@@ -388,6 +443,28 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
     tree0 = Tree(cache_tree=d_c, lamb=lamb,
                  ndata=ndata, splitleaf=[1], prior_metric=prior_metric)
 
+    best_is_cart = False  # a flag for whether or not the best is the initial CART
+    if init_cart:
+        # CART
+        clf = sklearn.tree.DecisionTreeClassifier(max_depth=None if MAXDEPTH == float('Inf') else MAXDEPTH,
+                                                  min_samples_split=max(math.ceil(lamb * 2 * len(y)), 2),
+                                          min_samples_leaf=math.ceil(lamb * len(y)),
+                                          max_leaf_nodes=math.floor(1 / (2 * lamb)),
+                                          min_impurity_decrease=lamb
+                                          )
+        clf = clf.fit(x, y)
+
+        nleaves_CART = (clf.tree_.node_count + 1) / 2
+        trainaccu_CART = clf.score(x, y)
+
+        R_c = 1 - trainaccu_CART + lamb*nleaves_CART
+        d_c = clf
+
+        C_c = 0
+        time_c = time.time() - tic
+
+        best_is_cart = True
+
 
     if R_c0<R_c:
         R_c = R_c0
@@ -403,11 +480,9 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
     leaf_cache[()] = root_leaf
 
     COUNT = 0  # count the total number of trees in the queue
-    C_c = 0
-    time_c = 0
 
     COUNT_POP = 0
-    while queue and COUNT < niter:
+    while queue and COUNT < niter and time.time() - tic < timelimit:
         # tree = queue.pop(0)
         metric, tree = heapq.heappop(queue)
 
@@ -462,6 +537,9 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
 
 
         for leaf_rules in product(*rules_for_leaf):
+
+            if time.time() - tic >= timelimit:
+                break
 
             new_leaves = []
             flag_increm = False  # a flag for jump out of the loops (incremental support bound)
@@ -538,6 +616,8 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
                 C_c = COUNT + 1
                 time_c = time.time() - tic
 
+                best_is_cart = False
+
             # generate the new splitleaf for the new tree
             sl = generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves,
                                         lamb, R_c, accu_support)
@@ -582,6 +662,10 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
                 tree_new = Tree(cache_tree=child, ndata=ndata, lamb=lamb,
                                 splitleaf=new_leaf_split, prior_metric=prior_metric)
 
+                # MAX Number of leaves
+                if len(new_leaf_split)+sum(new_leaf_split) > MAX_NLEAVES:
+                    continue
+
                 COUNT = COUNT + 1
                 # heapq.heappush(queue, (2*tree_new.metric - R_c, tree_new))
                 heapq.heappush(queue, (tree_new.metric, tree_new))
@@ -592,8 +676,30 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
                 if COUNT % 1000000 == 0:
                     print("COUNT:", COUNT)
 
-
     totaltime = time.time() - tic
+
+    if not best_is_cart:
+
+        accu = 1-(R_c-lamb*len(d_c.leaves))
+
+        leaves_c = [leaf.rules for leaf in d_c.leaves]
+        prediction_c = [leaf.prediction for leaf in d_c.leaves]
+
+        num_captured = [leaf.num_captured for leaf in d_c.leaves]
+
+        num_captured_incorrect = [leaf.num_captured_incorrect for leaf in d_c.leaves]
+
+        nleaves = len(leaves_c)
+    else:
+        accu = trainaccu_CART
+        leaves_c = 'NA'
+        prediction_c = 'NA'
+        get_code(d_c, ['x'+str(i) for i in range(1, nrule+1)], [0, 1])
+        num_captured = 'NA'
+        num_captured_incorrect = 'NA'
+        nleaves = nleaves_CART
+
+
 
     if logon:
         header = ['#pop', '#push', 'queue_size', 'metric', 'R_c',
@@ -609,21 +715,58 @@ def bbound_nosimilar_multicopies(x, y, lamb, prior_metric=None, MAXDEPTH=float('
 
     print(">>> log:", logon)
     print(">>> support bound:", support)
+    print(">>> incre_support:", incre_support)
     print(">>> accurate support bound:", accu_support)
     print(">>> equiv points bound:", equiv_points)
     print(">>> lookahead bound:", lookahead)
+    print("prior_metric=", prior_metric)
 
     print("total time: ", totaltime)
     print("lambda: ", lamb)
-    print("leaves: ", [leaf.rules for leaf in d_c.leaves])
-    print("num_captured: ", [leaf.num_captured for leaf in d_c.leaves])
-    print("num_captured_incorrect: ", [leaf.num_captured_incorrect for leaf in d_c.leaves])
+    print("leaves: ", leaves_c)
+    print("num_captured: ", num_captured)
+    print("num_captured_incorrect: ", num_captured_incorrect)
     # print("lbound: ", d_c.cache_tree.lbound)
     # print("d_c.num_captured: ", [leaf.num_captured for leaf in d_c.cache_tree.leaves])
-    print("prediction: ", [leaf.prediction for leaf in d_c.leaves])
+    print("prediction: ", prediction_c)
     print("Objective: ", R_c)
+    print("Accuracy: ", accu)
     print("COUNT of the best tree: ", C_c)
     print("time when the best tree is achieved: ", time_c)
     print("TOTAL COUNT: ", COUNT)
 
-    return nrule, ndata, totaltime, time_c
+    return leaves_c, prediction_c, dic, nleaves, nrule, ndata, totaltime, time_c, COUNT, C_c, accu
+
+
+def predict(leaves_c, prediction_c, dic, x, y):
+    """
+
+    :param leaves_c:
+    :param dic:
+    :return:
+    """
+
+    ndata = x.shape[0]
+
+    caps = []
+
+    for leaf in leaves_c:
+        cap = np.array([1] * ndata)
+        for feature in leaf:
+            idx = dic[abs(feature)]
+            feature_label = int(feature > 0)
+            cap = (x[:, idx] == feature_label) * cap
+        caps.append(cap)
+
+    yhat = np.array([1] * ndata)
+
+    for j in range(len(caps)):
+        idx_cap = [i for i in range(ndata) if caps[j][i] == 1]
+        yhat[idx_cap] = prediction_c[j]
+
+    right = yhat==y
+    accu = right.mean()
+
+    print("Testing Accuracy:", accu)
+
+    return yhat, accu
