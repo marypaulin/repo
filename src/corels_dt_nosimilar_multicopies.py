@@ -196,7 +196,7 @@ def log(lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new, sorted_
     the_new_tree_splitleaf = str(tree_new.splitleaf)
 
     the_new_tree_objective = str(0)  # str(tree_new.cache_tree.risk)
-    the_new_tree_lbound = str(0)  # str(tree_new.lb)
+    the_new_tree_lbound = str(tree_new.lb)
     the_new_tree_length = str(0)  # str(len(tree_new.cache_tree.leaves))
     the_new_tree_depth = str(0)  # str(max([len(leaf.rules) for leaf in tree_new.leaves]))
 
@@ -578,7 +578,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                     # print("******* old_rules:", removed_leaf.rules)
                     # print("******* new_rules:", new_rules)
 
-                    # incremental support bound
+                    # accuracy bound
                     # if (new_leaf.num_captured) / ndata <= lamb:
                     if incre_support == True and (new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata <= lamb:
 
@@ -596,7 +596,6 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
             new_tree_leaves = unchanged_leaves + new_leaves
 
             sorted_new_tree_rules = tuple(sorted(leaf.rules for leaf in new_tree_leaves))
-
 
             if sorted_new_tree_rules in tree_cache:
                 # print("====== New Tree Duplicated!!! ======")
@@ -708,7 +707,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                   'the_new_tree_objective', 'the_new_tree_lbound', 'the_new_tree_length', 'the_new_tree_depth', 'queue']
 
         fname = "_".join([str(nrule), str(ndata), prior_metric,
-                          str(lamb), str(MAXDEPTH), str(lookahead), ".txt"])
+                          str(lamb), str(MAXDEPTH), str(init_cart), ".txt"])
         with open(fname, 'w') as f:
             f.write('%s\n' % ";".join(header))
             f.write('\n'.join(lines))
