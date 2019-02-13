@@ -10,6 +10,8 @@ from rule import make_all_ones, make_zeros, rule_vand, rule_vandnot, rule_vectom
 
 import sklearn.tree
 
+import pickle
+
 
 class CacheTree:
     """
@@ -380,7 +382,8 @@ def get_code(tree, feature_names, target_names, spacer_base="    "):
 
 def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=float('Inf'), niter=float('Inf'), logon=False,
            support=True, accu_support=True, incre_support=True, equiv_points=True,
-           lookahead=True, lenbound=True, R_c0 = 1, timelimit=float('Inf'), init_cart = False):
+           lookahead=True, lenbound=True, R_c0 = 1, timelimit=float('Inf'), init_cart = False,
+           saveTree = False, readTree = None):
     """
     An implementation of Algorithm
     ## multiple copies of tree
@@ -443,6 +446,10 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     tree0 = Tree(cache_tree=d_c, lamb=lamb,
                  ndata=ndata, splitleaf=[1], prior_metric=prior_metric)
 
+    heapq.heappush(queue, (tree0.metric, tree0))
+    # heapq.heappush(queue, (2*tree0.metric - R_c, tree0))
+    # queue.append(tree0)
+
     best_is_cart = False  # a flag for whether or not the best is the initial CART
     if init_cart:
         # CART
@@ -465,15 +472,28 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
         best_is_cart = True
 
+    # read Tree from the preserved one, and only explore the children of the preserved one
+    if readTree is not None:
+        with open(readTree, 'rb') as f:
+            d_c = pickle.load(f)
+        R_c = d_c.risk
+        for leaf in d_c.leaves:
+            leaf_cache[leaf.rules] = leaf
 
-    if R_c0<R_c:
+        sorted_new_tree_rules = tuple(sorted(leaf.rules for leaf in d_c.leaves))
+        tree_cache[sorted_new_tree_rules] = True
+
+        tree_p = Tree(cache_tree=d_c, lamb=lamb,
+                     ndata=ndata, splitleaf=[1]*len(d_c.leaves), prior_metric=prior_metric)
+
+        heapq.heappush(queue, (tree_p.metric, tree_p))
+        print("PICKEL>>>>>>>>>>>>>", [leaf.rules for leaf in d_c.leaves])
+
+        C_c = 0
+        time_c = time.time() - tic
+
+    if R_c0 < R_c:
         R_c = R_c0
-
-    # print("Tree0 R_c", R_c)
-
-    heapq.heappush(queue, (tree0.metric, tree0))
-    # heapq.heappush(queue, (2*tree0.metric - R_c, tree0))
-    # queue.append(tree0)
 
     # log(lines, lamb, tic, len(queue), tuple(), tree0, R, d_c, R_c)
 
@@ -698,7 +718,9 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
         num_captured_incorrect = 'NA'
         nleaves = nleaves_CART
 
-
+    if saveTree:
+        with open('tree.pkl', 'wb') as f:
+            pickle.dump(d_c, f)
 
     if logon:
         header = ['#pop', '#push', 'queue_size', 'metric', 'R_c',

@@ -1,0 +1,3 @@
+fold;lamb;nleaves;trainaccu_CART;testaccu_CART;totaltime;time_c;leaves_c
+fold;lamb;nleaves;trainaccu_CART;testaccu_CART;totaltime;time_c;leaves_c
+NA;0.001;8;0.6694657593745474;NA;9000.007968902588;294.78607988357544;[(-6,), (2, 6), (-11, -2, 6, 7), (-2, 6, 9, 11), (-11, -7, -2, -1, 6), (-11, -7, -2, 1, 6), (-10, -9, -2, 6, 11), (-9, -2, 6, 10, 11)]

@@ -1,0 +1,4 @@
+fold;lamb;nleaves;trainaccu_CART;testaccu_CART
+NA;0.001;9.0;0.6678731721442015;NA
+fold;lamb;nleaves;trainaccu_CART;testaccu_CART
+NA;0.001;9.0;0.6678731721442015;NA
