@@ -141,7 +141,7 @@ class CacheLeaf:
     A data structure to cache every single leaf (symmetry aware)
     """
 
-    def __init__(self, ndata, rules, y, z, points_cap, num_captured, lamb, support, is_feature_dead):
+    def __init__(self, ndata, rules, y_mpz, z_mpz, points_cap, num_captured, lamb, support, is_feature_dead):
         self.rules = rules
         self.points_cap = points_cap
         self.num_captured = num_captured
@@ -151,12 +151,11 @@ class CacheLeaf:
         # y_leaf = y[tag]
         # print("tag",tag)
         # print("y",y)
-        _, num_ones = rule_vand(points_cap, rule_vectompz(y))
+        _, num_ones = rule_vand(points_cap, y_mpz)
 
         # b0 is defined in (28)
 
-        tag_z = rule_vectompz(z.reshape(1, -1)[0])
-        _, num_errors = rule_vand(points_cap, tag_z)
+        _, num_errors = rule_vand(points_cap, z_mpz)
         self.B0 = num_errors / ndata
 
         if self.num_captured:
@@ -402,11 +401,16 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
     x_mpz = [rule_vectompz(x[:, i]) for i in range(nrule)]
     y_mpz = rule_vectompz(y)
+    #print("x_mpz000",x_mpz)
+    #print("y_mpz000", y_mpz)
 
     # order the columns by descending gini reduction
     idx, dic = gini_reduction(x_mpz, y_mpz, ndata, range(nrule))
     x = x[:, idx]
+    x_mpz = [x_mpz[i] for i in idx]
     print("the order of x's columns: ", idx)
+    #print("x_mpz111", x_mpz)
+    #print("y_mpz111", y_mpz)
 
     """
     calculate z, which is for the equivalent points bound
@@ -430,6 +434,8 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
             tag2 = (y_l != pred)
             z[tag1, 0] = tag2
 
+    z_mpz = rule_vectompz(z.reshape(1, -1)[0])
+
     tic = time.time()
 
     lines = []  # a list for log
@@ -438,7 +444,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
     # initialize the queue to include just empty root
     queue = []
-    root_leaf = CacheLeaf(ndata, (), y, z, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
+    root_leaf = CacheLeaf(ndata, (), y_mpz, z_mpz, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
 
     d_c = CacheTree(leaves=[root_leaf], lamb=lamb)
     R_c = d_c.risk
@@ -574,7 +580,9 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                     new_rules = tuple(
                         sorted(removed_leaf.rules + (new_rule,)))
                     if new_rules not in leaf_cache:
-                        tag_rule = rule_vectompz(np.array(x[:, rule_index] == new_rule_label) * 1)
+                        tag_rule = x_mpz[rule_index] if new_rule_label == 1 else ~(x_mpz[rule_index]) | mpz(pow(2, ndata))
+                        #print("x_mpz",x_mpz)
+                        #print("tag_rule",tag_rule)
                         new_points_cap, new_num_captured = rule_vand(tag, tag_rule)
                         # print("tag:", tag)
                         # print("tag_rule:", tag_rule)
@@ -582,7 +590,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                         # print("new_num_captured:", new_num_captured)
 
                         #parent_is_feature_dead =
-                        new_leaf = CacheLeaf(ndata, new_rules, y, z, new_points_cap, new_num_captured,
+                        new_leaf = CacheLeaf(ndata, new_rules, y_mpz, z_mpz, new_points_cap, new_num_captured,
                                              lamb, support, removed_leaf.is_feature_dead.copy())
                         leaf_cache[new_rules] = new_leaf
                         new_leaves.append(new_leaf)

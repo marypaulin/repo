@@ -1,6 +1,7 @@
 import gmpy2
 from gmpy2 import mpz
 import re
+import numpy as np
 import sys
 
 labels = None
@@ -147,8 +148,7 @@ def rule_copy(r):
 """
 
 def rule_vectompz(vec):
-    return mpz('1'+re.sub('[\[\],\s+]','',str(list(vec))),2)
-
+    return mpz('1' + "".join([str(i) for i in vec]), 2)
 
 """
     Python implementation of rule_mpztovec
