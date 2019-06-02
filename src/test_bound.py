@@ -43,7 +43,7 @@ print("============================================PriorQueue by gini===========
 bbound(x_compas1, y_compas1, lamb=0.005, prior_metric="gini")
 #####
 
-
+"""
 
 print("============================================All bounds===================================================")
 
@@ -80,4 +80,5 @@ print("============================================No equiv_points==============
 # compas1, all 12 feature
 bbound(x_compas1, y_compas1, lamb=0.005, prior_metric="curiosity", equiv_points=False)
 #####
+"""
 
