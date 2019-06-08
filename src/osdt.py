@@ -183,7 +183,7 @@ class CacheLeaf:
             self.is_dead = 0
 
 
-def log(tic, lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new, sorted_new_tree_rules):
+def log(tic, lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new, sorted_new_tree_rules, fname):
     "log"
 
     the_time = str(time.time() - tic)
@@ -214,7 +214,9 @@ def log(tic, lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new, so
                      the_new_tree_objective, the_new_tree_lbound, the_new_tree_length, the_new_tree_depth,
                      the_queue
                      ])
-    lines.append(line)
+
+    with open(fname, 'a+') as f:
+        f.write(line+'\n')
 
 
 def generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves, lamb,
@@ -523,6 +525,18 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     COUNT_UNIQLEAVES = 0
     COUNT_LEAFLOOKUPS = 0
 
+
+    if logon:
+        header = ['time', '#pop', '#push', 'queue_size', 'metric', 'R_c',
+                  'the_old_tree', 'the_old_tree_splitleaf', 'the_old_tree_objective', 'the_old_tree_lbound',
+                  'the_new_tree', 'the_new_tree_splitleaf',
+                  'the_new_tree_objective', 'the_new_tree_lbound', 'the_new_tree_length', 'the_new_tree_depth', 'queue']
+
+        fname = "_".join([str(nrule), str(ndata), prior_metric,
+                          str(lamb), str(MAXDEPTH), str(init_cart), ".txt"])
+        with open(fname, 'w') as f:
+            f.write('%s\n' % ";".join(header))
+
     while queue and COUNT < niter and time.time() - tic < timelimit:
         # tree = queue.pop(0)
         metric, tree = heapq.heappop(queue)
@@ -717,7 +731,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                 heapq.heappush(queue, (tree_new.metric, tree_new))
 
                 if logon:
-                    log(tic, lines, COUNT_POP, COUNT, queue, metric, R_c, tree, tree_new, sorted_new_tree_rules)
+                    log(tic, lines, COUNT_POP, COUNT, queue, metric, R_c, tree, tree_new, sorted_new_tree_rules, fname)
 
                 if COUNT % 1000000 == 0:
                     print("COUNT:", COUNT)
@@ -751,17 +765,6 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
         with open('leaf_cache.pkl', 'wb') as f:
             pickle.dump(leaf_cache, f)
 
-    if logon:
-        header = ['time', '#pop', '#push', 'queue_size', 'metric', 'R_c',
-                  'the_old_tree', 'the_old_tree_splitleaf', 'the_old_tree_objective', 'the_old_tree_lbound',
-                  'the_new_tree', 'the_new_tree_splitleaf',
-                  'the_new_tree_objective', 'the_new_tree_lbound', 'the_new_tree_length', 'the_new_tree_depth', 'queue']
-
-        fname = "_".join([str(nrule), str(ndata), prior_metric,
-                          str(lamb), str(MAXDEPTH), str(init_cart), ".txt"])
-        with open(fname, 'w') as f:
-            f.write('%s\n' % ";".join(header))
-            f.write('\n'.join(lines))
 
     print(">>> log:", logon)
     print(">>> support bound:", support)
