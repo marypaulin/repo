@@ -570,7 +570,7 @@ def bbound_DFS(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES
         for simil in tree.cache_tree.similarto:
             #t_simil = similar_dictionary[tree.cache_tree.sorted_leaves()]
             t_simil = similar_dictionary[simil]
-            if t_simil.minobj + similar_dictionary[tree.cache_tree.sorted_leaves()].dict_omega[simil] >= R_c:
+            if t_simil.minobj - similar_dictionary[tree.cache_tree.sorted_leaves()].dict_omega[simil] >= R_c:
                 flag_simil = 1
                 break
         if flag_simil:
