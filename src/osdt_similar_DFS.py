@@ -10,7 +10,7 @@ import copy
 
 from itertools import product, compress
 from gmpy2 import mpz
-from rule import make_all_ones, make_zeros, rule_vand, rule_vandnot, rule_vectompz, rule_mpztovec, count_ones
+from rule import make_all_ones, make_zeros, rule_vand, rule_vxor, rule_vandnot, rule_vectompz, rule_mpztovec, count_ones
 
 import sklearn.tree
 from sklearn.metrics import accuracy_score
@@ -28,6 +28,7 @@ class CacheTree:
     def __init__(self, lamb, leaves):
         self.leaves = leaves
         self.risk = sum([l.loss for l in leaves]) + lamb * len(leaves)
+        self.similarto = []
 
     def sorted_leaves(self):
         # Used by the cache
@@ -388,7 +389,20 @@ def get_code(tree, feature_names, target_names, spacer_base="    "):
 
     recurse(left, right, threshold, feature_names, 0, 0)
 
-def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=float('Inf'), niter=float('Inf'), logon=False,
+
+class Similarity:
+    """
+    A data structure for the similar dictionary.
+    """
+
+    def __init__(self, minobj, stackposition):
+        self.minobj = minobj
+        self.stackposition = stackposition
+        self.dict_omega = {}
+        self.flag = 0  # flag=1 when all its child trees have been explored
+
+
+def bbound_DFS(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=float('Inf'), niter=float('Inf'), logon=False,
            support=True, incre_support=True, accu_support=True, equiv_points=True,
            lookahead=True, lenbound=True, R_c0 = 1, timelimit=float('Inf'), init_cart = True,
            saveTree = False, readTree = False):
@@ -455,7 +469,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     leaf_cache = {}  # cache leaves
     tree_cache = {}  # cache trees
 
-    # initialize the queue to include just empty root
+    # initialize the queue to include just empty root # use Stack for DFS
     queue = []
     root_leaf = CacheLeaf(ndata, (), y_mpz, z_mpz, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
 
@@ -465,7 +479,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     tree0 = Tree(cache_tree=d_c, lamb=lamb,
                  ndata=ndata, splitleaf=[1], prior_metric=prior_metric)
 
-    heapq.heappush(queue, (tree0.metric, tree0))
+    queue.append(tree0) #push into the Stack #heapq.heappush(queue, (tree0.metric, tree0))
     # heapq.heappush(queue, (2*tree0.metric - R_c, tree0))
     # queue.append(tree0)
 
@@ -506,7 +520,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
         tree_p = Tree(cache_tree=d_c, lamb=lamb,
                      ndata=ndata, splitleaf=[1]*len(d_c.leaves), prior_metric=prior_metric)
 
-        heapq.heappush(queue, (tree_p.metric, tree_p))
+        queue.append(tree_p)  #push into the Stack #heapq.heappush(queue, (tree_p.metric, tree_p))
         print("PICKEL>>>>>>>>>>>>>", [leaf.rules for leaf in d_c.leaves])
         #print("leaf_cache:", leaf_cache)
 
@@ -539,9 +553,28 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
         with open(fname, 'w') as f:
             f.write('%s\n' % ";".join(header))
 
+    similar_dictionary = {}
+
     while queue and COUNT < niter and time.time() - tic < timelimit:
         # tree = queue.pop(0)
-        metric, tree = heapq.heappop(queue)
+        tree = queue.pop()  #pop out of the Stack #metric, tree = heapq.heappop(queue)
+
+        for key_simil, similarity in similar_dictionary.items():
+            if similarity.flag == 0 and len(queue) <= similarity.stackposition:
+                similarity.flag = 1
+                similar_dictionary[key_simil] = similarity  # ??????????????do we need this line?????
+                break
+
+        # similar support bound
+        flag_simil = 0
+        for simil in tree.cache_tree.similarto:
+            #t_simil = similar_dictionary[tree.cache_tree.sorted_leaves()]
+            t_simil = similar_dictionary[simil]
+            if t_simil.minobj + similar_dictionary[tree.cache_tree.sorted_leaves()].dict_omega[simil] >= R_c:
+                flag_simil = 1
+                break
+        if flag_simil:
+            continue
 
         '''
         if prior_metric == "bound":
@@ -591,6 +624,8 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
         rules_for_leaf = [set(range(1, nrule + 1)) - set(map(abs, l.rules)) -
                           set([i+1 for i in range(nrule) if l.is_feature_dead[i] == 1]) for l in removed_leaves]
 
+        temp_children = []
+        temp_stackpositions = []
 
         for leaf_rules in product(*rules_for_leaf):
 
@@ -669,6 +704,8 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
             child = CacheTree(leaves=new_tree_leaves, lamb=lamb)
 
+            temp_children.append(child)
+
             R = child.risk
             # print("child:", child.sorted_leaves())
             # print("R:",R)
@@ -679,6 +716,10 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                 time_c = time.time() - tic
 
                 best_is_cart = False
+
+            for key_simil, similarity in similar_dictionary.items():
+                if similarity.flag == 0 and R < similarity.minobj:
+                    similarity.minobj = R
 
             # generate the new splitleaf for the new tree
             sl = generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves,
@@ -719,6 +760,8 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                 new_leaf_splits = [ls for ls in new_leaf_splits0
                                    if all([np.dot(ls, sl[i]) > 0 for i in range(len_sl)])]
 
+            temp_stackpositions.append(len(queue))
+
             for new_leaf_split in new_leaf_splits:
                 # construct the new tree
                 tree_new = Tree(cache_tree=child, ndata=ndata, lamb=lamb,
@@ -730,13 +773,37 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
                 COUNT = COUNT + 1
                 # heapq.heappush(queue, (2*tree_new.metric - R_c, tree_new))
-                heapq.heappush(queue, (tree_new.metric, tree_new))
+                queue.append(tree_new) #push into the Stack #heapq.heappush(queue, (tree_new.metric, tree_new))
 
                 if logon:
                     log(tic, lines, COUNT_POP, COUNT, queue, metric, R_c, tree, tree_new, sorted_new_tree_rules, fname)
 
                 if COUNT % 1000000 == 0:
                     print("COUNT:", COUNT)
+
+        if n_removed_leaves == 1 and len(rules_for_leaf[0]) > 1:
+            n_children = len(temp_children)
+            for i in range(n_children):
+                t1 = temp_children[i]
+
+                # use stack size to identify we have explored all the child trees
+                t1_similarity = Similarity(t1.risk, temp_stackpositions[i])
+
+                for j in range(i+1, n_children):
+                    t2 = temp_children[j]
+
+                    t1.similarto.append(t2.sorted_leaves())
+
+                    omega = rule_vxor(t1.leaves[-1].points_cap, t2.leaves[-1].points_cap)/ndata
+
+                    t1_similarity.dict_omega[t2.sorted_leaves()] = omega
+
+                    #print("t2.sorted_leaves():",t2.sorted_leaves())
+
+                similar_dictionary[t1.sorted_leaves()] = t1_similarity
+
+                ### ??? how to update the minObj for child trees
+
 
     totaltime = time.time() - tic
 
