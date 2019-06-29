@@ -203,7 +203,7 @@ def rule_vor(tt1, tt2):
 
 def rule_vxor(tt1, tt2):
     vxor = tt1 ^ tt2
-    # subtract 1 to remove leading ones
+    #
     cnt = gmpy2.popcount(vxor)
     return cnt 
 

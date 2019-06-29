@@ -404,7 +404,7 @@ class Similarity:
 
 def bbound_DFS(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=float('Inf'), niter=float('Inf'), logon=False,
            support=True, incre_support=True, accu_support=True, equiv_points=True,
-           lookahead=True, lenbound=True, R_c0 = 1, timelimit=float('Inf'), init_cart = True,
+           lookahead=True, lenbound=True, simil_support=True, R_c0 = 1, timelimit=float('Inf'), init_cart = True,
            saveTree = False, readTree = False):
     """
     An implementation of Algorithm
@@ -566,15 +566,16 @@ def bbound_DFS(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES
                 break
 
         # similar support bound
-        flag_simil = 0
-        for simil in tree.cache_tree.similarto:
-            #t_simil = similar_dictionary[tree.cache_tree.sorted_leaves()]
-            t_simil = similar_dictionary[simil]
-            if t_simil.minobj - similar_dictionary[tree.cache_tree.sorted_leaves()].dict_omega[simil] >= R_c:
-                flag_simil = 1
-                break
-        if flag_simil:
-            continue
+        if simil_support:
+            flag_simil = 0
+            for simil in tree.cache_tree.similarto:
+                #t_simil = similar_dictionary[tree.cache_tree.sorted_leaves()]
+                t_simil = similar_dictionary[simil]
+                if t_simil.minobj - similar_dictionary[tree.cache_tree.sorted_leaves()].dict_omega[simil] >= R_c:
+                    flag_simil = 1
+                    break
+            if flag_simil:
+                continue
 
         '''
         if prior_metric == "bound":
