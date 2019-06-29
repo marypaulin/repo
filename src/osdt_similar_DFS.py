@@ -396,9 +396,9 @@ class Similarity:
     """
 
     def __init__(self, minobj, stackposition):
-        self.minobj = minobj
-        self.stackposition = stackposition
-        self.dict_omega = {}
+        self.minobj = minobj # the minimum objective of all its child trees
+        self.stackposition = stackposition # the size of the stack when the tree is explored
+        self.dict_omega = {} # the omega of the tree and its similar trees
         self.flag = 0  # flag=1 when all its child trees have been explored
 
 
