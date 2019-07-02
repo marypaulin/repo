@@ -1,11 +1,13 @@
 # Optimal Sparse Decision Trees (OSDT)
 
 ### Dependencies
-
 * [gmp](https://gmplib.org/) (GNU Multiple Precision Arithmetic Library)
 * [mpfr](http://www.mpfr.org/) (GNU MPFR Library for multiple-precision floating-point computations; depends on gmp)
 * [libmpc](http://www.multiprecision.org/) (GNU MPC for arbitrarily high precision and correct rounding; depends on gmp and mpfr)
 * [gmpy2](https://pypi.org/project/gmpy2/#files) (GMP/MPIR, MPFR, and MPC interface to Python 2.6+ and 3.x)
+
+### Testing
+`python3 -m unittest discover -s tests`
 
 ### Main function
 The main function is the `bbound()` function in `osdt.py`.
