@@ -27,9 +27,11 @@ class Cluster:
         self.queue.identify(0)
         Client(0, self.task, self.queue, self.table)
 
-        self.table.put('__terminate__', True) # Signal to servers to terminate
-
         for client in (clients):
             client.join()
+
+        while any(server.is_alive() for server in servers):
+            self.table.put('__terminate__', True, prefilter=False)  # Signal to servers to terminate
+            sleep(0.1)
 
         return self.queue, self.table

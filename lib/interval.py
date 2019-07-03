@@ -36,5 +36,10 @@ class Interval:
         else:
             return (self.lowerbound, self.upperbound)
 
+    def __eq__(self, interval):
+        if interval == None:
+            return False
+        return self.lowerbound == interval.lowerbound and self.upperbound == interval.upperbound
+
     def __str__(self):
         return str(self.value())

@@ -4,8 +4,7 @@ from lib.interval import Interval
 class Result:
     def __init__(self, optimizer=None, optimum=None, stats=None):
         self.optimum = optimum if optimum != None else Interval()
-        if self.optimum.uncertainty == 0:
-            self.optimizer = optimizer
+        self.optimizer = optimizer
 
     # This defines the precedence of problem state
     #  - A result is always able to overwrite None
@@ -13,7 +12,7 @@ class Result:
     def overwrites(self, result):
         if result == None:
             return True
-        if self.optimum.less_than(result.optimum):
+        if self.optimum.subset(result.optimum):
             return True
         return False
 

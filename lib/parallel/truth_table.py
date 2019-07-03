@@ -5,6 +5,8 @@ from time import sleep
 from random import random
 
 import lib.vector as vect
+from lib.result import Result
+from lib.similarity_index import SimilarityIndex
 
 class TruthTable:
     def __init__(self, table, degree=1):
@@ -14,7 +16,8 @@ class TruthTable:
         self.inbound_queue = Queue()
         self.outbound_queues = {}
         for i in range(self.degree):
-            # key = outbound message queue, value = overflow buffer
+            # key = outbound message queue
+            # value = overflow buffer
             self.outbound_queues[i] = (Queue(), deque([]))
 
     # Service routine called by server
@@ -39,12 +42,16 @@ class TruthTable:
                 break
             else:
                 previous_value = self.local_table.get(key)
-                if previous_value == None or value.overwrites(previous_value):
-                    # print("TruthTable Update table[{}] = from {} to {}".format(key, previous_value, value))
+                if type(previous_value) != Result or value.overwrites(previous_value):
+                    # if key != '__terminate__':
+                    #     print("TruthTable Update table[{}] = from {} to {}".format(vect.__str__(key), previous_value, value))
                     self.local_table[key] = value
                     for i in range(self.degree):
                         (queue, buffer) = self.outbound_queues[i]
                         buffer.append((key, value))
+                else:
+                    # print("Rejected TruthTable Update table[{}] = from {} to {}".format(vect.__str__(key), previous_value, value))
+                    pass
 
         # Transfer from broadcast buffers to outbound_queues
         for i in range(self.degree):
@@ -102,7 +109,7 @@ class TruthTable:
         return self.local_table.get(key)
 
     # API called by workers
-    def put(self, key, value, block=True):
+    def put(self, key, value, block=True, prefilter=True):
         '''
         Stores key-value into local cache and sends entry into pipeline
         Returns True if successfully sent into pipeline
@@ -111,6 +118,10 @@ class TruthTable:
 
         Blocking Semantics:
         '''
+        previous_value = self.local_table.get(key)
+        if prefilter and type(previous_value) == Result and not value.overwrites(previous_value):
+            return False
+
         self.local_table[key] = value
         while True:
             try:
@@ -122,6 +133,9 @@ class TruthTable:
                     return False
             else:
                 return True
+    
+    def neighbours(self, key):
+        return self.similarity_index.neighbours(key) if self.similarity_index != None else set()
 
     def __str__(self):
         return str(self.local_table)

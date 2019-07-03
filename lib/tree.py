@@ -31,7 +31,7 @@ class Tree:
             rule_lists = (
                 (
                     ('_',) * dataset.width,
-                    "predict {}, risk {}".format(self.prediction, self.risk)
+                    "predict {}, risk contribution {}".format(self.prediction, self.risk)
                 ),
             )
             return rule_lists

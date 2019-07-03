@@ -1,9 +1,12 @@
+from functools import reduce
+
 from lib.parallel.cluster import Cluster
 from lib.parallel.priority_queue import PriorityQueue
 from lib.parallel.truth_table import TruthTable
 from lib.result import Result
 from lib.interval import Interval
 from lib.dataset import DataSet
+from lib.similarity_index import SimilarityIndex
 import lib.vector as vect
 from lib.tree import Tree
 from lib.logger import Logger
@@ -99,13 +102,21 @@ from lib.logger import Logger
 #  - During the upward recursive traversal, ignore subresults inaccuracy > (1 - k * lambda)
 
 # Theorem 7 Similar Support Bound
+#  - During any update to the truth table, if problem B exist within neighbourhood of A with within distance w = |CA xor CB|
+#     - Their upperbounds may not differ more than w + #(EQ groups) in CA xor CB
+#     - Their lowerbounds may not differ more than w
+#    More Strictly
+#     - Their upperbounds may not differ more than w
+#     - Their lowerbounds may not differ more than w
+
 #  - For any two optimal trees A, B with respective capture sets CA, CB and optimal risks RA, RB 
 #    |RA - RB| <= hamming_distance(CA, CB) = |CA xor CB|
 #  - During the upward recursive traversal, we are informed with an optimal subtree for CA
 #    For all subproblems CB satisfying hamming_distance(CA, CB) <= D
-#    Apply |RA - RB| <= D to possibly increase the lowerbound of CB by  RA - D <= RB
+#    Apply |RA - RB| <= D to possibly increase the lowerbound of CB by claiming RA - D <= RB
 #    If the bound is ineffective the attempt a stricter bound RA - |CA-CB| <= RA - D <= RB
-
+# Changelog
+# - stricter base case
 class OSDT:
     def __init__(self,
         X, y, lamb, priority_metric='curiosity',
@@ -132,22 +143,12 @@ class OSDT:
             (priority, capture) = queue.pop()
             if priority == None:
                 continue # Idle
-
             result = table.get(capture)
             # Compute distribution of labels under this capture set
             (_total, zeros, ones, minority, _majority) = self.dataset.count(capture)
             if result == None:  # New problem
-
-                # Proposed Changes:
-                # Stricter condition for justifying a split
-                # minimum_error_without_split = min(zeros, ones) / self.dataset.sample_size
-                # minimum_error_with_perfect_split = minority / self.dataset.sample_size
-                # maximum_decrease_in_error_using_perfect_split = (min(zeros, ones) - minority) / self.dataset.sample_size
-                # minimum_cost_of_split = 1 * lamb
-
                 # if 0.5 * normalized_support < self.lamb: # Previous base condition
                 if (min(zeros, ones) - minority) / self.dataset.sample_size <= self.lamb:
-                    # print('Traversal: None, Problem: {}, Dependencies: None'.format(vect.__str__(capture)))
                     # Compute the optimal subtree knowing the subtree must have 1 leaf
                     split = None # No split because the optimal solution is just a leaf with a label
                     prediction = 0 if zeros >= ones else 1 # Optimal label for this leaf
@@ -161,77 +162,14 @@ class OSDT:
                 if result.resolved(): # Problem solved (No work needed)
                     pass
                 else: # Also recursive case
-                    dependencies = self.recurse(priority, capture, zeros, ones, minority, queue, table)                
-
-    def compute_split_bounds(self, capture, base_upperbound, table):
-        # Track the lowest upperbound of all splits
-        # If any split has a lowerbound above this upperbound then it can be ignored
-        split_bounds = [None] * self.dataset.width
-        minimum_lowerbound = base_upperbound
-        minimum_upperbound = base_upperbound
-        minimum_split = None
-        for j, captures in self.dataset.splits(capture):
-            (left_capture, right_capture) = captures
-            if table.has(left_capture):
-                left_result = table.get(left_capture)
-                left_lowerbound = left_result.optimum.lowerbound
-                left_upperbound = left_result.optimum.upperbound
-            else:
-                (_total, zeros, ones, minority, _majority) = self.dataset.count(left_capture)
-                left_lowerbound = minority / self.dataset.sample_size + self.lamb * 1
-                left_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
-                if left_lowerbound == left_upperbound: # Prematurely discovered optimal subtree as a leaf
-                    split = None  # No split because the optimal solution is just a leaf with a label
-                    prediction = 0 if zeros >= ones else 1  # Optimal label for this leaf
-                    table.put(left_capture, Result(optimizer=(None, prediction), optimum=Interval(value=left_upperbound)))
-
-            if table.has(right_capture):
-                right_result = table.get(right_capture)
-                right_lowerbound = right_result.optimum.lowerbound
-                right_upperbound = right_result.optimum.upperbound
-            else:
-                (_total, zeros, ones, minority, _majority) = self.dataset.count(right_capture)
-                right_lowerbound = minority / self.dataset.sample_size + self.lamb * 1
-                right_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
-                if right_lowerbound == right_upperbound: # Prematurely discovered optimal subtree as a leaf
-                    split = None  # No split because the optimal solution is just a leaf with a label
-                    prediction = 0 if zeros >= ones else 1  # Optimal label for this leaf
-                    table.put(right_capture, Result(optimizer=(None, prediction), optimum=Interval(value=right_upperbound)))
-
-            split_lowerbound = left_lowerbound + right_lowerbound # Initially weak lowerbound, to be narrowed over time
-            split_upperbound = left_upperbound + right_upperbound # Should be less than or equal to base upperbound
-            split_bounds[j] = (split_lowerbound, split_upperbound)
-
-            # print("Capture: {}, J: {}, Left Capture: {}, Right Capture: {}, \nSplit Lowerbound: {} = {} + {}, \nSplit Upperbound: {} = {} + {}".format(
-            #     vect.__str__(capture), j, vect.__str__(left_capture), vect.__str__(right_capture),
-            #     split_lowerbound, left_lowerbound, right_lowerbound,
-            #     split_upperbound, left_upperbound, right_upperbound))
-            # print("Capture: {}, J: {}, Split Lowerbound: {}, Split Upperbound: {}".format(vect.__str__(capture), j, split_lowerbound, split_upperbound))
-
-            if split_lowerbound < minimum_lowerbound:
-                minimum_lowerbound = split_lowerbound
-            if split_upperbound < minimum_upperbound:
-                minimum_upperbound = split_upperbound
-                minimum_split = j
-
-        return tuple(split_bounds), minimum_lowerbound, minimum_upperbound, minimum_split
+                    dependencies = self.recurse(priority, capture, zeros, ones, minority, queue, table)
 
     def recurse(self, priority, capture, zeros, ones, minority, queue, table):
-        # Minimum risk contribution of this subtree including the leaf case
-        # base_lowerbound = minority / self.dataset.sample_size + self.lamb * 1
-        # Maximum risk contribution of this subtree including separation of all captured equivalent sets
-        # base_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
-
         base_split = None
         base_prediction = 0 if zeros >= ones else 1
         base_objective = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
 
-        # Track the lowest upperbound of all splits
-        # If any split has a lowerbound above this upperbound then it can be ignored
-        # print("Capture: {}, J: {}, Split Lowerbound: {}, Split Upperbound: {}".format(vect.__str__(capture), None, base_objective, base_objective))
         split_bounds, minimum_lowerbound, minimum_upperbound, minimum_split = self.compute_split_bounds(capture, base_objective, table)
-        # print("Minimum Lowerbound: {}, Minimum Upperbound: {}".format(minimum_lowerbound, minimum_upperbound))
-        # print("Split Bounds: {}".format(split_bounds))
 
         # Select only splits whose lowerbound is less than or equal to the split with the lowest upper bound
         possible_splits = [j for j in self.dataset.gini_index if split_bounds[j][0] <= minimum_upperbound]
@@ -262,19 +200,61 @@ class OSDT:
             return tuple(dependencies)
         else:
             # Compute the optimal subtree knowing minimum split is the optimal split (which might be no-spit)
-            # print("Possible Splits: {}".format(possible_splits))
             split = minimum_split # Choose the first among possibly multiple equally optimal subtrees
             prediction = base_prediction if split == None else None # Set the prediction if the optimal split is no-split
             table.put(capture, Result(optimizer=(split, prediction), optimum=Interval(value=minimum_upperbound))) # Associate the optimizer with the optimum in a result
 
-            result = Result(optimizer=(split, prediction), optimum=Interval(value=minimum_upperbound))
-            # print('Traversal: Upward, Problem: {}, Optimal Result: {}'.format(vect.__str__(capture), str(result)))
-
+            # print('Traversal: Upward, Problem: {}, Optimal Result: {}'.format(vect.__str__(capture), str(Result(optimizer=(split, prediction), optimum=Interval(value=minimum_upperbound)))))
             return ()
+            
+    def compute_split_bounds(self, capture, base_objective, table):
+        # Track the lowest upperbound and lowest lowerbound of all splits
+        intervals = [ None for _j in range(self.dataset.width) ]
+        minimum_lowerbound = base_objective
+        minimum_upperbound = base_objective
+        minimum_split = None
+
+        for j, captures in self.dataset.splits(capture):
+            (left_capture, right_capture) = captures
+            if table.has(left_capture):
+                left_result = table.get(left_capture)
+                left_lowerbound = left_result.optimum.lowerbound
+                left_upperbound = left_result.optimum.upperbound
+            else:
+                (_total, zeros, ones, minority, _majority) = self.dataset.count(left_capture)
+                left_lowerbound = minority / self.dataset.sample_size + self.lamb * 1
+                left_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
+                if left_lowerbound == left_upperbound: # Prematurely discovered optimal subtree as a leaf
+                    split = None  # No split because the optimal solution is just a leaf with a label
+                    prediction = 0 if zeros >= ones else 1  # Optimal label for this leaf
+                    table.put(left_capture, Result(optimizer=(split, prediction), optimum=Interval(value=left_upperbound)))
+
+            if table.has(right_capture):
+                right_result = table.get(right_capture)
+                right_lowerbound = right_result.optimum.lowerbound
+                right_upperbound = right_result.optimum.upperbound
+            else:
+                (_total, zeros, ones, minority, _majority) = self.dataset.count(right_capture)
+                right_lowerbound = minority / self.dataset.sample_size + self.lamb * 1
+                right_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
+                if right_lowerbound == right_upperbound: # Prematurely discovered optimal subtree as a leaf
+                    split = None  # No split because the optimal solution is just a leaf with a label
+                    prediction = 0 if zeros >= ones else 1  # Optimal label for this leaf
+                    table.put(right_capture, Result(optimizer=(split, prediction), optimum=Interval(value=right_upperbound)))
+
+            split_lowerbound = left_lowerbound + right_lowerbound # Initially weak lowerbound, to be narrowed over time
+            split_upperbound = left_upperbound + right_upperbound # Should be less than or equal to base upperbound
+            intervals[j] = (split_lowerbound, split_upperbound)
+
+            minimum_lowerbound = min(minimum_lowerbound, split_lowerbound)
+            if split_upperbound < minimum_upperbound:
+                minimum_upperbound = split_upperbound
+                minimum_split = j
+        return tuple(intervals), minimum_lowerbound, minimum_upperbound, minimum_split
 
     # Method run by worker nodes to decide when to terminate
     def terminate(self, queue, table):
-        # Termination condition is a bit tricky
+        # Termination condition
         return table.get(self.root) != None and table.get(self.root).resolved()
 
     # Method for extracting the output
@@ -294,8 +274,8 @@ class OSDT:
         cluster.compute()
 
         solution = self.output(queue, table)
-        print("Optimal Tree :\n{}".format(solution.visualize(self.dataset)))
-        print("Optimal Risk :{}".format(solution.risk))
+        print("Optimal Tree:\n{}".format(solution.visualize(self.dataset)))
+        print("Optimal Risk: {}".format(solution.risk))
 
         return solution
 
