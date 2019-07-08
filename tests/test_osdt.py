@@ -20,7 +20,7 @@ class TestOSDT(unittest.TestCase):
         start = time()
         problem = OSDT(X, y, lamb)
         print("\nRunning OSDT COMPAS consistency test")
-        model = problem.solve(clients=2, servers=1, visualize=True)
+        model = problem.solve(clients=60, servers=1, visualize=True)
         finish = time()
         print('Training Time = {} seconds'.format(round(finish - start, 3)))
 
@@ -39,7 +39,7 @@ class TestOSDT(unittest.TestCase):
         X = dataset.values[:, :-1]
         y = dataset.values[:, -1]
         lamb = 0.0
-        
+
         problem = OSDT(X, y, lamb)
         model = problem.solve(clients=2, servers=1, visualize=True)
         rule_list_visualization = '\n'.join((
