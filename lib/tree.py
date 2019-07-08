@@ -1,6 +1,4 @@
 import lib.vector as vect
-from lib.frequency import count
-
 class Tree:
 
     def __init__(self, capture, table, dataset):
@@ -13,8 +11,9 @@ class Tree:
         self.risk = risk
         self.split = split
         self.prediction = prediction
+        self.visualization = None
         if split != None:
-            (left_capture, right_capture) = dataset.split(capture, split)
+            (left_capture, right_capture) = dataset.split(split, capture=capture)
             self.left_subtree = Tree(left_capture, table, dataset)
             self.right_subtree = Tree(right_capture, table, dataset)
 
@@ -49,5 +48,8 @@ class Tree:
             return tuple(left_rule_lists) + tuple(right_rule_lists)
 
     def visualize(self, dataset):
-        return '\n'.join("({}) => {}".format(','.join(rule_list[0]), rule_list[1]) for rule_list in self.rule_lists(dataset))
+        if self.visualization == None:
+            visualization = '\n'.join("({}) => {}".format(','.join(rule_list[0]), rule_list[1]) for rule_list in self.rule_lists(dataset))
+            self.visualization = visualization
+        return self.visualization
 

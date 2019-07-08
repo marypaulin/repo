@@ -1,5 +1,41 @@
+from multiprocessing import Process
+from os import kill
+from signal import SIGINT
+from time import sleep
+
+# Wrapper class around multiprocessing.Process
+# This mainly provides convenience methods for the following
+#  - Graceful shutdown by sending interprocess signals
+#  - Optional synchronization on setup and teardown
+#  - Standardized method calling across all data-structures for client-server pattern
 class Server:
-    def __init__(self, server_id, queue, table):
-        while table.get('__terminate__') == None:
-            queue.service()
-            table.service()
+    def __init__(self, server_id, services):
+        self.id = server_id
+        self.pid = None
+        self.process = Process(target=self.__run__, args=(server_id, services))
+
+    def __run__(self, server_id, services):
+        try:
+            while True:
+                for service in services:
+                    service.serve()
+        except KeyboardInterrupt:
+            pass
+
+    
+    def start(self, block=True):
+        self.process.start()
+        self.pid = self.process.pid
+        while not self.is_alive():
+            sleep(0.1)
+
+    def stop(self, block=True):
+        kill(self.pid, SIGINT)
+        if block:
+            self.join()
+
+    def join(self):
+        self.process.join()
+
+    def is_alive(self):
+        return self.process.is_alive()

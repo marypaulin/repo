@@ -2,15 +2,19 @@
 # Used to represent the possible values of the optimal objective to a particular problem
 
 class Interval:
-    def __init__(self, lowerbound=-float('Inf'), upperbound=float('Inf'), value=None):
-        if value != None:
-            lowerbound = value
-            upperbound = value
-        if lowerbound > upperbound:
-            Exception("Invalid Interval Bounds [{}, {}]".format(lowerbound, upperbound))
-        self.lowerbound = lowerbound
-        self.upperbound = upperbound
-        self.uncertainty = upperbound - lowerbound
+    def __init__(self, lowerbound=None, upperbound=None):
+        if lowerbound == None and upperbound == None:
+            self.lowerbound = -float('Inf')
+            self.upperbound = float('Inf')
+        elif lowerbound != None and upperbound == None:
+            self.lowerbound = lowerbound
+            self.upperbound = lowerbound
+        else:
+            self.lowerbound = lowerbound
+            self.upperbound = upperbound
+        if self.lowerbound > self.upperbound:
+            raise Exception("Invalid Interval Bounds [{}, {}]".format(lowerbound, upperbound))
+        self.uncertainty = self.upperbound - self.lowerbound
     
     def union(self, interval):
         return Interval(min(self.lowerbound, interval.lowerbound), max(self.upperbound, interval.upperbound))
@@ -21,14 +25,8 @@ class Interval:
     def subset(self, interval):
         return self.lowerbound >= interval.lowerbound and self.upperbound <= interval.upperbound and self.uncertainty < interval.uncertainty
 
-    def superset(self, inteval):
+    def superset(self, interval):
         return self.lowerbound <= interval.lowerbound and self.upperbound >= interval.upperbound and self.uncertainty > interval.uncertainty
-
-    def less_than(self, interval):
-        return self.lowerbound <= interval.lowerbound and self.upperbound <= interval.upperbound
-
-    def greater_than(self, interval):
-        return self.lowerbound >= interval.lowerbound and self.upperbound >= interval.upperbound
 
     def value(self):
         if self.uncertainty == 0:
@@ -36,10 +34,34 @@ class Interval:
         else:
             return (self.lowerbound, self.upperbound)
 
+    def __or__(self, interval):
+        return self.union(interval)
+
+    def __and__(self, interval):
+        return self.intersection(interval)
+
+    def __add__(self, interval):
+        return self.union(interval)
+
+    def __lt__(self, interval):
+        return self.upperbound < interval.lowerbound
+
+    def __le__(self, interval):
+        return self.upperbound <= interval.upperbound
+
+    def __gt__(self, interval):
+        return self.lowerbound > interval.upperbound
+
+    def __ge__(self, interval):
+        return self.lowerbound >= interval.lowerbound
+
     def __eq__(self, interval):
         if interval == None:
             return False
         return self.lowerbound == interval.lowerbound and self.upperbound == interval.upperbound
+
+    def __ne__(self, interval):
+        return not self == interval
 
     def __str__(self):
         return str(self.value())

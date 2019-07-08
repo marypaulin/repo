@@ -10,7 +10,7 @@ from sklearn.utils import shuffle
 #   sep: separation character of csv
 # Output:
 #   dataset: a Pandas dataframe containing the dataset at given path
-def read_dataset(path, sep=';', randomize=False):
+def read_dataset(path, sep=',', randomize=False):
     dataset = pd.DataFrame(pd.read_csv(path, sep=sep))
     if randomize:
         dataset = shuffle(dataset)

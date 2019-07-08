@@ -1,11 +1,13 @@
 # TODO
- - Full Unit and Functional Testing
  - Prioritization
  - Add Similarity Bound
- - Add feature flags for every bound
+ - Asynchronous Pruning
+ - Add Feature Flags
  - Add Scalability Analysis
  - Add Logging and Runtime Analysis (profiling of workers)
- - Cache eviction
+ - Cache Eviction
+ - Sci-Kit Model Interface
 
-# Change Log
- - Applied equivalent points bound 
+# Testing
+`python3 -m unittest discover -s tests`
+ - Model

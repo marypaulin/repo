@@ -1,53 +1,151 @@
-from gmpy2 import mpz, popcount
+from gmpy2 import mpz, popcount, bit_mask
+from types import GeneratorType
 
-def vectorize(bits):
-    bitstring = '1' + ''.join([str(i) for i in bits])
-    return mpz(bitstring , 2)
+# Wrapper class around MPZ objects made for fixed-length bitvectors
+# The wrapper serves the following purposes:
+#  - Fixes bug where multiple representation of the same vector introduces false negatives in equality and breaks other comparisons
+#  - Adds additional support to Python operators by operator overload to make code look simpler
+#  - Bridges mismatch between MPZ indexing and Python iterable indexing
+#  - Argument checking on operations
 
-def devectorize(vector):
-    # remove the leading one
-    return list(map(int, vector.digits(2)[1:]))
+# Basic Usage:
+# x = Vector('10101011')
+# y = Vector([1,0,1,0,1,0,1,1])
+# x ^ y == Vector.zeros(8)
 
-def repeat(element, length):
-    return vectorize([element] * length)
+class Vector:
+    # Creates a vector of element repeated n-times
+    def repeat(element, length, base=2):
+        return Vector([element] * length, base=base)
 
-def ones(length):
-    return repeat(1, length)
+    # Creates a vector of ones repeated n-times
+    def ones(length):
+        # return Vector.repeat(1, length, base=2)
+        return Vector(bit_mask(length), length=length, base=2)
 
-def zeros(length):
-    return repeat(0, length)
+    # Creates a vector of zeros repeated n-times
+    def zeros(length):
+        ones = Vector(bit_mask(length), length=length, base=2)
+        return ones ^ ones
 
-def length(v):
-    return len(v) - 1
+    # Creates a vector based on data which is either 
+    def __init__(self, data, length=None, base=2):
+        if type(data) == type(mpz()):
+            self.data = data
+            self.length = length
+        elif type(data) == str:
+            # self.data = mpz(data[::-1], base)
+            bitstring = data
+            self.data = mpz(bitstring, base)
+            self.length = len(bitstring)
+        else:
+            # if isinstance(data, GeneratorType):
+            #     data = tuple(data)
+            # self.data = mpz(''.join(str(datum) for datum in data[::-1]), base)
+            bitstring = ''.join(str(datum) for datum in data)
+            self.data = mpz(bitstring, base)
+            self.length = len(bitstring)
+        if self.data < 0:
+            # self.data = mpz(self.__str__()[::-1], base) # Workaround if needed
+            raise Exception("VectorError: Representation must be non-negative, got {}".format(self.data))
+        self.base = base
+        self.i = 0
 
-def negate(v):
-    length = v.bit_length()
-    return (~v).bit_set(length - 1)
+    # Creates a new vector that must have the same length and base
+    def generate(self, data):
+        return Vector(data, length=self.length, base=self.base)
 
-def xor(v1, v2):
-    length = v1.bit_length()
-    return (v1 ^ v2).bit_set(length - 1)
+    # Counts the number of ones in the bitvector
+    def count(self):
+        return popcount(self.data)
 
-def count(v):
-    # skip the leading 1
-    return popcount(v) - 1
+    # Overrides x[i] indexing (Note that assignment isn't supported due to immutability)
+    def __getitem__(self, index):
+        if index < 0 or index > self.length:
+            raise Exception("VectorError: Index {} must be in interval [{}, {}]".format(index, 0, self.length))
+        effective_index = self.length - 1 - index
+        return int(self.data.bit_test(effective_index))
 
-def read(v, indicator):
-    # Offset by one to skip leading 1
-    return 1 if v.bit_test(len(v) - 2 - indicator) else 0
+    # Overrides ~x operator and keeps leading bits as zeros to avoid breaking equality
+    def __invert__(self):
+        # return self.generate(self.data ^ mpz('0' + '1' * self.length, self.base))
+        return self ^ Vector.ones(self.length)
 
-def write(v, indicator, value=None):
-    # Offset by one to skip leading 1
-    if value == 0:
-        return v.bit_clear(len(v) - 2 - indicator)
-    elif value == 1:
-        return v.bit_set(len(v) - 2 - indicator)
-    elif value == None:
-        return v.bit_flip(len(v) - 2 - indicator)
+    # Overrides x & y operator
+    def __and__(self, vector):
+        if self.length != vector.length:
+            raise Exception("VectorError: Length Mismatch {} and {}".format(self.length, vector.length))
+        return self.generate(self.data & vector.data)
 
-def test(v, indicator):
-    # Offset by one to skip leading 1
-    return v.bit_test(len(v) - 2 - indicator)
+    # Overrides x | y operator
+    def __or__(self, vector):
+        if self.length != vector.length:
+            raise Exception("VectorError: Length Mismatch {} and {}".format(self.length, vector.length))
+        return self.generate(self.data | vector.data)
 
-def __str__(v):
-    return v.digits(2)[-1:0:-1]
+    # Overrides x ^ y operator
+    def __xor__(self, vector):
+        if self.length != vector.length:
+            raise Exception("VectorError: Length Mismatch {} and {}".format(self.length, vector.length))
+        return self.generate(self.data ^ vector.data)
+
+    # Overrides x < y operator
+    def __lt__(self, vector):
+        if self.length != vector.length:
+            raise Exception("VectorError: Length Mismatch {} and {}".format(self.length, vector.length))
+        return self.data < vector.data
+
+    # Overrides x <= y operator
+    def __le__(self, vector):
+        if self.length != vector.length:
+            raise Exception("VectorError: Length Mismatch {} and {}".format(self.length, vector.length))
+        return self.data <= vector.data
+
+    # Overrides x > y operator
+    def __gt__(self, vector):
+        if self.length != vector.length:
+            raise Exception("VectorError: Length Mismatch {} and {}".format(self.length, vector.length))
+        return self.data > vector.data
+
+    # Overrides x >= y operator
+    def __ge__(self, vector):
+        if self.length != vector.length:
+            raise Exception("VectorError: Length Mismatch {} and {}".format(self.length, vector.length))
+        return self.data >= vector.data
+
+    # Overrides x == y operator
+    def __eq__(self, vector):
+        if type(vector) != Vector:
+            return False
+        if self.length != vector.length:
+            raise Exception("VectorError: Length Mismatch {} and {}".format(self.length, vector.length))
+        return self.data == vector.data
+
+    # Overrides x != y operator
+    def __ne__(self, vector):
+        if type(vector) != Vector:
+            return True
+        return self.data != vector.data
+
+    # Overrides x * y operator (Assumes base = 2)
+    def __mul__(self, vector):
+        if self.length != vector.length:
+            raise Exception("VectorError: Length Mismatch {} and {}".format(self.length, vector.length))
+        return (self & vector).count()
+
+    # Overrides len(x)
+    def __len__(self):
+        return self.length
+
+    # Overrides str(x)
+    def __str__(self):
+        return ''.join( str(self[i]) for i in range(self.length) )
+    
+    # Overrides for e in x: structure
+    def __iter__(self):
+        return ( self[i] for i in range(self.length) )
+    
+    # Overrides hashing (vectors can be used as hash keys)
+    def __hash__(self):
+        return self.data.__hash__()
+

@@ -1,13 +1,13 @@
-from functools import reduce
+from queue import Empty as QueueEmpty, Full as QueueFull
 
 from lib.parallel.cluster import Cluster
 from lib.parallel.priority_queue import PriorityQueue
 from lib.parallel.truth_table import TruthTable
+from lib.prefix_tree import PrefixTree
 from lib.result import Result
 from lib.interval import Interval
 from lib.dataset import DataSet
-from lib.similarity_index import SimilarityIndex
-import lib.vector as vect
+from lib.vector import Vector
 from lib.tree import Tree
 from lib.logger import Logger
 
@@ -129,53 +129,51 @@ class OSDT:
         self.priority_metric = priority_metric
 
         self.bounds = bounds if bounds != None else self.__default_bounds__()
-        self.max_width = min(self.dataset.equivalent_set_count, max_width)
+        self.max_width = min(self.dataset.height, 2 ** self.dataset.width, max_width)
         self.max_depth = min(self.max_width, max_depth)
         self.max_time = max_time
         self.verbose = verbose
         self.log = log
 
     # Task method that gets run by all worker nodes (clients)
-    def task(self, worker_id, queue, table):
+    def task(self, worker_id, services):
+        (queue, table) = services
         self.logger = Logger(path='logs/worker_{}.log'.format(worker_id)) if self.log else None
+        while not self.terminate(table):
+            try:
+                task = queue.pop(block=False)
+                (priority, capture, path) = task
+                result = table.get(capture, block=False)
+                if result == None:  # New problem
+                    lowerbound, upperbound, base_prediction = self.compute_bounds(capture)
+                    # if 0.5 * normalized_support < self.lamb: # Previous base condition
+                    if upperbound - lowerbound <= self.lamb:
+                        # Compute the optimal subtree knowing the subtree must have 1 leaf
+                        table.put(capture, Result(optimizer=(None, base_prediction), optimum=Interval(upperbound))) # Associate the optimizer with the optimum in a result
+                    else: # Recursive Case
+                        dependencies = self.recurse(priority, capture, base_prediction, upperbound, queue, table)
+                        dependency_path = (*path, capture)
+                        if len(dependencies) > 0:
+                            for priority, dependency in dependencies:
+                                queue.push((priority, dependency, dependency_path))  # Enqueue subproblem
+                else: # Revisited problem
+                    if result.optimizer != None: # Problem solved (No work needed)
+                        pass
+                    else: # Also recursive case
+                        _lowerbound, upperbound, base_prediction = self.compute_bounds(capture)
+                        dependencies = self.recurse(priority, capture, base_prediction, upperbound, queue, table)
+                        if len(dependencies) > 0:
+                            for priority, dependency in dependencies:
+                                queue.push((priority, dependency, dependency_path))  # Enqueue subproblem
+            except QueueEmpty: # Idle path
+                pass
 
-        while not self.terminate(queue, table):
-            (priority, capture) = queue.pop()
-            if priority == None:
-                continue # Idle
-            result = table.get(capture)
-            # Compute distribution of labels under this capture set
-            (_total, zeros, ones, minority, _majority) = self.dataset.count(capture)
-            if result == None:  # New problem
-                # if 0.5 * normalized_support < self.lamb: # Previous base condition
-                if (min(zeros, ones) - minority) / self.dataset.sample_size <= self.lamb:
-                    # Compute the optimal subtree knowing the subtree must have 1 leaf
-                    split = None # No split because the optimal solution is just a leaf with a label
-                    prediction = 0 if zeros >= ones else 1 # Optimal label for this leaf
-                    objective = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1 # Leaf contribution to objective
-                    table.put(capture, Result(optimizer=(split, prediction), optimum=Interval(value=objective))) # Associate the optimizer with the optimum in a result
-                else: # Recursive Case
-                    dependencies = self.recurse(priority, capture, zeros, ones, minority, queue, table)
-                    for dependency in dependencies:
-                        queue.push((priority, dependency))  # Enqueue subproblem
-            else:  # Revisited problem
-                if result.resolved(): # Problem solved (No work needed)
-                    pass
-                else: # Also recursive case
-                    dependencies = self.recurse(priority, capture, zeros, ones, minority, queue, table)
-
-    def recurse(self, priority, capture, zeros, ones, minority, queue, table):
-        base_split = None
-        base_prediction = 0 if zeros >= ones else 1
-        base_objective = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
-
+    def recurse(self, priority, capture, base_prediction, base_objective, queue, table):
         split_bounds, minimum_lowerbound, minimum_upperbound, minimum_split = self.compute_split_bounds(capture, base_objective, table)
-
         # Select only splits whose lowerbound is less than or equal to the split with the lowest upper bound
         possible_splits = [j for j in self.dataset.gini_index if split_bounds[j][0] <= minimum_upperbound]
         if base_objective <= minimum_upperbound:
             possible_splits.append(None)
-
         if minimum_lowerbound < minimum_upperbound:
             # Optimum not yet determined, but we can update our bounds
             optimizer = None # Optimizer still unknown
@@ -187,26 +185,36 @@ class OSDT:
             for j in possible_splits:
                 if j == None:
                     continue
-                (left_capture, right_capture) = self.dataset.split(capture, j)
+                (left_capture, right_capture) = self.dataset.split(j, capture=capture)
                 # Re-enqueue subproblems (This duplicate enqueueing could allow us to perform cache evictions without dependency graphs)
-                if not table.has(left_capture):
-                    dependencies.add(left_capture)
-                if not table.has(right_capture):
-                    dependencies.add(right_capture)
-            queue.push((priority + 0.1, capture))  # re-enqueue problem
-
-            # print('Traversal: Downward, Problem: {}, Dependencies: {}'.format(vect.__str__(capture), tuple(vect.__str__(d) for d in dependencies)))
-
+                if not left_capture in table:
+                    dependencies.add((priority, left_capture))
+                if not right_capture in table:
+                    dependencies.add((priority, right_capture))
+            # print('Traversal: Downward, Problem: {}, Dependencies: {}'.format(str(capture), tuple(str(d) for _p, d in dependencies)))
+            dependencies.add((priority + 0.1, capture))
             return tuple(dependencies)
-        else:
+        elif minimum_lowerbound == minimum_upperbound:
             # Compute the optimal subtree knowing minimum split is the optimal split (which might be no-spit)
             split = minimum_split # Choose the first among possibly multiple equally optimal subtrees
             prediction = base_prediction if split == None else None # Set the prediction if the optimal split is no-split
-            table.put(capture, Result(optimizer=(split, prediction), optimum=Interval(value=minimum_upperbound))) # Associate the optimizer with the optimum in a result
+            table.put(capture, Result(optimizer=(split, prediction), optimum=Interval(minimum_upperbound))) # Associate the optimizer with the optimum in a result
+            # print('Traversal: Upward, Problem: {}, Optimal Result: {}'.format(str(capture), str(Result(optimizer=(split, prediction), optimum=Interval(minimum_upperbound)))))
+            return tuple()
+        else:
+            raise Exception("OSDTError: Invalid hierarchical bounds {} for problem {}".format((minimum_lowerbound, minimum_upperbound), capture))
 
-            # print('Traversal: Upward, Problem: {}, Optimal Result: {}'.format(vect.__str__(capture), str(Result(optimizer=(split, prediction), optimum=Interval(value=minimum_upperbound)))))
-            return ()
-            
+    def compute_bounds(self, capture):
+        _total, zeros, ones, minority, _majority = self.dataset.label_distribution(capture)
+        lowerbound = minority / self.dataset.sample_size + self.lamb * 1
+        upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
+        prediction = 0 if zeros >= ones else 1
+        if lowerbound > upperbound:
+            raise Exception("OSDTError: Invalid bounds {} for problem {}".format(
+                (lowerbound, upperbound), capture))
+        else:
+            return lowerbound, upperbound, prediction
+
     def compute_split_bounds(self, capture, base_objective, table):
         # Track the lowest upperbound and lowest lowerbound of all splits
         intervals = [ None for _j in range(self.dataset.width) ]
@@ -214,69 +222,68 @@ class OSDT:
         minimum_upperbound = base_objective
         minimum_split = None
 
-        for j, captures in self.dataset.splits(capture):
-            (left_capture, right_capture) = captures
-            if table.has(left_capture):
+        for j, left_capture, right_capture in self.dataset.splits(capture):
+            if left_capture in table:
                 left_result = table.get(left_capture)
                 left_lowerbound = left_result.optimum.lowerbound
                 left_upperbound = left_result.optimum.upperbound
             else:
-                (_total, zeros, ones, minority, _majority) = self.dataset.count(left_capture)
-                left_lowerbound = minority / self.dataset.sample_size + self.lamb * 1
-                left_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
+                left_lowerbound, left_upperbound, prediction = self.compute_bounds(left_capture)
                 if left_lowerbound == left_upperbound: # Prematurely discovered optimal subtree as a leaf
-                    split = None  # No split because the optimal solution is just a leaf with a label
-                    prediction = 0 if zeros >= ones else 1  # Optimal label for this leaf
-                    table.put(left_capture, Result(optimizer=(split, prediction), optimum=Interval(value=left_upperbound)))
+                    table.put(left_capture, Result(optimizer=(None, prediction), optimum=Interval(left_upperbound)))
 
-            if table.has(right_capture):
+            if right_capture in table:
                 right_result = table.get(right_capture)
                 right_lowerbound = right_result.optimum.lowerbound
                 right_upperbound = right_result.optimum.upperbound
             else:
-                (_total, zeros, ones, minority, _majority) = self.dataset.count(right_capture)
-                right_lowerbound = minority / self.dataset.sample_size + self.lamb * 1
-                right_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb * 1
+                right_lowerbound, right_upperbound, prediction = self.compute_bounds(right_capture)
                 if right_lowerbound == right_upperbound: # Prematurely discovered optimal subtree as a leaf
-                    split = None  # No split because the optimal solution is just a leaf with a label
-                    prediction = 0 if zeros >= ones else 1  # Optimal label for this leaf
-                    table.put(right_capture, Result(optimizer=(split, prediction), optimum=Interval(value=right_upperbound)))
+                    table.put(right_capture, Result(optimizer=(None, prediction), optimum=Interval(right_upperbound)))
 
             split_lowerbound = left_lowerbound + right_lowerbound # Initially weak lowerbound, to be narrowed over time
             split_upperbound = left_upperbound + right_upperbound # Should be less than or equal to base upperbound
+
+            if split_lowerbound > split_upperbound:
+                raise Exception("OSDTError: Invalid split bound {}".format((split_lowerbound, split_upperbound)))
+            
             intervals[j] = (split_lowerbound, split_upperbound)
 
             minimum_lowerbound = min(minimum_lowerbound, split_lowerbound)
             if split_upperbound < minimum_upperbound:
                 minimum_upperbound = split_upperbound
                 minimum_split = j
+            
+        if minimum_lowerbound > minimum_upperbound:
+            raise Exception("OSDTError: Invalid hierarchical bound {}".format((minimum_lowerbound, minimum_upperbound)))
+
         return tuple(intervals), minimum_lowerbound, minimum_upperbound, minimum_split
 
     # Method run by worker nodes to decide when to terminate
-    def terminate(self, queue, table):
+    def terminate(self, table):
         # Termination condition
-        return table.get(self.root) != None and table.get(self.root).resolved()
+        return table.get(self.root, block=False) != None and table.get(self.root, block=False).optimizer != None
 
     # Method for extracting the output
     def output(self, queue, table):
         return Tree(self.root, table, self.dataset)
 
-    def solve(self, clients=1, servers=1):
+    def solve(self, clients=1, servers=1, visualize=False):
         # Root capture
-        self.root = vect.ones(self.dataset.height)
+        self.root = Vector.ones(self.dataset.height)
 
         # Shared Data structures that get serviced by servers
-        table = TruthTable({}, degree=clients)
-        queue = PriorityQueue([(0, self.root)])
+        table = TruthTable(degree=clients)
+        queue = PriorityQueue([ ( 0, self.root, () ) ])
+        services = (queue, table)
 
         # Initialize and run the multi-node client-server cluster
-        cluster = Cluster(self.task, self.terminate, queue, table, clients=clients, servers=servers)
+        cluster = Cluster(self.task, services, clients=clients, servers=servers)
         cluster.compute()
 
         solution = self.output(queue, table)
-        print("Optimal Tree:\n{}".format(solution.visualize(self.dataset)))
-        print("Optimal Risk: {}".format(solution.risk))
-
+        if visualize:
+            solution.visualize(self.dataset)
         return solution
 
     def __print__(self, message):
