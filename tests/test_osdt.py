@@ -3,6 +3,7 @@
 import unittest
 import numpy as np
 from time import time
+from multiprocessing import cpu_count
 
 # Test out the cluster library
 from lib.data_processing import read_dataset
@@ -20,7 +21,7 @@ class TestOSDT(unittest.TestCase):
         start = time()
         problem = OSDT(X, y, lamb)
         print("\nRunning OSDT COMPAS consistency test")
-        model = problem.solve(clients=60, servers=1, visualize=True)
+        model = problem.solve(clients=cpu_count(), servers=1, visualize=True)
         finish = time()
         print('Training Time = {} seconds'.format(round(finish - start, 3)))
 
