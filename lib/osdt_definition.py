@@ -139,6 +139,7 @@ class OSDT:
     def task(self, worker_id, services):
         (queue, table) = services
         self.logger = Logger(path='logs/worker_{}.log'.format(worker_id)) if self.log else None
+
         while not self.terminate(table):
             try:
                 task = queue.pop(block=False)
@@ -152,19 +153,23 @@ class OSDT:
                         table.put(capture, Result(optimizer=(None, base_prediction), optimum=Interval(upperbound))) # Associate the optimizer with the optimum in a result
                     else: # Recursive Case
                         dependencies = self.recurse(priority, capture, base_prediction, upperbound, queue, table)
-                        dependency_path = (*path, capture)
-                        if len(dependencies) > 0:
-                            for priority, dependency in dependencies:
-                                queue.push((priority, dependency, dependency_path))  # Enqueue subproblem
+                        for priority, dependency in dependencies:
+                            if dependency == capture:  # Enqueue subproblem
+                                queue.push((priority, dependency, path))
+                            else:
+                                queue.push((priority, dependency, (*path, capture)))
+
                 else: # Revisited problem
                     if result.optimizer != None: # Problem solved (No work needed)
                         pass
                     else: # Also recursive case
                         _lowerbound, upperbound, base_prediction = self.compute_bounds(capture)
                         dependencies = self.recurse(priority, capture, base_prediction, upperbound, queue, table)
-                        if len(dependencies) > 0:
-                            for priority, dependency in dependencies:
-                                queue.push((priority, dependency, dependency_path))  # Enqueue subproblem
+                        for priority, dependency in dependencies:
+                            if dependency == capture:  # Enqueue subproblem
+                                queue.push((priority, dependency, path))
+                            else:
+                                queue.push((priority, dependency, (*path, capture)))
             except QueueEmpty: # Idle path
                 pass
 
