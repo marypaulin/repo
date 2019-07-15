@@ -46,24 +46,24 @@ class OSDTClassifier:
             }
 
     def fit(self, X, y):
-        self.model = bbound(X, y,
-                                self.regularization,
-                                prior_metric=self.configuration['priority_metric'],
-                                MAXDEPTH=self.max_depth,
-                                MAX_NLEAVES=float('Inf'),
-                                niter=float('Inf'),
-                                logon=False,
-                                support=self.configuration['support_lowerbound'],
-                                incre_support=self.configuration['incremental_accuracy_lowerbound'],
-                                accu_support=self.configuration['accuracy_lowerbound'],
-                                equiv_points=self.configuration['equivalent_point_lowerbound'],
-                                lookahead=self.configuration['look_ahead'],
-                                lenbound=True,
-                                R_c0=1,
-                                timelimit=self.max_time,
-                                init_cart=True,
-                                saveTree=False,
-                                readTree=False)
+        self.model, self.width = bbound(X, y,
+            self.regularization,
+            prior_metric=self.configuration['priority_metric'],
+            MAXDEPTH=self.max_depth,
+            MAX_NLEAVES=float('Inf'),
+            niter=float('Inf'),
+            logon=False,
+            support=self.configuration['support_lowerbound'],
+            incre_support=self.configuration['incremental_accuracy_lowerbound'],
+            accu_support=self.configuration['accuracy_lowerbound'],
+            equiv_points=self.configuration['equivalent_point_lowerbound'],
+            lookahead=self.configuration['look_ahead'],
+            lenbound=True,
+            R_c0=1,
+            timelimit=self.max_time,
+            init_cart=True,
+            saveTree=False,
+            readTree=False)
         return
 
     def predict(self, X_hat):

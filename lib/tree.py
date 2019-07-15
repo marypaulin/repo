@@ -47,12 +47,12 @@ class Tree:
             left_rule_lists = (
                 (
                     tuple('0' if j == self.split else rule_list[0][j] for j in range(dimensions)), 
-                    rule_list[1]
+                    *rule_list[1:]
                 ) for rule_list in self.left_subtree.rule_lists(dimensions))
             right_rule_lists = (
                 (
                     tuple('1' if j == self.split else rule_list[0][j] for j in range(dimensions)),
-                    rule_list[1]
+                    *rule_list[1:]
                 ) for rule_list in self.right_subtree.rule_lists(dimensions))
             return tuple(left_rule_lists) + tuple(right_rule_lists)
 

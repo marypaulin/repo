@@ -14,7 +14,7 @@ class Client:
             for service in services:
                 service.identify(client_id)
             task(client_id, services)
-        except KeyboardInterrupt:
+        except (Exception, KeyboardInterrupt, BrokenPipeError, RuntimeError) as e:
             pass
     
     def start(self):

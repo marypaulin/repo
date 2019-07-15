@@ -17,12 +17,12 @@ class Server:
 
     def __run__(self, server_id, services):
         terminate = False
-        while not terminate:
-            try:
+        try:
+            while not terminate:
                 for service in services:
                     service.serve()
-            except KeyboardInterrupt:
-                terminate = True
+        except (Exception, KeyboardInterrupt, BrokenPipeError, RuntimeError) as e:
+            pass
         
 
     

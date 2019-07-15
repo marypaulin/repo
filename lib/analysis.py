@@ -7,8 +7,12 @@ from sklearn.model_selection import KFold
 from sklearn.tree import DecisionTreeClassifier
 
 from lib.logger import Logger
+from lib.data_processing import read_dataset
 
 def accuracy_analysis(dataset, model_class, hyperparameters, path):
+    X = dataset.values[:, :-1]
+    y = dataset.values[:, -1]
+
     # Perform cross validation over k-folds, one for each proposed hyperparameter
     if len(hyperparameters) == 1:
         hyperparameters = [hyperparameters[0] for _i in range(2)]
@@ -26,48 +30,74 @@ def accuracy_analysis(dataset, model_class, hyperparameters, path):
         hyperparameter = hyperparameters[model_index]
 
         model = model_class(**hyperparameter)
-        model.fit(X_train, y_train)
-        accuracy = model.score(X_test, y_test)
 
-        # Compute Tree Width of the model
-        if model_class == DecisionTreeClassifier:
-            width = compute_width(model)
+        try:
+            model.fit(X_train, y_train)
+        except (Exception, KeyboardInterrupt, BrokenPipeError, RuntimeError) as e:
+            pass
         else:
-            width = len(model.rule_lists())
+            accuracy = model.score(X_test, y_test)
 
-        logger.log([str(hyperparameter), width, accuracy])
+            # Compute Tree Width of the model
+            if model_class == DecisionTreeClassifier:
+                width = compute_width(model)
+            else:
+                width = model.width
 
+            logger.log([str(hyperparameter), width, accuracy])
         model_index += 1
 
-# Parses the DecisionTreeClassifier from Sci-Kit Learn according to their documentation
-# Returns the number of leaves in this model
-# Reference: https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html
-def compute_width(estimator):
-    n_nodes = estimator.tree_.node_count
-    children_left = estimator.tree_.children_left
-    children_right = estimator.tree_.children_right
-    feature = estimator.tree_.feature
-    threshold = estimator.tree_.threshold
+def plot_accuracy_analysis(dataset_name, title):
+    fig = plt.figure(figsize=(10, 8), dpi=100)
 
-    node_depth = np.zeros(shape=n_nodes, dtype=np.int64)
-    is_leaves = np.zeros(shape=n_nodes, dtype=bool)
-    stack = [(0, -1)]  # seed is the root node id and its parent depth
-    while len(stack) > 0:
-        node_id, parent_depth = stack.pop()
-        node_depth[node_id] = parent_depth + 1
-
-        # If we have a test node
-        if (children_left[node_id] != children_right[node_id]):
-            stack.append((children_left[node_id], parent_depth + 1))
-            stack.append((children_right[node_id], parent_depth + 1))
+    dataset = read_dataset('data/accuracy/{}/{}.csv'.format(dataset_name, 'cart'))
+    (n, m) = dataset.shape
+    accuracies = {}
+    for i in range(n):
+        width = dataset.values[i, 1]
+        accuracy = dataset.values[i, 2]
+        if not width in accuracies:
+            accuracies[width] = accuracy
         else:
-            is_leaves[node_id] = True
+            accuracies[width] = max(accuracies[width], accuracy)
+    x = list(sorted(accuracies.keys()))
+    y = [ accuracies[width] for width in x ]
+    plt.plot(x, y, label='cart', markersize=5, marker='o', linewidth=0)
 
-    leaf_count = 0
-    for i in range(n_nodes):
-        if is_leaves[i]:
-            leaf_count += 1
-    return leaf_count
+    dataset = read_dataset('data/accuracy/{}/{}.csv'.format(dataset_name, 'osdt'))
+    (n, m) = dataset.shape
+    accuracies = {}
+    for i in range(n):
+        width = dataset.values[i, 1]
+        accuracy = dataset.values[i, 2]
+        if not width in accuracies:
+            accuracies[width] = accuracy
+        else:
+            accuracies[width] = max(accuracies[width], accuracy)
+    x = list(sorted(accuracies.keys()))
+    y = [ accuracies[width] for width in x ]
+    plt.plot(x, y, label='osdt', markersize=5, marker='o', linewidth=0)
+
+    dataset = read_dataset('data/accuracy/{}/{}.csv'.format(dataset_name, 'parallel_osdt'))
+    (n, m) = dataset.shape
+    accuracies = {}
+    for i in range(n):
+        width = dataset.values[i, 1]
+        accuracy = dataset.values[i, 2]
+        if not width in accuracies:
+            accuracies[width] = accuracy
+        else:
+            accuracies[width] = max(accuracies[width], accuracy)
+    x = list(sorted(accuracies.keys()))
+    print(x)
+    y = [ accuracies[width] for width in x ]
+    plt.plot(x, y, label='parallel_osdt', markersize=5, marker='o', linewidth=0)
+
+    plt.xlabel('Tree Width')
+    plt.ylabel('Test Accuracy')
+    plt.grid()
+    plt.legend()
+    plt.title(title)
 
 def scalability_analysis(dataset, model_class, hyperparameters, path, step_count=10):
     X = dataset.values[:, :-1]
@@ -101,7 +131,7 @@ def plot_scalability_analysis(dataset, title, z_limit=None):
     Y, X = np.meshgrid(y, x)
     Z = np.array(dataset.values[:,2]).reshape(len(x), len(y))
 
-    fig = plt.figure(figsize=(8, 6), dpi=80)
+    fig = plt.figure(figsize=(10, 8), dpi=100)
     ax = plt.axes(projection='3d')
     ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='viridis', edgecolor='none')
     ax.set_xlabel('Sample Size N')
@@ -114,3 +144,32 @@ def plot_scalability_analysis(dataset, title, z_limit=None):
 
     ax.view_init(30, -135)
     
+# Parses the DecisionTreeClassifier from Sci-Kit Learn according to their documentation
+# Returns the number of leaves in this model
+# Reference: https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html
+def compute_width(estimator):
+    n_nodes = estimator.tree_.node_count
+    children_left = estimator.tree_.children_left
+    children_right = estimator.tree_.children_right
+    feature = estimator.tree_.feature
+    threshold = estimator.tree_.threshold
+
+    node_depth = np.zeros(shape=n_nodes, dtype=np.int64)
+    is_leaves = np.zeros(shape=n_nodes, dtype=bool)
+    stack = [(0, -1)]  # seed is the root node id and its parent depth
+    while len(stack) > 0:
+        node_id, parent_depth = stack.pop()
+        node_depth[node_id] = parent_depth + 1
+
+        # If we have a test node
+        if (children_left[node_id] != children_right[node_id]):
+            stack.append((children_left[node_id], parent_depth + 1))
+            stack.append((children_right[node_id], parent_depth + 1))
+        else:
+            is_leaves[node_id] = True
+
+    leaf_count = 0
+    for i in range(n_nodes):
+        if is_leaves[i]:
+            leaf_count += 1
+    return leaf_count

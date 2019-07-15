@@ -1,0 +1,10 @@
+hyperparameter,width,accuracy
+{'regularization': 0.0001, 'max_time': 30.0},10,0.6731770833333334
+{'regularization': 0.0005, 'max_time': 30.0},12,0.6848958333333334
+{'regularization': 0.001, 'max_time': 30.0},8,0.6393229166666666
+{'regularization': 0.005, 'max_time': 30.0},5,0.6432291666666666
+{'regularization': 0.01, 'max_time': 30.0},3,0.6127770534550195
+{'regularization': 0.05, 'max_time': 30.0},2,0.6453715775749674
+{'regularization': 0.1, 'max_time': 30.0},1,0.5176010430247718
+{'regularization': 0.5, 'max_time': 30.0},1,0.5658409387222947
+{'regularization': 0.99, 'max_time': 30.0},1,0.5149934810951761

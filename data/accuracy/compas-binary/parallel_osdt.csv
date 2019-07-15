@@ -1,0 +1,6 @@
+hyperparameter,width,accuracy
+{'regularization': 0.005, 'visualize': True, 'max_time': 30.0},5,0.6432291666666666
+{'regularization': 0.01, 'visualize': True, 'max_time': 30.0},3,0.6127770534550195
+{'regularization': 0.05, 'visualize': True, 'max_time': 30.0},2,0.6453715775749674
+{'regularization': 0.1, 'visualize': True, 'max_time': 30.0},1,0.5176010430247718
+{'regularization': 0.5, 'visualize': True, 'max_time': 30.0},1,0.5658409387222947

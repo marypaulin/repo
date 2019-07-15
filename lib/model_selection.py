@@ -18,6 +18,9 @@ from sklearn.model_selection import KFold
 #   hyperparameter: the hyperparameter setting that resulted in the highest test accuracy
 
 def train_cross_validate(dataset, model_class, hyperparameters=[{}], retrain=False):
+    X = dataset.values[:, :-1]
+    y = dataset.values[:, -1]
+
     # Perform cross validation over k-folds, one for each proposed hyperparameter
     if len(hyperparameters) == 1:
         hyperparameters = [hyperparameters[0] for _i in range(2)]

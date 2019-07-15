@@ -39,12 +39,14 @@ class ParallelOSDTClassifier:
         self.log = log
 
     def fit(self, X, y):
+        (n, m) = X.shape
         problem = ParallelOSDT(X, y, self.regularization,
             configuration=self.configuration,
             max_depth=self.max_depth, max_time=self.max_time,
             verbose=self.verbose, log=self.log)
-
         self.model = problem.solve(clients=self.clients, servers=self.servers, visualize=self.visualize)
+        if self.visualize:
+            self.width = len(self.model.rule_lists(m))
         return
 
     # Make a prediction for the give unlablelled dataset

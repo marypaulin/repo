@@ -824,7 +824,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
             accuracy = right.mean()
             return y_hat, accuracy
 
-    return predictor
+    return predictor, len(leaves_c)
 
 
 def predict(leaves_c, prediction_c, dic, x, y, best_is_cart, clf):
