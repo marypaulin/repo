@@ -36,8 +36,10 @@ class SimilarityIndex:
             raise Exception("SimilarityIndexError: distance {} must be less than or equal to dimension {}".format(distance, dimensions))
         self.dimensions = dimensions
         self.distance = distance
-        self.tables = self.__generate_tables__(distance, tables)
+        self.table_count = tables
         self.size = 0
+        self.initialized = False # Defer table generation until necessary
+        
 
     # (Private) Creates a bitvector of ones with free_dimensions bits set to 0
     # Any vector would have free_dimensions bits set to 0 so that variatiions in those bits are normalized to 0
@@ -49,8 +51,15 @@ class SimilarityIndex:
     def __generate_tables__(self, degrees_of_freedom, tables):
         return tuple((self.__normalizer__(combo), {}) for combo in sample(tuple(combinations(range(self.dimensions), degrees_of_freedom)), tables))
 
+    def initialize(self):
+        if self.initialized == False:
+            self.tables = self.__generate_tables__(self.distance, self.table_count)
+            self.initialized = True
+
     # Adds a key (vector) into the the index
     def add(self, key):
+        if self.initialized == False:
+            self.initialize()
         if len(key) != self.dimensions:
             raise Exception("SimilarityIndexError: len(key) {} must be equal to dimension {}".format(len(key), self.dimensions))
         for normalizer, table in self.tables:
@@ -62,6 +71,8 @@ class SimilarityIndex:
 
     # Removes a key (vector) from the the index
     def remove(self, key):
+        if self.initialized == False:
+            self.initialize()
         if len(key) != self.dimensions:
             raise Exception("SimilarityIndexError: len(key) {} must be equal to dimension {}".format(len(key), self.dimensions))
         for normalizer, table in self.tables:
@@ -72,18 +83,24 @@ class SimilarityIndex:
 
     # Returns a subset of the vectors that are within a distance from key (vector)
     def neighbours(self, key):
+        if self.initialized == False:
+            self.initialize()
         if len(key) != self.dimensions:
             raise Exception("SimilarityIndexError: len(key) {} must be equal to dimension {}".format(len(key), self.dimensions))
         return set.union(set(), *(table[key & normalizer] for normalizer, table in self.tables if ((key & normalizer) in table)))
 
     # Override for x in set operator, returns whether a key (vector) is a member of the index
     def __contains__(self, key):
+        if self.initialized == False:
+            self.initialize()
         if len(key) != self.dimensions:
             raise Exception("SimilarityIndexError: len(key) {} must be equal to dimension {}".format(len(key), self.dimensions))
         return any(key in table[key & normalizer] for normalizer, table in self.tables if ((key & normalizer) in table))
 
     # Override for str(x) in set operator, displays the set of vectors in this index
     def __str__(self):
+        if self.initialized == False:
+            self.initialize()
         return str(set.union(set(), *(bucket for bucket in self.tables[0].values())))
 
     def __len__(self):

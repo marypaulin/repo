@@ -21,7 +21,7 @@ class Result:
     def overwrites(self, result):
         if result == None:
             return True
-        if self.optimum.subset(result.optimum):
+        if self.optimum.uncertainty == 0 or self.optimum.subset(result.optimum):
             return True
         return False
 

@@ -2,6 +2,7 @@ from queue import Empty as QueueEmpty, Full as QueueFull
 from multiprocessing import Queue
 from heapq import heappush, heappop
 from time import sleep
+from random import random
 
 from lib.prefix_tree import PrefixTree
 class PriorityQueue:
@@ -22,7 +23,7 @@ class PriorityQueue:
         Stage 3: outbound
           sorted messages ready for distribution
         '''
-        # seen = set()
+        seen = set()
         # Transfer from inbound queue to priority queue
         while True:
             try:
@@ -30,7 +31,14 @@ class PriorityQueue:
             except (QueueEmpty):
                 break
             else:
-                heappush(self.priority_queue, element)
+
+                if not type(element) in { tuple, list }:
+                    key = element
+                else:
+                    key = element[1:]
+                if not key in seen:
+                    seen.add(key)
+                    heappush(self.priority_queue, element)
 
         # Transfer from priorty queue to outbound queue
         while self.priority_queue:
@@ -54,10 +62,10 @@ class PriorityQueue:
         '''
         while True:
             try:
-                self.inbound_queue.put(element, block)
+                self.inbound_queue.put(element, False)
             except (QueueFull):
                 if block:
-                    sleep(random() * 0.1)
+                    sleep(random() * 0.01)
                 else:
                     raise QueueFull
             else:
@@ -72,10 +80,10 @@ class PriorityQueue:
         '''
         while True:
             try:
-                element = self.outbound_queue.get(block)
+                element = self.outbound_queue.get(False)
             except (QueueEmpty):
                 if block:
-                    sleep(random() * 0.1)
+                    sleep(random() * 0.01)
                 else:
                     raise QueueEmpty
             else:

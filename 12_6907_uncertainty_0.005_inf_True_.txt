@@ -1,0 +1,1 @@
+time;#pop;#push;queue_size;metric;R_c;the_old_tree;the_old_tree_splitleaf;the_old_tree_objective;the_old_tree_lbound;the_new_tree;the_new_tree_splitleaf;the_new_tree_objective;the_new_tree_lbound;the_new_tree_length;the_new_tree_depth;queue

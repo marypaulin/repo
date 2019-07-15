@@ -7,11 +7,15 @@ class Client:
         self.id = client_id
         self.pid = None
         self.process = Process(target=self.__run__, args=(client_id, services, task))
+        self.process.daemon = True
 
     def __run__(self, client_id, services, task):
-        for service in services:
-            service.identify(client_id)
-        task(client_id, services)
+        try:
+            for service in services:
+                service.identify(client_id)
+            task(client_id, services)
+        except KeyboardInterrupt:
+            pass
     
     def start(self):
         self.process.start()

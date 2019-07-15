@@ -10,6 +10,7 @@ from lib.data_processing import read_dataset
 from lib.osdt_definition import OSDT
 
 class TestOSDT(unittest.TestCase):
+    pass
     # Consistency test 
     def test_osdt_on_compas(self):
         dataset = read_dataset('data/preprocessed/compas-binary.csv', sep=';')
@@ -19,9 +20,9 @@ class TestOSDT(unittest.TestCase):
         lamb = 0.005
 
         start = time()
-        problem = OSDT(X, y, lamb)
+        problem = OSDT(X, y, lamb, max_time=25)
         print("\nRunning OSDT COMPAS consistency test")
-        model = problem.solve(clients=cpu_count(), servers=1, visualize=True)
+        model = problem.solve(clients=2, servers=1, visualize=True)
         finish = time()
         print('Training Time = {} seconds'.format(round(finish - start, 3)))
 
@@ -41,7 +42,8 @@ class TestOSDT(unittest.TestCase):
         y = dataset.values[:, -1]
         lamb = 0.0
 
-        problem = OSDT(X, y, lamb)
+        problem = OSDT(X, y, lamb, max_time=1)
+        print("\nRunning OSDT identity consistency test")
         model = problem.solve(clients=2, servers=1, visualize=True)
         rule_list_visualization = '\n'.join((
         '(_,_,_,_,_,_,_,_,_,_,_,_) => predict 0, risk contribution 0.3333333333333333',))
@@ -55,7 +57,8 @@ class TestOSDT(unittest.TestCase):
         y = dataset.values[:, -1]
         lamb = 0.05
 
-        problem = OSDT(X, y, lamb)
+        problem = OSDT(X, y, lamb, max_time=1)
+        print("\nRunning OSDT split consistency test")
         model = problem.solve(clients=2, servers=1, visualize=True)
         rule_list_visualization = '\n'.join((
         '(_,_,_,_,_,_,_,_,0,_,_,_) => predict 0, risk contribution 0.1611111111111111',

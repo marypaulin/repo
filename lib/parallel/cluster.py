@@ -18,7 +18,7 @@ class Cluster:
         servers = tuple(Server(i, self.services) for i in range(self.servers))
 
         for node in (servers + clients):
-            node.start()
+            node.start(block=False)
 
         # Run self as client 0
         for service in self.services:
@@ -30,9 +30,5 @@ class Cluster:
             client.join()
         for server in servers:
             server.stop()
-
-        # while any(server.is_alive() for server in servers):
-        #     self.table.put('__terminate__', True, prefilter=False)  # Signal to servers to terminate
-        #     sleep(0.1)
 
         return self.services

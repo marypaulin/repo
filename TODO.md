@@ -1,13 +1,12 @@
 # TODO
- - Prioritization
- - Add Similarity Bound
- - Asynchronous Pruning
- - Add Feature Flags
  - Add Scalability Analysis
- - Add Logging and Runtime Analysis (profiling of workers)
+ - Add Runtime Analysis (Profiling, Memory Distributions, Load Distributions, Convergence Plot)
+
+ - Sci-Kit Model Interface (Unit Tests)
  - Cache Eviction
- - Sci-Kit Model Interface
+
+ - Add Similarity Bound (Unforunately the precision gains aren't high enough to cause enough pruning)
+ - Asynchronous Pruning (Suffix Match Proof)
 
 # Testing
 `python3 -m unittest discover -s tests`
- - Model

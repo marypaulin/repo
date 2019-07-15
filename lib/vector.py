@@ -25,8 +25,7 @@ class Vector:
 
     # Creates a vector of zeros repeated n-times
     def zeros(length):
-        ones = Vector(bit_mask(length), length=length, base=2)
-        return ones ^ ones
+        return Vector(bit_mask(length) ^ bit_mask(length), length=length, base=2)
 
     # Creates a vector based on data which is either 
     def __init__(self, data, length=None, base=2):
@@ -68,8 +67,7 @@ class Vector:
 
     # Overrides ~x operator and keeps leading bits as zeros to avoid breaking equality
     def __invert__(self):
-        # return self.generate(self.data ^ mpz('0' + '1' * self.length, self.base))
-        return self ^ Vector.ones(self.length)
+        return self.generate(self.data ^ bit_mask(self.length))
 
     # Overrides x & y operator
     def __and__(self, vector):

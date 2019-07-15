@@ -14,7 +14,10 @@ class Interval:
             self.upperbound = upperbound
         if self.lowerbound > self.upperbound:
             raise Exception("Invalid Interval Bounds [{}, {}]".format(lowerbound, upperbound))
-        self.uncertainty = self.upperbound - self.lowerbound
+        if self.lowerbound == self.upperbound: # Special case to deal with infinities
+            self.uncertainty = 0
+        else:
+            self.uncertainty = self.upperbound - self.lowerbound
     
     def union(self, interval):
         return Interval(min(self.lowerbound, interval.lowerbound), max(self.upperbound, interval.upperbound))
@@ -27,6 +30,9 @@ class Interval:
 
     def superset(self, interval):
         return self.lowerbound <= interval.lowerbound and self.upperbound >= interval.upperbound and self.uncertainty > interval.uncertainty
+    
+    def overlap(self, interval):
+        return interval.lowerbound <= self.upperbound and interval.upperbound >= self.lowerbound
 
     def value(self):
         if self.uncertainty == 0:
@@ -65,3 +71,6 @@ class Interval:
 
     def __str__(self):
         return str(self.value())
+
+    def __len__(self):
+        return self.uncertainty

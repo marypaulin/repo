@@ -24,10 +24,11 @@
 # prefixes.longest_prefix(b) == 6
 
 class PrefixTree:
-    def __init__(self):
+    def __init__(self, minimize=False):
         self.node = PrefixTreeNode()
         self.base = 2
         self.size = 0
+        self.minimize = minimize
 
     # Returns True if the key exists in the key-set
     def has(self, key):
@@ -61,6 +62,10 @@ class PrefixTree:
             node = node.children[element]
         node.value = value
         self.size += 1
+        if self.minimize:
+            for child in node.children.values():
+                child.parent = None
+            node.children = {}
 
     # Remove any association with the key if there is one
     def remove(self, key):
@@ -76,8 +81,10 @@ class PrefixTree:
         self.size -= 1
         # Remove trailing nodes to save on memory
         while node.value == None and node.parent != None and len(node.children) == 0:
-            del node.parent.children[node.key]
-            node = node.parent
+            parent = node.parent
+            del parent.children[node.key]
+            node.parent = None
+            node = parent
 
     # Alias for set interface
     def add(self, key, value=True):
@@ -126,6 +133,25 @@ class PrefixTree:
     # Operator override for set and dictionary interface
     def __contains__(self, key):
         return self.has(key)
+    
+    def __len__(self):
+        return self.size
+    
+    # Not a terribly fast implementation, this is just for debugging purposes
+    def items(self, node=None):
+        if node == None:
+            node = self.node
+        items = {}
+        if node.value != None:
+            items[''] = node.value
+        if len(node.children) > 0:
+            for prefix in node.children:
+                for suffix, value in self.items(node=node.children[prefix]).items():
+                    if suffix == '':
+                        items[(prefix,)] = value
+                    else:
+                        items[(prefix,) + suffix] = value
+        return items
 
 # Internal node structure for building the prefix tree
 class PrefixTreeNode:

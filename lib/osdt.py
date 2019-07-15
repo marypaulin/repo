@@ -796,7 +796,9 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     print("best_is_cart", best_is_cart)
 
     # return leaves_c, prediction_c, dic, nleaves, nrule, ndata, totaltime, time_c, COUNT, C_c, accu, best_is_cart, clf
-    def predictor(features, labels=[]):
+    def predictor(features, labels=None):
+        if type(labels) != np.ndarray and type(labels) != list:
+            labels = []
         (n, m) = features.shape
 
         caps = []
@@ -810,7 +812,6 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
             caps.append(cap)
 
         y_hat = np.array([1] * n)
-        print(y_hat)
 
         if len(labels) == 0:
             return y_hat, None
@@ -821,8 +822,6 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
             right = y_hat == labels
             accuracy = right.mean()
-
-            print("Testing Accuracy:", accuracy)
             return y_hat, accuracy
 
     return predictor

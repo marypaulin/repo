@@ -33,7 +33,7 @@ class TestDataset(unittest.TestCase):
 
         label_distribution = dataset.label_distribution()
 
-        self.assertEqual(label_distribution, (36, 24, 12, 12, 24))
+        self.assertEqual(tuple(label_distribution), (36, 24, 12, 12, 24))
 
     def test_splits(self):
         # Identity is a dataset where the features form a 12x12 identity matrix, stacked vertically 3 times
@@ -50,9 +50,9 @@ class TestDataset(unittest.TestCase):
             self.assertEqual(left.count(), 11)
             self.assertEqual(right.count(), 1)
             # Out-group contains 33 rows, with 2:1 zero-one ratio
-            self.assertEqual(dataset.label_distribution(left), (33, 22, 11, 11, 22))
+            self.assertEqual(tuple(dataset.label_distribution(left)), (33, 22, 11, 11, 22))
             # In-group contains 3 rows, with 2:1 zero-one ratio
-            self.assertEqual(dataset.label_distribution(right), (3, 2, 1, 1, 2))
+            self.assertEqual(tuple(dataset.label_distribution(right)), (3, 2, 1, 1, 2))
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,10 +1,18 @@
 import lib.vector as vect
 class Tree:
 
-    def __init__(self, capture, table, dataset):
-        if not table.has(capture):
-            print("Insufficent information for key {}".format(capture))
-        result = table.get(capture)
+    def __init__(self, capture, table, dataset, path=None, capture_equivalence=True):
+        if path == None:
+            path = tuple()
+        if capture_equivalence:
+            key = capture
+        else:
+            key = (capture, path)
+        if not table.has(key):
+            print("Insufficent information for key {}".format(key))
+        result = table.get(key, block=False)
+        if result.optimizer == None:
+            print("Insufficent information for key {}".format(key))
         (split, prediction) = result.optimizer
 
         risk = result.optimum.value()
@@ -14,8 +22,8 @@ class Tree:
         self.visualization = None
         if split != None:
             (left_capture, right_capture) = dataset.split(split, capture=capture)
-            self.left_subtree = Tree(left_capture, table, dataset)
-            self.right_subtree = Tree(right_capture, table, dataset)
+            self.left_subtree = Tree(left_capture, table, dataset, path=path + (split, 'L'), capture_equivalence=capture_equivalence)
+            self.right_subtree = Tree(right_capture, table, dataset, path=path + (split, 'R'), capture_equivalence=capture_equivalence)
 
     def predict(self, sample):
         if self.prediction != None:
@@ -25,11 +33,11 @@ class Tree:
         elif sample[self.split] == 1:
             return self.right_subtree.predict(sample)
 
-    def rule_lists(self, dataset):
+    def rule_lists(self, dimensions):
         if self.prediction != None:
             rule_lists = (
                 (
-                    ('_',) * dataset.width,
+                    ('_',) * dimensions,
                     "predict {}, risk contribution {}".format(self.prediction, self.risk)
                 ),
             )
@@ -37,19 +45,19 @@ class Tree:
         else:
             left_rule_lists = (
                 (
-                    tuple('0' if j == self.split else rule_list[0][j] for j in range(dataset.width)), 
+                    tuple('0' if j == self.split else rule_list[0][j] for j in range(dimensions)), 
                     rule_list[1]
-                ) for rule_list in self.left_subtree.rule_lists(dataset))
+                ) for rule_list in self.left_subtree.rule_lists(dimensions))
             right_rule_lists = (
                 (
-                    tuple('1' if j == self.split else rule_list[0][j] for j in range(dataset.width)),
+                    tuple('1' if j == self.split else rule_list[0][j] for j in range(dimensions)),
                     rule_list[1]
-                ) for rule_list in self.right_subtree.rule_lists(dataset))
+                ) for rule_list in self.right_subtree.rule_lists(dimensions))
             return tuple(left_rule_lists) + tuple(right_rule_lists)
 
-    def visualize(self, dataset):
+    def visualize(self, dimensions):
         if self.visualization == None:
-            visualization = '\n'.join("({}) => {}".format(','.join(rule_list[0]), rule_list[1]) for rule_list in self.rule_lists(dataset))
+            visualization = '\n'.join("({}) => {}".format(','.join(rule_list[0]), rule_list[1]) for rule_list in self.rule_lists(dimensions))
             self.visualization = visualization
         return self.visualization
 

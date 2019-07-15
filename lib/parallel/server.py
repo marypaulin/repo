@@ -13,6 +13,7 @@ class Server:
         self.id = server_id
         self.pid = None
         self.process = Process(target=self.__run__, args=(server_id, services))
+        self.process.daemon = True
 
     def __run__(self, server_id, services):
         try:
