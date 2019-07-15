@@ -11,16 +11,13 @@ from sklearn.model_selection import KFold
 #       fit(self, X_train, y_test)
 #       score(X_test, y_test)
 #   hyperparameters: list of dictionaries each containing keyword arguments holding hyperparameter assignments for model construction
-#   retain: flag to retrain on the full dataset using the optimal hyperparameters
+#   retrain: flag to retrain on the full dataset using the optimal hyperparameters
 # Output:
 #   model: the model that scored the highest in test accuracy during cross-validation
 #   accuracy: the test accuracy of the model that scored the highest
 #   hyperparameter: the hyperparameter setting that resulted in the highest test accuracy
 
 def train_cross_validate(dataset, model_class, hyperparameters=[{}], retrain=False):
-    X = dataset.values[:, :-1]
-    y = dataset.values[:, -1]
-
     # Perform cross validation over k-folds, one for each proposed hyperparameter
     if len(hyperparameters) == 1:
         hyperparameters = [hyperparameters[0] for _i in range(2)]
@@ -39,7 +36,6 @@ def train_cross_validate(dataset, model_class, hyperparameters=[{}], retrain=Fal
         hyperparameter = hyperparameters[model_index]
 
         model = model_class(**hyperparameter)
-        # print(X_train, y_train)
         model.fit(X_train, y_train)
         accuracy = model.score(X_test, y_test)
 

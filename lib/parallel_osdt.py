@@ -198,7 +198,8 @@ class ParallelOSDT:
                         right_priority = self.prioritize(right_capture, right_path)
                         self.enqueue((right_priority, right_capture, right_path))
                 else:
-                    self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
+                    if self.verbose or self.log:
+                        self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
 
         except KeyboardInterrupt: # Occurs when another worker finds the answer, resulting in a signal for early termination
             pass
@@ -239,13 +240,14 @@ class ParallelOSDT:
                 # Base Case: Set up an entry with the optimizer as an optimal leaf and a precise objective
                 optimizer, optimum = (None, majority_label), Interval(bounding_interval.upperbound)
                 result = Result(optimizer=optimizer, optimum=optimum)
-                self.print('Case: Base, Problem: {}:{} => {}'.format(path, capture, result))
+                if self.verbose or self.log:
+                    self.print('Case: Base, Problem: {}:{} => {}'.format(path, capture, result))
             else:
                 # Recursive Case: Set up an entry with an unknown optimizer and a bounding interval on the objective
                 optimizer, optimum = None, bounding_interval
                 result = Result(optimizer=optimizer, optimum=optimum)
-                self.print('Case: Recursive, Problem: {}:{} => {}'.format(path, capture, result))
-
+                if self.verbose or self.log:
+                    self.print('Case: Recursive, Problem: {}:{} => {}'.format(path, capture, result))
             self.update(capture, path, result)
         else:
             result = self.get(capture, path)
@@ -273,8 +275,8 @@ class ParallelOSDT:
             self.put(capture, path, result)
             self.prune(path[:-1])
             dependencies = tuple()
-            self.print('Case: Prune, Problem: {}:{} => {}'.format(path, capture, result))
-
+            if self.verbose or self.log:
+                self.print('Case: Prune, Problem: {}:{} => {}'.format(path, capture, result))
         elif minimum_bounding_interval.uncertainty > 0:
             # The problem solution is still uncertain
             # We might be able to narrow the minimum_bounding_interval from the previous interval
@@ -291,8 +293,8 @@ class ParallelOSDT:
             # Be sure to re-enqueue this task since it's not finished
             self.enqueue((priority + self.configuration['deprioritization'], capture, path))
             dependencies = relevant_splits
-            self.print('Case: Downward, Problem: {}:{} => {}'.format(path, capture, result))
-
+            if self.verbose or self.log:
+                self.print('Case: Downward, Problem: {}:{} => {}'.format(path, capture, result))
         elif minimum_bounding_interval.uncertainty == 0:
             # The uncertainty is fully resolved, so minimizing_split is the optimal choice
             if minimizing_split == None:
@@ -303,9 +305,11 @@ class ParallelOSDT:
             self.put(capture, path, result)
             self.prune(path)
             dependencies = tuple()
-            self.print('Case: Upward, Problem: {}:{} => {}'.format(path, capture, result))
+            if self.verbose or self.log:
+                self.print('Case: Upward, Problem: {}:{} => {}'.format(path, capture, result))
         else:
-            self.print('Case: Undefined, Problem: {}:{} => {}'.format(path, capture, result))
+            if self.verbose or self.log:
+                self.print('Case: Undefined, Problem: {}:{} => {}'.format(path, capture, result))
             raise Exception("ParallelOSDTError: Undefined Case Reached")
 
         return dependencies
@@ -475,7 +479,7 @@ class ParallelOSDT:
     def terminate(self, results):
         # Termination condition
         # root = results.get(self.root, block=False)
-        # terminate = root != None and root.optimizer != None
+        # terminate = root != None and root.optimizer != None and root.optimum.uncertainty == 0
         terminate = self.solved(self.root, tuple())
         return terminate
 
@@ -484,21 +488,22 @@ class ParallelOSDT:
         return Tree(self.root, results, self.dataset, capture_equivalence=self.configuration['capture_equivalence'])
 
     def solve(self, clients=1, servers=1, visualize=False):
-        self.print("Starting Parallel OSDT")
+        if self.verbose or self.log:
+            self.print("Starting Parallel OSDT")
 
-        self.print("Problem Definition:")
-        self.print("  Number of Samples: {}".format(self.dataset.sample_size))
-        self.print("  Number of Unique Samples: {}".format(self.dataset.height))
-        self.print("  Number of Features: {}".format(self.dataset.width))
-        self.print("  Regularization Coefficient: {}".format(self.lamb))
+            self.print("Problem Definition:")
+            self.print("  Number of Samples: {}".format(self.dataset.sample_size))
+            self.print("  Number of Unique Samples: {}".format(self.dataset.height))
+            self.print("  Number of Features: {}".format(self.dataset.width))
+            self.print("  Regularization Coefficient: {}".format(self.lamb))
 
-        self.print("Execetion Resources:")
-        self.print("  Number of Server Processes: {}".format(clients))
-        self.print("  Number of Client Processes: {}".format(servers))
+            self.print("Execetion Resources:")
+            self.print("  Number of Server Processes: {}".format(clients))
+            self.print("  Number of Client Processes: {}".format(servers))
 
-        self.print("Algorithm Configurations:")
-        for key, value in self.configuration.items():
-            self.print("  {} = {}".format(key, value))
+            self.print("Algorithm Configurations:")
+            for key, value in self.configuration.items():
+                self.print("  {} = {}".format(key, value))
         
         self.start_time = time()
         self.root = Vector.ones(self.dataset.height)  # Root capture
@@ -523,21 +528,24 @@ class ParallelOSDT:
         cluster.compute()
 
         if self.terminate(results):
-            self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
             model = self.output(results)
-            self.print("Optimal Objective: {}".format(model.risk))
+            if self.verbose or self.log:
+                self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
+                self.print("Optimal Objective: {}".format(model.risk))
             if visualize:
                 model.visualize(self.dataset.width) # Renders a rule-list visualization
-                self.print('Optimal Model:\n{}'.format(model.visualization))
+                if self.verbose or self.log:
+                    self.print('Optimal Model:\n{}'.format(model.visualization))
             return model
         else:
-            self.print("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
+            if self.verbose or self.log:
+                self.print("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
             raise Exception("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
 
     def __default_configuration__(self):
         return {
             'priority_metric': 'uncertainty', # Decides how tasks are prioritized
-            'deprioritization': 0.1, # Decides how much to push back a task if it has pending dependencies
+            'deprioritization': 0.01, # Decides how much to push back a task if it has pending dependencies
 
             # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
             'hierarchical_lowerbound': True, 

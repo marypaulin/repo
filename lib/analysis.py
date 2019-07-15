@@ -3,27 +3,96 @@ from math import ceil
 from mpl_toolkits import mplot3d
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.model_selection import KFold
+from sklearn.tree import DecisionTreeClassifier
+
 from lib.logger import Logger
 
-def scalability_analysis(model_class, hyperparameters, dataset, path):
+def accuracy_analysis(dataset, model_class, hyperparameters, path):
+    # Perform cross validation over k-folds, one for each proposed hyperparameter
+    if len(hyperparameters) == 1:
+        hyperparameters = [hyperparameters[0] for _i in range(2)]
+    kfolds = KFold(n_splits=len(hyperparameters))
+
+    logger = Logger(path=path, header=['hyperparameter','width', 'accuracy'])
+
+    model_index = 0
+    for train_index, test_index in kfolds.split(X):
+        X = dataset.values[:, :-1]
+        y = dataset.values[:, -1]
+
+        X_train, y_train = X[train_index], y[train_index]
+        X_test, y_test = X[test_index], y[test_index]
+        hyperparameter = hyperparameters[model_index]
+
+        model = model_class(**hyperparameter)
+        model.fit(X_train, y_train)
+        accuracy = model.score(X_test, y_test)
+
+        # Compute Tree Width of the model
+        if model_class == DecisionTreeClassifier:
+            width = compute_width(model)
+        else:
+            width = len(model.rule_lists())
+
+        logger.log([str(hyperparameter), width, accuracy])
+
+        model_index += 1
+
+# Parses the DecisionTreeClassifier from Sci-Kit Learn according to their documentation
+# Returns the number of leaves in this model
+# Reference: https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html
+def compute_width(estimator):
+    n_nodes = estimator.tree_.node_count
+    children_left = estimator.tree_.children_left
+    children_right = estimator.tree_.children_right
+    feature = estimator.tree_.feature
+    threshold = estimator.tree_.threshold
+
+    node_depth = np.zeros(shape=n_nodes, dtype=np.int64)
+    is_leaves = np.zeros(shape=n_nodes, dtype=bool)
+    stack = [(0, -1)]  # seed is the root node id and its parent depth
+    while len(stack) > 0:
+        node_id, parent_depth = stack.pop()
+        node_depth[node_id] = parent_depth + 1
+
+        # If we have a test node
+        if (children_left[node_id] != children_right[node_id]):
+            stack.append((children_left[node_id], parent_depth + 1))
+            stack.append((children_right[node_id], parent_depth + 1))
+        else:
+            is_leaves[node_id] = True
+
+    leaf_count = 0
+    for i in range(n_nodes):
+        if is_leaves[i]:
+            leaf_count += 1
+    return leaf_count
+
+def scalability_analysis(dataset, model_class, hyperparameters, path, step_count=10):
     X = dataset.values[:, :-1]
     Y = dataset.values[:, -1]
     (n, m) = X.shape
-    sample_size_step = ceil(n / 20)
-    feature_size_step = ceil(m / 20)
+    sample_size_step = max(1, round(n / step_count))
+    feature_size_step = max(1, round(m / step_count))
 
     logger = Logger(path=path, header=['samples', 'features', 'runtime'])
-    for sample_size in range(1, n, sample_size_step):
-        for feature_size in range(1, m, feature_size_step):
+
+    for sample_size in range(1, n+1, sample_size_step):
+        for feature_size in range(1, m+1, feature_size_step):
+
             x = X[:sample_size,:feature_size]
             y = Y[:sample_size]
             model = model_class(**hyperparameters)
             start = time()
-            model.fit(x, y)
+            try:
+                model.fit(x, y)
+            except Exception:
+                pass
             runtime = time() - start
             logger.log([sample_size, feature_size, runtime])
 
-def plot_scalability_analysis(dataset):
+def plot_scalability_analysis(dataset, title, z_limit=None):
     (n, m) = dataset.shape
     x = list(set(dataset.values[:,0]))
     list.sort(x)
@@ -38,3 +107,10 @@ def plot_scalability_analysis(dataset):
     ax.set_xlabel('Sample Size N')
     ax.set_ylabel('Feature Size M')
     ax.set_zlabel('Runtime (s)')
+    ax.set_title(title)
+
+    if z_limit != None:
+        ax.set_zlim(0, z_limit)
+
+    ax.view_init(30, -135)
+    

@@ -16,12 +16,14 @@ class Server:
         self.process.daemon = True
 
     def __run__(self, server_id, services):
-        try:
-            while True:
+        terminate = False
+        while not terminate:
+            try:
                 for service in services:
                     service.serve()
-        except KeyboardInterrupt:
-            pass
+            except KeyboardInterrupt:
+                terminate = True
+        
 
     
     def start(self, block=True):

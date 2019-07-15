@@ -38,7 +38,8 @@ class Tree:
             rule_lists = (
                 (
                     ('_',) * dimensions,
-                    "predict {}, risk contribution {}".format(self.prediction, self.risk)
+                    self.prediction,
+                    self.risk
                 ),
             )
             return rule_lists
@@ -57,7 +58,7 @@ class Tree:
 
     def visualize(self, dimensions):
         if self.visualization == None:
-            visualization = '\n'.join("({}) => {}".format(','.join(rule_list[0]), rule_list[1]) for rule_list in self.rule_lists(dimensions))
+            visualization = '\n'.join("({}) => {} (Risk Contribution = {})".format(','.join(rule_list[0]), rule_list[1], rule_list[2]) for rule_list in self.rule_lists(dimensions))
             self.visualization = visualization
         return self.visualization
 
