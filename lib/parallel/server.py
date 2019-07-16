@@ -1,14 +1,19 @@
 from multiprocessing import Process
 from os import kill
-from signal import SIGINT
 from time import sleep
+from signal import SIGINT, signal
 
 # Wrapper class around multiprocessing.Process
 # This mainly provides convenience methods for the following
 #  - Graceful shutdown by sending interprocess signals
 #  - Optional synchronization on setup and teardown
 #  - Standardized method calling across all data-structures for client-server pattern
+
+def __interrupt__(signal, frame):
+    Server.interrupt = True
+
 class Server:
+    interrupt = False
     def __init__(self, server_id, services):
         self.id = server_id
         self.pid = None
@@ -16,14 +21,11 @@ class Server:
         self.process.daemon = True
 
     def __run__(self, server_id, services):
-        terminate = False
-        try:
-            while not terminate:
-                for service in services:
-                    service.serve()
-        except (Exception, KeyboardInterrupt, BrokenPipeError, RuntimeError) as e:
-            pass
-        
+        signal(SIGINT, __interrupt__)
+        while not Server.interrupt:
+            for service in services:
+                service.serve()
+    
 
     
     def start(self, block=True):

@@ -1,6 +1,8 @@
 from queue import Empty as QueueEmpty, Full as QueueFull
 from time import time
 from random import random
+from signal import SIGINT, signal
+from memory_profiler import profile
 
 from lib.parallel.cluster import Cluster
 from lib.parallel.priority_queue import PriorityQueue
@@ -126,14 +128,16 @@ from lib.logger import Logger
 # Changelog
 # - stricter base case
 
+def __interrupt__(signal, frame):
+    ParallelOSDT.interrupt = True
+
 class ParallelOSDT:
+    interrupt = False
     def __init__(self,
         X, y, regularization,
         configuration=None,
         max_depth=float('Inf'), max_time=float('Inf'),
-        verbose=False, log=False):
-
-
+        verbose=False, log=False, profile=False):
 
         # Set all global variables, these are statically available to all workers
 
@@ -148,6 +152,7 @@ class ParallelOSDT:
         self.max_depth = min(max_depth, self.dataset.width)
         self.max_time = max_time
         self.verbose = verbose
+        self.profile = profile
         self.log = log
         self.logger = None
 
@@ -156,8 +161,14 @@ class ParallelOSDT:
         self.global_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb
         self.global_lowerbound = minority / self.dataset.sample_size + self.lamb
 
+    @profile
+    def snapshot(self):
+        pass
+
     # Task method that gets run by all worker nodes (clients)
     def task(self, worker_id, services):
+        signal(SIGINT, __interrupt__)
+
         start_time = time()
         (tasks, results, prefixes, suffixes) = services
         self.tasks = tasks
@@ -166,43 +177,47 @@ class ParallelOSDT:
         self.suffixes = suffixes
         self.logger = Logger(path='logs/worker_{}.log'.format(worker_id)) if self.log else None
 
-        try:
-            while not self.terminate(results) and self.elapsed_time() <= self.max_time:
-                task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
-                if task == None:
-                    continue
-                (priority, capture, path) = task
+        # try:
+        while not self.terminate(results) and self.elapsed_time() <= self.max_time and not ParallelOSDT.interrupt:
 
-                # Initialize the results table entry if not already initialized, and returns the persisted entry
-                # If an entry already exists, simply load the existing one
-                result = self.find_or_create_result(capture, path)
+            if self.profile: # Record a snapshot for memory profiling
+                self.snapshot()
 
-                # An entry with non-zero uncertainty indicates that the precise optimum is not yet found due to lack of information
-                # Information is gained everytime a subproblem (direct child or any descendent) gains information
-                # The original source of information comes from base cases where the support set can no longer be split so the optimum
-                # is calculated directly without searching. From there, information propagates up all ancestry paths in a hierarchical pattern
-                if result.optimum.uncertainty > 0: # Recursive case
-                    # This method creates a generator of all subproblems that need to be solved
-                    # It also has many side-effects such as:
-                    #  - Further propagating information through this problem when possible
-                    #  - Pruning irrelevant subproblems when possible
-                    #  - Pruning the current problem when possible
-                    for j in self.dependencies(task):
-                        left_capture, right_capture = self.dataset.split(j, capture=capture)
+            task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
+            if task == None:
+                continue
+            (priority, capture, path) = task
 
-                        left_path = path + (j, 'L')
-                        left_priority = self.prioritize(left_capture, left_path)
-                        self.enqueue((left_priority, left_capture, left_path))
+            # Initialize the results table entry if not already initialized, and returns the persisted entry
+            # If an entry already exists, simply load the existing one
+            result = self.find_or_create_result(capture, path)
 
-                        right_path = path + (j, 'R')
-                        right_priority = self.prioritize(right_capture, right_path)
-                        self.enqueue((right_priority, right_capture, right_path))
-                else:
-                    if self.verbose or self.log:
-                        self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
+            # An entry with non-zero uncertainty indicates that the precise optimum is not yet found due to lack of information
+            # Information is gained everytime a subproblem (direct child or any descendent) gains information
+            # The original source of information comes from base cases where the support set can no longer be split so the optimum
+            # is calculated directly without searching. From there, information propagates up all ancestry paths in a hierarchical pattern
+            if result.optimum.uncertainty > 0: # Recursive case
+                # This method creates a generator of all subproblems that need to be solved
+                # It also has many side-effects such as:
+                #  - Further propagating information through this problem when possible
+                #  - Pruning irrelevant subproblems when possible
+                #  - Pruning the current problem when possible
+                for j in self.dependencies(task):
+                    left_capture, right_capture = self.dataset.split(j, capture=capture)
 
-        except KeyboardInterrupt: # Occurs when another worker finds the answer, resulting in a signal for early termination
-            pass
+                    left_path = path + (j, 'L')
+                    left_priority = self.prioritize(left_capture, left_path)
+                    self.enqueue((left_priority, left_capture, left_path))
+
+                    right_path = path + (j, 'R')
+                    right_priority = self.prioritize(right_capture, right_path)
+                    self.enqueue((right_priority, right_capture, right_path))
+            else:
+                if self.verbose or self.log:
+                    self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
+
+        # except KeyboardInterrupt: # Occurs when another worker finds the answer, resulting in a signal for early termination
+        #     pass
 
     def prioritize(self, capture, path):
         priority_metric = self.configuration['priority_metric']

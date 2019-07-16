@@ -2,6 +2,7 @@ from multiprocessing import Process
 from os import kill
 from signal import SIGINT
 from time import sleep
+
 class Client:
     def __init__(self, client_id, services, task):
         self.id = client_id
@@ -14,7 +15,7 @@ class Client:
             for service in services:
                 service.identify(client_id)
             task(client_id, services)
-        except (Exception, KeyboardInterrupt, BrokenPipeError, RuntimeError) as e:
+        except KeyboardInterrupt:
             pass
     
     def start(self):

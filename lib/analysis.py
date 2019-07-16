@@ -33,7 +33,7 @@ def accuracy_analysis(dataset, model_class, hyperparameters, path):
 
         try:
             model.fit(X_train, y_train)
-        except (Exception, KeyboardInterrupt, BrokenPipeError, RuntimeError) as e:
+        except:
             pass
         else:
             accuracy = model.score(X_test, y_test)

@@ -22,7 +22,8 @@ class ParallelOSDTClassifier:
                 configuration = None, # More configurations around toggling optimizations and prioritization options
                 visualize = False, # Toggle whether a rule-list visualization is rendered
                 verbose = False, # Toggle whether event messages are printed
-                log = False): # Toggle whether processes log their events
+                log = False,
+                profile = False): # Toggle whether processes log their events
 
         self.model = None
         self.regularization = regularization
@@ -37,13 +38,14 @@ class ParallelOSDTClassifier:
         self.visualize = visualize
         self.verbose = verbose
         self.log = log
+        self.profile = profile
 
     def fit(self, X, y):
         (n, m) = X.shape
         problem = ParallelOSDT(X, y, self.regularization,
             configuration=self.configuration,
             max_depth=self.max_depth, max_time=self.max_time,
-            verbose=self.verbose, log=self.log)
+            verbose=self.verbose, log=self.log, profile=self.profile)
         self.model = problem.solve(clients=self.clients, servers=self.servers, visualize=self.visualize)
         if self.visualize:
             self.width = len(self.model.rule_lists(m))
