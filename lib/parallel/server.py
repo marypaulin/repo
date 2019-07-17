@@ -22,9 +22,13 @@ class Server:
 
     def __run__(self, server_id, services):
         signal(SIGINT, __interrupt__)
+        for service in services:
+            service.identify(server_id, 'server')
         while not Server.interrupt:
             for service in services:
                 service.serve()
+        for service in services:
+            service.close()
     
 
     

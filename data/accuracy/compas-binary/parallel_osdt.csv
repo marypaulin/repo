@@ -1,6 +1,11 @@
 hyperparameter,width,accuracy
-{'regularization': 0.005, 'visualize': True, 'max_time': 30.0},5,0.6432291666666666
-{'regularization': 0.01, 'visualize': True, 'max_time': 30.0},3,0.6127770534550195
-{'regularization': 0.05, 'visualize': True, 'max_time': 30.0},2,0.6453715775749674
-{'regularization': 0.1, 'visualize': True, 'max_time': 30.0},1,0.5176010430247718
-{'regularization': 0.5, 'visualize': True, 'max_time': 30.0},1,0.5658409387222947
+{'regularization': 0.001, 'visualize': True, 'max_time': 60.0},7,0.6758321273516642
+{'regularization': 0.002, 'visualize': True, 'max_time': 60.0},5,0.6845151953690304
+{'regularization': 0.004, 'visualize': True, 'max_time': 60.0},5,0.6541244573082489
+{'regularization': 0.008, 'visualize': True, 'max_time': 60.0},3,0.6454413892908828
+{'regularization': 0.016, 'visualize': True, 'max_time': 60.0},3,0.6078147612156295
+{'regularization': 0.032, 'visualize': True, 'max_time': 60.0},2,0.6324167872648335
+{'regularization': 0.064, 'visualize': True, 'max_time': 60.0},2,0.6410998552821997
+{'regularization': 0.128, 'visualize': True, 'max_time': 60.0},1,0.5304347826086957
+{'regularization': 0.256, 'visualize': True, 'max_time': 60.0},1,0.5420289855072464
+{'regularization': 0.512, 'visualize': True, 'max_time': 60.0},1,0.518840579710145

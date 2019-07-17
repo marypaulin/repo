@@ -89,7 +89,6 @@ def plot_accuracy_analysis(dataset_name, title):
         else:
             accuracies[width] = max(accuracies[width], accuracy)
     x = list(sorted(accuracies.keys()))
-    print(x)
     y = [ accuracies[width] for width in x ]
     plt.plot(x, y, label='parallel_osdt', markersize=5, marker='o', linewidth=0)
 
@@ -142,7 +141,7 @@ def plot_scalability_analysis(dataset, title, z_limit=None):
     if z_limit != None:
         ax.set_zlim(0, z_limit)
 
-    ax.view_init(30, -135)
+    ax.view_init(30, -120)
     
 # Parses the DecisionTreeClassifier from Sci-Kit Learn according to their documentation
 # Returns the number of leaves in this model

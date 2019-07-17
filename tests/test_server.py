@@ -17,6 +17,7 @@ class TestServer(unittest.TestCase):
         self.assertFalse(server.is_alive())
         self.assertEqual(server.id, server_id)
 
+        queue.identify(0, 'client')
         input = [0, -3, -1, -9, -7, -4, -2, -8, -5, -6]
         for e in input:
             queue.push(e)

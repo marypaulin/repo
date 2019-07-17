@@ -9,15 +9,21 @@ class TestPriortyQueue(unittest.TestCase):
 
     def test_priority(self):
         def serve(services):
+            for service in services:
+                service.identify(0, 'server')
             while True:
                 try:
                     for service in services:
                         service.serve()
                 except KeyboardInterrupt:
                     break
+            for service in services:
+                service.close()
         
-        queue = PriorityQueue()
+        queue = PriorityQueue(degree=1)
         server = Process(target=serve, args=([queue],))
+
+        queue.identify(0, 'client')
         input = [0, -3, -1, -9, -7, -4, -2, -8, -5, -6]
         for e in input:
             queue.push(e)

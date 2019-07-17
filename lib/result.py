@@ -7,11 +7,12 @@ class Result:
     # Constructor Arguments:
     #  - optimizer = None or any data structure containing enough information to compute f(optimizer) = min(f) or max(f)
     #  - optimum = A interval which contains a lowerbound and upperbound on the optimum min(f) or max(f)
-    def __init__(self, optimizer=None, optimum=None):
+    def __init__(self, optimizer=None, optimum=None, running=False):
         self.optimum = optimum if optimum != None else Interval()
         if type(self.optimum) != Interval:
             raise Exception("ResultError: optimum class {} must be {}".format(type(self.optimum), Interval))
         self.optimizer = optimizer
+        self.running = running
 
     # This defines the precedence of results over the same problem
     # If the current result is None then any result can overwrite it
@@ -21,7 +22,7 @@ class Result:
     def overwrites(self, result):
         if result == None:
             return True
-        if self.optimum.uncertainty == 0 or self.optimum.subset(result.optimum):
+        if self.optimum.uncertainty == 0 or self.optimum.subset(result.optimum) or self.running == True and result.running == False:
             return True
         return False
 

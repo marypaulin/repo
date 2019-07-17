@@ -142,33 +142,44 @@ class ParallelOSDT:
         # Set all global variables, these are statically available to all workers
 
         # These define the how the algorithm solves the problem
-        self.configuration = configuration if configuration != None else self.__default_configuration__()
+        default_configuration = self.__default_configuration__()
+        default_configuration.update(configuration if configuration != None else {})
+        self.configuration = default_configuration
 
         # These define the problem
         self.dataset = DataSet(X, y, compression=self.configuration['equivalent_point_compression'])
         self.lamb = regularization
 
-        # These are additional constraints that the user may pose
+        # These are additional specifications that the user may pose
         self.max_depth = min(max_depth, self.dataset.width)
         self.max_time = max_time
         self.verbose = verbose
         self.profile = profile
         self.log = log
         self.logger = None
+        self.profiler = None
 
         # Global Upperbound
         _total, zeros, ones, minority, _majority = self.dataset.label_distribution()
         self.global_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb
         self.global_lowerbound = minority / self.dataset.sample_size + self.lamb
 
+
     @profile
     def snapshot(self):
+        if self.worker_id == 0:
+            if self.profiler == None:
+                self.profiler = Logger(path='data/convergence/convergence.csv', header=['time', 'lowerbound', 'upperbound'])
+            root = self.results.get(self.root, block=False)
+            if root != None and root.optimum != None:
+                self.profiler.log([self.elapsed_time(), root.optimum.lowerbound, root.optimum.upperbound])
         pass
 
     # Task method that gets run by all worker nodes (clients)
     def task(self, worker_id, services):
         signal(SIGINT, __interrupt__)
 
+        self.worker_id = worker_id
         start_time = time()
         (tasks, results, prefixes, suffixes) = services
         self.tasks = tasks
@@ -177,14 +188,16 @@ class ParallelOSDT:
         self.suffixes = suffixes
         self.logger = Logger(path='logs/worker_{}.log'.format(worker_id)) if self.log else None
 
+        if self.verbose or self.log:
+            self.print('Worker {} Starting'.format(self.worker_id))
         # try:
-        while not self.terminate(results) and self.elapsed_time() <= self.max_time and not ParallelOSDT.interrupt:
-
-            if self.profile: # Record a snapshot for memory profiling
-                self.snapshot()
+        while not self.terminate() and self.elapsed_time() <= self.max_time and not ParallelOSDT.interrupt:
 
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
+                # if self.verbose or self.log:
+                #     self.print("Worker {} Idle".format(self.worker_id))
+                # results.__refresh__()
                 continue
             (priority, capture, path) = task
 
@@ -202,7 +215,7 @@ class ParallelOSDT:
                 #  - Further propagating information through this problem when possible
                 #  - Pruning irrelevant subproblems when possible
                 #  - Pruning the current problem when possible
-                for j in self.dependencies(task):
+                for j in self.dependencies(task, result):
                     left_capture, right_capture = self.dataset.split(j, capture=capture)
 
                     left_path = path + (j, 'L')
@@ -216,6 +229,8 @@ class ParallelOSDT:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
 
+        if self.verbose or self.log:
+            self.print('Worker {} Finishing'.format(self.worker_id))
         # except KeyboardInterrupt: # Occurs when another worker finds the answer, resulting in a signal for early termination
         #     pass
 
@@ -226,7 +241,7 @@ class ParallelOSDT:
         elif priority_metric == 'random':
             priority = random()
         elif priority_metric == 'time':
-            priority = time()
+            priority = -time()
         elif priority_metric == 'uncertainty':
             result = self.get(capture, path)
             priority = result.optimum.uncertainty
@@ -268,7 +283,7 @@ class ParallelOSDT:
             result = self.get(capture, path)
         return result
 
-    def dependencies(self, task):
+    def dependencies(self, task, current_result):
         (priority, capture, path) = task
         # Attempts to solve the problem of which of j in 1:m features to split on or to just use a leaf
         minimum_bounding_interval, minimizing_split, relevant_splits, irrelevant_splits = self.minimize_choice_of_split(capture, path)
@@ -296,9 +311,9 @@ class ParallelOSDT:
             # The problem solution is still uncertain
             # We might be able to narrow the minimum_bounding_interval from the previous interval
             if self.configuration['interval_look_ahead']:
-                result = Result(optimizer=None, optimum=minimum_bounding_interval)
+                result = Result(optimizer=None, optimum=minimum_bounding_interval, running=True)
             else:
-                result = Result(optimizer=None, optimum=Interval(minimum_bounding_interval.lowerbound, float('Inf')))
+                result = Result(optimizer=None, optimum=Interval(minimum_bounding_interval.lowerbound, float('Inf')), running=True)
             
             self.update(capture, path, result)
 
@@ -307,7 +322,10 @@ class ParallelOSDT:
                 self.prune(path + (j,))
             # Be sure to re-enqueue this task since it's not finished
             self.enqueue((priority + self.configuration['deprioritization'], capture, path))
-            dependencies = relevant_splits
+            if self.configuration['cache_limit'] == float('Inf') and current_result.running:
+                dependencies = tuple()
+            else:
+                dependencies = relevant_splits
             if self.verbose or self.log:
                 self.print('Case: Downward, Problem: {}:{} => {}'.format(path, capture, result))
         elif minimum_bounding_interval.uncertainty == 0:
@@ -444,14 +462,12 @@ class ParallelOSDT:
         pass
 
     def dequeue(self):
-        try:
             task = self.tasks.pop(block=False) # Change to non-blocking since we don't have an alternatve idle task anywyas
+            if task == None:
+                return None
             (priority, capture, path) = task
             if self.is_pruned(path):
                 return None
-        except QueueEmpty:
-            return None
-        else:
             return task
                     
     def enqueue(self, task):
@@ -491,9 +507,11 @@ class ParallelOSDT:
             return self.solved(left_capture, path + (j, 'L')) and self.solved(right_capture, path + (j, 'R'))
 
     # Method run by worker nodes to decide when to terminate
-    def terminate(self, results):
+    def terminate(self):
+        if self.profile:  # Record a snapshot for memory profiling
+            self.snapshot()
         # Termination condition
-        # root = results.get(self.root, block=False)
+        # root = self.results.get(self.root, block=False)
         # terminate = root != None and root.optimizer != None and root.optimum.uncertainty == 0
         terminate = self.solved(self.root, tuple())
         return terminate
@@ -513,8 +531,8 @@ class ParallelOSDT:
             self.print("  Regularization Coefficient: {}".format(self.lamb))
 
             self.print("Execetion Resources:")
-            self.print("  Number of Server Processes: {}".format(clients))
-            self.print("  Number of Client Processes: {}".format(servers))
+            self.print("  Number of Client Processes: {}".format(clients))
+            self.print("  Number of Server Processes: {}".format(servers))
 
             self.print("Algorithm Configurations:")
             for key, value in self.configuration.items():
@@ -535,14 +553,14 @@ class ParallelOSDT:
         
         results = TruthTable(degree=clients, refresh_cooldown=cooldown, propagator=propagator)
         root_priority = 0
-        tasks = PriorityQueue([ ( root_priority, self.root, () ) ], sigma=clients*2)
+        tasks = PriorityQueue([ ( root_priority, self.root, () ) ], degree=clients)
         services = (tasks, results, prefixes, suffixes)
 
         # Initialize and run the multi-node client-server cluster
         cluster = Cluster(self.task, services, clients=clients, servers=servers)
         cluster.compute()
 
-        if self.terminate(results):
+        if self.terminate():
             model = self.output(results)
             if self.verbose or self.log:
                 self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
@@ -559,7 +577,7 @@ class ParallelOSDT:
 
     def __default_configuration__(self):
         return {
-            'priority_metric': 'uncertainty', # Decides how tasks are prioritized
+            'priority_metric': 'uniform', # Decides how tasks are prioritized
             'deprioritization': 0.01, # Decides how much to push back a task if it has pending dependencies
 
             # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
@@ -586,7 +604,9 @@ class ParallelOSDT:
             # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
             'interval_look_ahead': True,
             # Cooldown timer (seconds) on synchornization operations
-            'synchronization_cooldown': 0.1
+            'synchronization_cooldown': 0.1,
+            # Cache Limit
+            'cache_limit': float('Inf')
         }
 
     def elapsed_time(self):

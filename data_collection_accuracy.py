@@ -28,7 +28,7 @@ print("Dataset: {}".format(input_path))
 print("Timeout: {}".format(timeout))
 sleep(3)
 
-regularizations = [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 0.99]
+regularizations = [0.001, 0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512]
 
 model_name = 'cart'
 model = DecisionTreeClassifier

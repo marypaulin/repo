@@ -13,10 +13,13 @@ class Client:
     def __run__(self, client_id, services, task):
         try:
             for service in services:
-                service.identify(client_id)
+                service.identify(client_id, 'client')
             task(client_id, services)
         except KeyboardInterrupt:
             pass
+        finally:
+            for service in services:
+                service.close()
     
     def start(self):
         self.process.start()

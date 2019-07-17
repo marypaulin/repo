@@ -1,30 +1,46 @@
-from queue import Empty as QueueEmpty, Full as QueueFull
-from multiprocessing import Queue
-from collections import deque
-from time import sleep, time
+from time import time, sleep
 from random import random
 
-import lib.vector as vect
 from lib.result import Result
 from lib.interval import Interval
-from lib.similarity_index import SimilarityIndex
 from lib.prefix_tree import PrefixTree
+from lib.parallel.channel import Channel
+
 class TruthTable:
     def __init__(self, table=None, propagator=None, refresh_cooldown=0, degree=1):
         self.id = None
+        self.role = 'unidentified'
         self.degree = degree
+
         self.client_table = table if table != None else {}
         self.server_table = {}
 
-        self.inbound_queue = Queue()
-        self.outbound_queues = {}
-        self.resolved = 0
-        self.pending = 0
+        self.inbound_channels = dict( (i, Channel(multiproducer=False, multiconsumer=False)) for i in range(self.degree) )
+        self.outbound_channels = dict( (i, Channel(multiproducer=False, multiconsumer=False)) for i in range(self.degree) )
+
         self.last_refresh = 0
         self.refresh_cooldown = refresh_cooldown
         self.propagator = propagator
-        for i in range(self.degree):
-            self.outbound_queues[i] = (Queue(), deque([]))
+        self.online = True
+
+    def identify(self, id, role, block=True):
+        '''
+        Modifies the local instance's id so that broadcasts can be pulled from the correct queue
+        '''
+        self.id = id
+        self.role = role
+        if self.role == 'client':
+            for channel in self.inbound_channels.values():
+                channel.identify('producer')
+            for channel in self.outbound_channels.values():
+                channel.identify('consumer')
+        elif self.role == 'server':
+            for channel in self.inbound_channels.values():
+                channel.identify('consumer')
+            for channel in self.outbound_channels.values():
+                channel.identify('producer')
+        else:
+            raise Exception('TruthTableError: Invalid role {}'.format(self.role))
 
     # Service routine called by server
     def serve(self):
@@ -39,73 +55,68 @@ class TruthTable:
         Stage 3: outbound
             outbound entries ready for consumption
         '''
+        if self.role != 'server':
+            raise Exception('TruthTableError: Unauthorized access to server API from role {}'.format(self.role))
 
+        updates = {}
         # Transfer from inbound queue to broadcast buffers (if the entry is new)
-        while True:
-            try:
-                (key, value) = self.inbound_queue.get(False)
-            except (QueueEmpty):
-                break
-            else:
+        for channel in self.inbound_channels.values():
+            while True:
+                element = channel.pop(block=False)
+                if element == None:
+                    break
+                (key, value) = element
                 previous_value = self.server_table.get(key)
                 if type(previous_value) != Result or value.overwrites(previous_value):
                     # print("TruthTable Update table[{}] = from {} to {}".format(str(key), str(previous_value), str(value)))
-                    self.server_table[key] = value
-                    for i in range(self.degree):
-                        (queue, buffer) = self.outbound_queues[i]
-                        buffer.append((key, value))
+                    updates[key] = value
                 else:
                     # print("Rejected TruthTable Update table[{}] = from {} to {}".format(vect.__str__(key), previous_value, value))
                     pass
 
-        # Transfer from broadcast buffers to outbound_queues
-        for i in range(self.degree):
-            (queue, buffer) = self.outbound_queues[i]
-            while len(buffer) > 0:
-                element = buffer.popleft()
-                try:
-                    queue.put(element, False)
-                except (QueueFull):
-                    buffer.appendleft(element)
-                    break
+        self.server_table.update(updates)
+
+        for key, value in updates.items():
+            for channel in self.outbound_channels.values():
+                channel.push((key, value), block=False)
 
     def __refresh__(self):
         '''
         Receives broadcasted entries from pipeline into local cache
         '''
-        if self.id == None:
-            raise Exception("TruthTableException: Client API invoked without client identification")
-        (queue, _buffer) = self.outbound_queues[self.id]
+        if self.role != 'client':
+            raise Exception("TruthTableException: Unauthorized access to client API from role {}".format(self.role))
+        if not self.online:
+            return
         if time() > self.last_refresh + self.refresh_cooldown:
             self.last_refresh = time()
         else:
             return
+
+        channel = self.outbound_channels[self.id]
+        
         while True:
-            try:
-                (key, value) = queue.get(False)
-            except (QueueEmpty):
+
+            element = channel.pop(block=False)
+            if element == None:
                 break
-            else:
-                self.client_table[key] = value
-                # Perform information propagation
-                if self.propagator != None and type(value) == Result:
-                    result = value
-                    if result.optimizer == None and not self.propagator.tracking(key):
-                        self.propagator.track(key)
-                    if result.optimizer != None and self.propagator.tracking(key):
-                        self.propagator.untrack(key)
-                    
-                    updates = self.propagator.propagate(key, result, self.client_table)
-                    for update_key, update_value in updates.items():
-                        self.put(update_key, update_value)
+            (key, value) = element
+            self.client_table[key] = value
+            # Perform information propagation
+            if self.propagator != None and type(value) == Result:
+                result = value
+                if result.optimizer == None and not self.propagator.tracking(key):
+                    self.propagator.track(key)
+                if result.optimizer != None and self.propagator.tracking(key):
+                    self.propagator.untrack(key)
+                
+                updates = self.propagator.propagate(key, result, self.client_table)
+                for update_key, update_value in updates.items():
+                    self.put(update_key, update_value)
 
 
     # API called by workers
-    def identify(self, id):
-        '''
-        Modifies the local instance's id so that broadcasts can be pulled from the correct queue
-        '''
-        self.id = id
+
 
     # API called by workers
     def has(self, key):
@@ -135,30 +146,22 @@ class TruthTable:
         return self.client_table.get(key)
 
     # API called by workers
-    def put(self, key, value, block=True, prefilter=True):
+    def put(self, key, value, prefilter=True):
         '''
         Stores key-value into local cache and sends entry into pipeline
         Returns True if successfully sent into pipeline
         Returns False if unsuccessful in sending to pipeline
         key-value is always written to local cache
-
-        Blocking Semantics:
         '''
         previous_value = self.client_table.get(key)
         if prefilter and type(previous_value) == Result and not value.overwrites(previous_value):
             return False
 
         self.client_table[key] = value
-        while True:
-            try:
-                self.inbound_queue.put((key, value), False)
-            except (QueueFull):
-                if block:
-                    sleep(random() * 0.01)
-                else:
-                    return False
-            else:
-                return True
+        # print("Worker {} Starting TruthTable#put".format(self.id))
+        self.inbound_channels[self.id].push((key, value), block=False)
+        # print("Worker {} Finishing TruthTable#put".format(self.id))
+
     
     def shortest_prefix(self, key):
         if type(self.client_table) != PrefixTree:
@@ -172,10 +175,27 @@ class TruthTable:
         self.__refresh__()
         return self.client_table.longest_prefix(key)
 
-    
     def __contains__(self, key):
         self.__refresh__()
         return key in self.client_table
 
     def __str__(self):
         return str(self.client_table)
+
+    def close(self, block=True):
+        # if self.role == 'server':
+        #     for channel in self.inbound_channels.values():
+        #         while channel.pop(block=False) != None:
+        #             pass
+        #     for channel in self.outbound_channels.values():
+        #         while channel.pop(block=False) != None:
+        #             pass
+        self.online = False
+        for channel in self.inbound_channels.values():
+            channel.close()
+        self.inbound_channels = {}
+        for channel in self.outbound_channels.values():
+            channel.close()
+        self.outbound_channels = {}
+
+        
