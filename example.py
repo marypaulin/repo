@@ -20,7 +20,7 @@ hyperparameters = {
     'max_depth': float('Inf'),  # User-specified limit on the model
     'max_time': 60,  # User-specified limit on the runtime
 
-    'clients': sys.argv[1],  # Parameter that varies based on how much computational resource is available
+    'clients': int(sys.argv[1]),  # Parameter that varies based on how much computational resource is available
     'servers': 1,  # Parameter that varies based on how much computational resource is available
 
     'visualize': True,  # Toggle whether a rule-list visualization is rendered

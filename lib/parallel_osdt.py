@@ -2,7 +2,7 @@ from queue import Empty as QueueEmpty, Full as QueueFull
 from time import time
 from random import random
 from signal import SIGINT, signal
-# from memory_profiler import profile
+from memory_profiler import profile
 
 from lib.parallel.cluster import Cluster
 from lib.parallel.priority_queue import PriorityQueue
@@ -165,7 +165,7 @@ class ParallelOSDT:
         self.global_lowerbound = minority / self.dataset.sample_size + self.lamb
 
 
-    # @profile
+    @profile
     def snapshot(self):
         if self.worker_id == 0:
             if self.profiler == None:
