@@ -146,7 +146,7 @@ class TruthTable:
         return self.client_table.get(key)
 
     # API called by workers
-    def put(self, key, value, prefilter=True):
+    def put(self, key, value, block=True, prefilter=True):
         '''
         Stores key-value into local cache and sends entry into pipeline
         Returns True if successfully sent into pipeline
@@ -159,7 +159,7 @@ class TruthTable:
 
         self.client_table[key] = value
         # print("Worker {} Starting TruthTable#put".format(self.id))
-        self.inbound_channels[self.id].push((key, value), block=False)
+        self.inbound_channels[self.id].push((key, value), block=block)
         # print("Worker {} Finishing TruthTable#put".format(self.id))
 
     

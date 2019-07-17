@@ -60,7 +60,7 @@ class PriorityQueue:
             self.outbound_channel.push(element, block=False)
 
     # API called by workers
-    def push(self, element):
+    def push(self, element, block=False):
         '''
         Pushes object into pipeline
         Returns True if successful
@@ -68,7 +68,7 @@ class PriorityQueue:
         '''
         if self.role != 'client':
             raise Exception("PriorityQueueException: Unauthorized access to client API from role {}".format(self.role))
-        self.inbound_channels[self.id].push(element, block=False)
+        self.inbound_channels[self.id].push(element, block=block)
 
 
     # API called by workers
