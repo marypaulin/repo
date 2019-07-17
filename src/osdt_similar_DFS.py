@@ -29,6 +29,7 @@ class CacheTree:
         self.leaves = leaves
         self.risk = sum([l.loss for l in leaves]) + lamb * len(leaves)
         self.similarto = []
+        self.omega = [] # omega values of the similar support bound
 
     def sorted_leaves(self):
         # Used by the cache
@@ -398,7 +399,6 @@ class Similarity:
     def __init__(self, minobj, stackposition):
         self.minobj = minobj # the minimum objective of all its child trees
         self.stackposition = stackposition # the size of the stack when the tree is explored
-        self.dict_omega = {} # the omega of the tree and its similar trees
         self.flag = 0  # flag=1 when all its child trees have been explored
 
 
@@ -568,10 +568,11 @@ def bbound_DFS(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES
         # similar support bound
         if simil_support:
             flag_simil = 0
-            for simil in tree.cache_tree.similarto:
+            for i in range(len(tree.cache_tree.similarto)):  # for simil in tree.cache_tree.similarto:
                 #t_simil = similar_dictionary[tree.cache_tree.sorted_leaves()]
-                t_simil = similar_dictionary[simil]
-                if t_simil.minobj - similar_dictionary[tree.cache_tree.sorted_leaves()].dict_omega[simil] >= R_c:
+                t_simil = tree.cache_tree.similarto[i]
+                #if t_simil.minobj - similar_dictionary[tree.cache_tree.sorted_leaves()].dict_omega[simil] >= R_c:
+                if t_simil.minobj - tree.cache_tree.omega[i] >= R_c:
                     flag_simil = 1
                     break
             if flag_simil:
@@ -784,22 +785,29 @@ def bbound_DFS(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES
 
         if n_removed_leaves == 1 and len(rules_for_leaf[0]) > 1:
             n_children = len(temp_children)
+
+            t_similarity = []
+
             for i in range(n_children):
                 t1 = temp_children[i]
 
                 # use stack size to identify we have explored all the child trees
-                t1_similarity = Similarity(t1.risk, temp_stackpositions[i])
+                t_similarity.append(Similarity(t1.risk, temp_stackpositions[i]))
+
+            for i in range(n_children):
+                t1 = temp_children[i]
+
+                # use stack size to identify we have explored all the child trees
+                t1_similarity = t_similarity[i]
 
                 for j in range(i+1, n_children):
                     t2 = temp_children[j]
 
-                    t1.similarto.append(t2.sorted_leaves())
+                    t1.similarto.append(t_similarity[j])
 
                     omega = rule_vxor(t1.leaves[-1].points_cap, t2.leaves[-1].points_cap)/ndata
 
-                    t1_similarity.dict_omega[t2.sorted_leaves()] = omega
-
-                    #print("t2.sorted_leaves():",t2.sorted_leaves())
+                    t1.omega.append(omega)
 
                 similar_dictionary[t1.sorted_leaves()] = t1_similarity
 
