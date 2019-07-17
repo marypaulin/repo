@@ -27,8 +27,8 @@ class Cluster:
         Client.__run__(self, 0, self.services, self.task)
 
         for client in (clients):
-            client.stop()
+            client.terminate()
         for server in servers:
-            server.stop()
+            server.terminate()
 
         return self.services

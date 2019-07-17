@@ -35,6 +35,9 @@ class Client:
         if block:
             self.join()
 
+    def terminate(self):
+        self.process.terminate()
+
     def join(self):
         self.process.join()
 
