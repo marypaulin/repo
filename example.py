@@ -1,4 +1,5 @@
 # third-party imports
+import cProfile
 from time import time
 import sys
 
@@ -57,7 +58,7 @@ hyperparameters = {
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
         'interval_look_ahead': True,
         # Cooldown timer (seconds) on synchornization operations
-        'synchronization_cooldown': 0.0,
+        'synchronization_cooldown': 0.01,
         # Cache Limit
         'cache_limit': float('Inf')
     }
@@ -65,7 +66,7 @@ hyperparameters = {
 
 start = time()
 model = ParallelOSDTClassifier(**hyperparameters)
-model.fit(X, y)
+cProfile.run('model.fit(X, y)', sort='tottime')
 print('Runtime: {} Seconds'.format(time() - start))
 print('Prediction: \n{}'.format(model.predict(X)))
 print('Training Accuracy: {}'.format(model.score(X, y)))
