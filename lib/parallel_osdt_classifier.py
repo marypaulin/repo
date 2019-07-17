@@ -16,8 +16,7 @@ class ParallelOSDTClassifier:
                 max_depth = float('Inf'), # User-specified limit on the model
                 max_time = float('Inf'), # User-specified limit on the runtime 
 
-                clients = 1, # Parameter that varies based on how much computational resource is available
-                servers = 1, # Parameter that varies based on how much computational resource is available
+                workers = 1, # Parameter that varies based on how much computational resource is available
 
                 configuration = None, # More configurations around toggling optimizations and prioritization options
                 visualize = False, # Toggle whether a rule-list visualization is rendered
@@ -31,8 +30,7 @@ class ParallelOSDTClassifier:
         self.max_depth = max_depth
         self.max_time = max_time
 
-        self.clients = clients
-        self.servers = servers
+        self.workers = workers
 
         self.configuration = configuration
         self.visualize = visualize
@@ -46,7 +44,7 @@ class ParallelOSDTClassifier:
             configuration=self.configuration,
             max_depth=self.max_depth, max_time=self.max_time,
             verbose=self.verbose, log=self.log, profile=self.profile)
-        self.model = problem.solve(clients=self.clients, servers=self.servers, visualize=self.visualize)
+        self.model = problem.solve(workers=self.workers, visualize=self.visualize)
         if self.visualize:
             self.width = len(self.model.rule_lists(m))
         return

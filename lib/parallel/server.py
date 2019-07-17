@@ -9,37 +9,36 @@ from signal import SIGINT, signal
 #  - Optional synchronization on setup and teardown
 #  - Standardized method calling across all data-structures for client-server pattern
 
-def __interrupt__(signal, frame):
-    Server.interrupt = True
+
 
 class Server:
     interrupt = False
     def __init__(self, server_id, services):
         self.id = server_id
-        self.pid = None
         self.process = Process(target=self.__run__, args=(server_id, services))
         self.process.daemon = True
+        self.interrupt = False
 
+    def __interrupt__(self, signal, frame):
+        self.interrupt = True
+    
     def __run__(self, server_id, services):
-        signal(SIGINT, __interrupt__)
-        for service in services:
-            service.identify(server_id, 'server')
-        while not Server.interrupt:
+        signal(SIGINT, self.__interrupt__)
+        try:
+            while not self.interrupt:
+                for service in services:
+                    service.serve()
+        finally:
             for service in services:
-                service.serve()
-        for service in services:
-            service.close()
-    
+                service.close()
 
-    
     def start(self, block=True):
         self.process.start()
-        self.pid = self.process.pid
         while not self.is_alive():
             sleep(0.1)
 
     def stop(self, block=True):
-        kill(self.pid, SIGINT)
+        kill(self.process.pid, SIGINT)
         if block:
             self.join()
     

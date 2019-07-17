@@ -4,80 +4,56 @@ from queue import Empty
 from threading import Thread
 # from os import close
 
-# Wrapper class around the multiprocessing Pipe class made to resemble the multiprocessing Queue class
-# This implementation was created because we 
-class Channel:
-    def __init__(self, multiproducer=True, multiconsumer=True):
-        self.role = 'unidentified'
-        self.buffer = Queue()
-        self.inbound_lock = Lock() if multiproducer else None
-        self.outbound_lock = Lock() if multiconsumer else None
-        (self.outbound_connection, self.inbound_connection) = Pipe(True)
-        self.flushing = False
-        self.thread = None
+# Wrapper class pair around the multiprocessing Pipe class made to resemble the multiprocessing Queue class
+# This implementation exposes separate producer and consumer ends to prevent replication of excess file descriptors
 
-    def identify(self, role):
-        self.role = role
-        # if self.role == 'producer':
-        #     self.outbound_lock = None
-        #     self.outbound_connection = None
-        # elif self.role == 'consumer':
-        #     self.inbound_lock = None
-        #     self.inbound_connection = None
-        # elif self.role == 'both':
-        #     pass
-        # else:
-        #     raise Exception('ChannelError: Invalid role {}'.format(self.role))
+def Channel(producers=1, consumers=1, duplex=False):
+    if duplex:
+        (connection_a, connection_b) = Pipe(True)
 
-    def pop(self, block=True):
-        if not self.role in ('consumer', 'both'):
-            raise Exception('ChannelError: Unauthorized Pop Operation from Role {}'.format(self.role))
-        if self.outbound_connection == None:
-            raise Exception('ChannelError: Outbound Connection Closed')
-        poll_limit = None if block else 0
-        element = None
-        if self.outbound_lock != None:
-            with self.outbound_lock:
-                if self.outbound_connection.poll(poll_limit):
-                    try:
-                        element = self.outbound_connection.recv()
-                    except (Exception, EOFError) as e:
-                        pass
-        else:
-            if self.outbound_connection.poll(poll_limit):
-                try:
-                    element = self.outbound_connection.recv()
-                except (Exception, EOFError) as e:
-                    pass
-        return element
+        consumer_a = __ChannelConsumer__(connection_a, lock=Lock() if producers > 1 else None)
+        producer_a = __ChannelProducer__(connection_a, lock=Lock() if consumers > 1 else None)
 
-    def __flush__(self):
-        self.flushing = True
-        while self.outbound_connection != None:
-            try:
-                element = self.buffer.get(block=False)
-                self.__push__(element)
-            except Empty:
-                break
-        self.flushing = False
+        consumer_b = __ChannelConsumer__(connection_b, lock=Lock() if producers > 1 else None)
+        producer_b = __ChannelProducer__(connection_b, lock=Lock() if consumers > 1 else None)
 
-    def __push__(self, element):
-        if self.inbound_lock != None:
-            with self.inbound_lock:
-                try:
-                    self.inbound_connection.send(element)
-                except BrokenPipeError:
-                    self.close_inbound()
-        else:
-            try:
-                self.inbound_connection.send(element)
-            except BrokenPipeError:
-                    self.close_inbound()
+        endpoint_a = __ChannelProducerConsumer__(consumer_a, producer_a)
+        endpoint_b = __ChannelProducerConsumer__(consumer_b, producer_b)
+        return (endpoint_a, endpoint_b)
+    else:
+        (read_connection, write_connection) = Pipe(False)
+        consumer = __ChannelConsumer__(write_connection, lock=Lock() if producers > 1 else None)
+        producer = __ChannelProducer__(read_connection, lock=Lock() if consumers > 1 else None)
+        return (consumer, producer)
+
+def EndPoint(consumer, producer):
+    return __ChannelProducerConsumer__(consumer, producer)
+
+class __ChannelProducerConsumer__:
+    def __init__(self, consumer, producer):
+        self.consumer = consumer
+        self.producer = producer
 
     def push(self, element, block=True):
-        if not self.role in ('producer', 'both'):
-            raise Exception('ChannelError: Unauthorized Push Operation from Role {}'.format(self.role))
-        if self.inbound_connection == None:
+        self.consumer.push(element, block=block)
+    
+    def pop(self, block=True):
+        return self.producer.pop(block=block)
+
+    def close(self, block=True):
+        self.producer.close(block=block)
+        self.consumer.close(block=block)
+
+class __ChannelConsumer__:
+    def __init__(self, connection, lock=None):
+        self.lock = lock
+        self.connection = connection
+        self.buffer = Queue()
+        self.flushing = False
+        self.thread = None
+    
+    def push(self, element, block=True):
+        if self.connection == None:
             raise Exception('ChannelError: Inbound Connection Closed')
         self.buffer.put(element)
         if not self.flushing:
@@ -86,38 +62,76 @@ class Channel:
             self.thread.start()
         if block and self.thread != None:
             self.thread.join()
-
-    def __str__(self):
-        return 'Channel({} => {})'.format(self.inbound_connection != None, self.outbound_connection != None)
-
-    def __close_connection__(self, connection, lock=None):
-        if lock != None:
-            with lock:
-                # close(connection.fileno())
-                connection.close()
-        else:
-            # close(connection.fileno())
-            connection.close()
-
-    def close_inbound(self):
-        if self.inbound_connection != None:
-            if self.thread != None:
+    
+    def close(self, block=True):
+        if self.connection != None:
+            self.connection.close()
+            if block and self.thread != None:
                 self.thread.join()
-            self.__close_connection__(self.inbound_connection, lock=self.inbound_lock)
-            self.inbound_connection = None
+            self.connection = None
 
-    def close_outbound(self):
-        if self.outbound_connection != None:
-            while self.pop(block=False) != None:
-                pass
-            self.__close_connection__(self.outbound_connection, lock=self.outbound_lock)
-            self.outbound_connection = None
-
-    def close(self):
-        if self.role == 'producer':
-            self.close_inbound()
-        elif self.role == 'consumer':
-            self.close_outbound()
+    def __flush__(self):
+        self.flushing = True
+        while self.connection != None:
+            try:
+                element = self.buffer.get(block=False)
+                self.__push__(element)
+            except Empty:
+                break
+            except OSError as e:
+                self.buffer.put(element)
+                break
+        self.flushing = False
+    
+    def __push__(self, element):
+        if self.lock != None:
+            with self.lock:
+                self.connection.send(element)
         else:
-            self.close_inbound()
-            self.close_outbound()
+            self.connection.send(element)
+
+
+class __ChannelProducer__:
+    def __init__(self, connection, lock):
+        self.lock = lock
+        self.connection = connection
+    
+
+    def pop(self, block=True):
+        if self.connection == None:
+            raise Exception('ChannelError: Outbound Connection Closed')
+        
+        # Note: 'None' indicates indefinite waiting, '0' indicates no waiting
+        timeout = None if block else 0
+
+        element = None
+        if self.lock != None:
+            with self.lock:
+                if self.connection.poll(timeout):
+                    try:
+                        element = self.connection.recv()
+                    except EOFError:
+                        pass
+                    except Exception as e:
+                        print(e)
+                
+        else:
+            if self.connection.poll(timeout):
+                try:
+                    element = self.connection.recv()
+                except EOFError:
+                    pass
+                except Exception as e:
+                    print(e)                    
+        return element
+
+    def close(self, block=True):
+        if self.connection != None:
+            while block and self.pop(block=False) != None:
+                pass
+            if self.lock != None:
+                with self.lock:
+                    self.connection.close()
+            else:
+                self.connection.close()
+            self.connection = None

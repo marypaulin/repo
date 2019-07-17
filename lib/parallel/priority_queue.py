@@ -1,32 +1,34 @@
-from lib.parallel.channel import Channel
+from lib.parallel.channel import Channel, EndPoint
 from heapq import heappush, heappop
 
-class PriorityQueue:
-    def __init__(self, queue=None, degree=1):
-        self.id = None
-        self.role = 'unidentified'
-        self.degree = degree
+def PriorityQueue(queue=None, degree=1):
+    if queue == None:
+        queue = []
+    # Degree > 1 will introduce a lock on the client producer
+    server_consumer, client_producer = Channel(consumers=degree, producers=1)
 
-        self.priority_queue = queue if queue != None else []
+    clients = []
+    server_producers = []
+    for i in range(degree):
+        client_consumer, server_producer = Channel()
 
-        self.inbound_channels = dict( (i, Channel(multiproducer=False, multiconsumer=False)) for i in range(self.degree) )
-        self.outbound_channel = Channel(multiproducer=False, multiconsumer=True)
+        client_endpoint = EndPoint(client_consumer, client_producer)
+        client = __PriorityQueueClient__(queue, client_endpoint)
+        clients.append(client)
 
-    def identify(self, id, role):
-        self.id = id
-        self.role = role
-        if self.role == 'client':
-            for channel in self.inbound_channels.values():
-                channel.identify('producer')
-            self.outbound_channel.identify('consumer')
-        elif self.role == 'server':
-            for channel in self.inbound_channels.values():
-                channel.identify('consumer')
-            self.outbound_channel.identify('producer')
-        else:
-            raise Exception('PriorityQueueError: Invalid role {}'.format(self.role))
+        server_producers.append(server_producer)
 
-    # Service routine called by server
+    server = __PriorityQueueServer__(queue, tuple(server_producers), server_consumer)
+
+    return (server, tuple(clients))
+
+class __PriorityQueueServer__:
+    def __init__(self, queue, producers, consumer):
+        self.priority_queue = queue
+        self.producers = producers# Multiple endpoints to read from
+        self.consumer = consumer # Single endpoint to write to
+        self.online = True
+
     def serve(self):
         '''
         Call periodiclly to transfer elements along 3-stage pipeline
@@ -37,54 +39,62 @@ class PriorityQueue:
         Stage 3: outbound
           sorted messages ready for distribution
         '''
-        if self.role != 'server':
-            raise Exception("PriorityQueueException: Unauthorized access to server API from role {}".format(self.role))
-        seen = set()
-        # Transfer from inbound queue to priority queue
-        for channel in self.inbound_channels.values():
-            while True:
-                element = channel.pop(block=False)
-                if element == None:
-                    break
-                if not type(element) in {tuple, list}:
-                    key = element
-                else:
-                    key = element[1:]
-                if not key in seen:
-                    seen.add(key)
-                    heappush(self.priority_queue, element)
+        if self.online:
+            seen = set()
+            # Transfer from inbound queue to priority queue
+            for producer in self.producers:
+                while True:
+                    element = producer.pop(block=False)
+                    if element == None:
+                        break
+                    if not type(element) in {tuple, list}:
+                        key = element
+                    else:
+                        key = element[1:]
+                    if not key in seen:
+                        seen.add(key)
+                        heappush(self.priority_queue, element)
 
-        # Transfer from priorty queue to outbound queue
-        while self.priority_queue:
-            element = heappop(self.priority_queue)
-            self.outbound_channel.push(element, block=False)
+            # Transfer from priorty queue to outbound queue
+            while self.priority_queue:
+                element = heappop(self.priority_queue)
+                self.consumer.push(element, block=False)
 
-    # API called by workers
+    def close(self, block=True):
+        self.online = False
+        self.consumer.close()
+        for producer in self.producers:
+            producer.close()
+        self.consumer = None
+        self.producers = None
+
+class __PriorityQueueClient__:
+    def __init__(self, queue, endpoint):
+        self.endpoint = endpoint
+        self.online = True
+
     def push(self, element, block=False):
         '''
         Pushes object into pipeline
         Returns True if successful
         Returns False if unsuccessful
         '''
-        if self.role != 'client':
-            raise Exception("PriorityQueueException: Unauthorized access to client API from role {}".format(self.role))
-        self.inbound_channels[self.id].push(element, block=block)
+        if not self.online:
+            raise Exception("PriorityQueueError: Operation unavailable when offline")
+        self.endpoint.push(element, block=block)
 
-
-    # API called by workers
     def pop(self, block=True):
         '''
         Pops object from pipeline
         Returns (priority, element) if successful
         Returns (None, None) if unsuccessful
         '''
-        if self.role != 'client':
-            raise Exception("PriorityQueueException: Unauthorized access to client API from role {}".format(self.role))
-        return self.outbound_channel.pop(block=block)
+        if not self.online:
+            raise Exception("PriorityQueueError: Operation unavailable when offline")
+        element = self.endpoint.pop(block=block)
+        return element
 
     def close(self, block=True):
-        for channel in self.inbound_channels.values():
-            channel.close()
-        self.inbound_channels = {}
-        self.outbound_channel.close()
-        self.outbound_channel = None
+        self.online = False
+        self.endpoint.close()
+        self.endpoint = None

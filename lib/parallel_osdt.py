@@ -128,8 +128,6 @@ from lib.logger import Logger
 # Changelog
 # - stricter base case
 
-def __interrupt__(signal, frame):
-    ParallelOSDT.interrupt = True
 
 class ParallelOSDT:
     interrupt = False
@@ -158,12 +156,16 @@ class ParallelOSDT:
         self.log = log
         self.logger = None
         self.profiler = None
+        self.interrupt = False
 
         # Global Upperbound
         _total, zeros, ones, minority, _majority = self.dataset.label_distribution()
         self.global_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb
         self.global_lowerbound = minority / self.dataset.sample_size + self.lamb
 
+
+    def __interrupt__(self, signal, frame):
+        self.interrupt = True
 
     @profile
     def snapshot(self):
@@ -175,30 +177,27 @@ class ParallelOSDT:
                 self.profiler.log([self.elapsed_time(), root.optimum.lowerbound, root.optimum.upperbound])
         pass
 
-    # Task method that gets run by all worker nodes (clients)
+    # Task method that gets run by all worker nodes
     def task(self, worker_id, services):
-        signal(SIGINT, __interrupt__)
+        signal(SIGINT, self.__interrupt__)
 
         self.worker_id = worker_id
         start_time = time()
-        (tasks, results, prefixes, suffixes) = services
+        (tasks, results, prefixes) = services
         self.tasks = tasks
         self.results = results
         self.prefixes = prefixes
-        self.suffixes = suffixes
         self.logger = Logger(path='logs/worker_{}.log'.format(worker_id)) if self.log else None
 
         if self.verbose or self.log:
             self.print('Worker {} Starting'.format(self.worker_id))
-        # try:
-        while not self.terminate() and self.elapsed_time() <= self.max_time and not ParallelOSDT.interrupt:
+        
+        while not self.terminate() and self.elapsed_time() <= self.max_time and not self.interrupt:
 
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
                 if self.verbose or self.log:
                     self.print("Worker {} Idle {}".format(self.worker_id, self.get(self.root, tuple())))
-                results.__refresh__()
-                sleep(1)
                 continue
             (priority, capture, path) = task
 
@@ -230,8 +229,7 @@ class ParallelOSDT:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
 
-        if self.verbose or self.log:
-            self.print('Worker {} Finishing'.format(self.worker_id))
+        print('Worker {} Finishing (Complete: {}, Timeout: {}, Interrupted: {})'.format(self.worker_id, self.terminate(), self.elapsed_time() > self.max_time, ParallelOSDT.interrupt))
         # except KeyboardInterrupt: # Occurs when another worker finds the answer, resulting in a signal for early termination
         #     pass
 
@@ -463,11 +461,12 @@ class ParallelOSDT:
         pass
 
     def dequeue(self):
-            task = self.tasks.pop(block=False) # Change to non-blocking since we don't have an alternatve idle task anywyas
+            task = self.tasks.pop(block=False)
             if task == None:
                 return None
             (priority, capture, path) = task
             if self.is_pruned(path):
+                self.print('Case: Pruned, Problem: {}:{}'.format(path, capture))
                 return None
             return task
                     
@@ -521,7 +520,7 @@ class ParallelOSDT:
     def output(self, results):
         return Tree(self.root, results, self.dataset, capture_equivalence=self.configuration['capture_equivalence'])
 
-    def solve(self, clients=1, servers=1, visualize=False):
+    def solve(self, workers=1, visualize=False):
         if self.verbose or self.log:
             self.print("Starting Parallel OSDT")
 
@@ -532,8 +531,8 @@ class ParallelOSDT:
             self.print("  Regularization Coefficient: {}".format(self.lamb))
 
             self.print("Execetion Resources:")
-            self.print("  Number of Client Processes: {}".format(clients))
-            self.print("  Number of Server Processes: {}".format(servers))
+            self.print("  Number of Woker Processes: {}".format(workers))
+            self.print("  Number of Server Processes: {}".format(1))
 
             self.print("Algorithm Configurations:")
             for key, value in self.configuration.items():
@@ -543,8 +542,8 @@ class ParallelOSDT:
         self.root = Vector.ones(self.dataset.height)  # Root capture
         cooldown = self.configuration['synchronization_cooldown']
         # Set of "services" which are data structures that require management by a server process and get consumed by client processes
-        prefixes = TruthTable(table=PrefixTree(minimize=True), degree=clients, refresh_cooldown=cooldown)
-        suffixes = TruthTable(table=PrefixTree(minimize=True), degree=clients, refresh_cooldown=cooldown)
+        prefixes = TruthTable(table=PrefixTree(minimize=True), degree=workers, refresh_cooldown=cooldown)
+        # suffixes = TruthTable(table=PrefixTree(minimize=True), degree=workers, refresh_cooldown=cooldown)
 
         if self.configuration['similarity_threshold'] > 0:
             similarity_index = SimilarityIndex(distance=self.configuration['similarity_threshold'], dimensions=self.dataset.height, tables=self.dataset.height)
@@ -552,14 +551,16 @@ class ParallelOSDT:
         else:
             propagator = None
         
-        results = TruthTable(degree=clients, refresh_cooldown=cooldown, propagator=propagator)
+        results = TruthTable(degree=workers, refresh_cooldown=cooldown, propagator=propagator)
         root_priority = 0
-        tasks = PriorityQueue([ ( root_priority, self.root, () ) ], degree=clients)
-        services = (tasks, results, prefixes, suffixes)
+        tasks = PriorityQueue([ ( root_priority, self.root, () ) ], degree=workers)
+        services = (tasks, results, prefixes)
 
         # Initialize and run the multi-node client-server cluster
-        cluster = Cluster(self.task, services, clients=clients, servers=servers)
-        cluster.compute()
+        cluster = Cluster(self.task, services, size=workers)
+        (tasks, results, prefixes) = cluster.compute()
+
+        print("Cluster Complete")
 
         if self.terminate():
             model = self.output(results)

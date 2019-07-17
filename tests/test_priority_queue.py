@@ -9,8 +9,6 @@ class TestPriortyQueue(unittest.TestCase):
 
     def test_priority(self):
         def serve(services):
-            for service in services:
-                service.identify(0, 'server')
             while True:
                 try:
                     for service in services:
@@ -20,16 +18,16 @@ class TestPriortyQueue(unittest.TestCase):
             for service in services:
                 service.close()
         
-        queue = PriorityQueue(degree=1)
-        server = Process(target=serve, args=([queue],))
+        (queue_server, queue_clients) = PriorityQueue(degree=1)
+        server = Process(target=serve, args=([queue_server],))
 
-        queue.identify(0, 'client')
+        queue_client = queue_clients[0]
         input = [0, -3, -1, -9, -7, -4, -2, -8, -5, -6]
         for e in input:
-            queue.push(e)
+            queue_client.push(e)
 
         server.start()
-        output = [ queue.pop() for _i in range(10) ]
+        output = [ queue_client.pop(block=True) for _i in range(10) ]
         kill(server.pid, SIGINT)
         self.assertEqual(output, [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0])
 

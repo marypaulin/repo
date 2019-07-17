@@ -6,17 +6,12 @@ from time import sleep
 class Client:
     def __init__(self, client_id, services, task):
         self.id = client_id
-        self.pid = None
         self.process = Process(target=self.__run__, args=(client_id, services, task))
         self.process.daemon = True
 
     def __run__(self, client_id, services, task):
         try:
-            for service in services:
-                service.identify(client_id, 'client')
             task(client_id, services)
-        except KeyboardInterrupt:
-            pass
         finally:
             for service in services:
                 service.close()
@@ -26,12 +21,11 @@ class Client:
 
     def start(self, block=True):
         self.process.start()
-        self.pid = self.process.pid
         while not self.is_alive():
             sleep(0.1)
 
     def stop(self, block=True):
-        kill(self.pid, SIGINT)
+        kill(self.process.pid, SIGINT)
         if block:
             self.join()
 
