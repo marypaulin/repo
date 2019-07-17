@@ -66,7 +66,8 @@ hyperparameters = {
 
 start = time()
 model = ParallelOSDTClassifier(**hyperparameters)
-cProfile.run('model.fit(X, y)', sort='tottime')
+# cProfile.run('model.fit(X, y)', sort='tottime')
+model.fit(X, y)
 print('Runtime: {} Seconds'.format(time() - start))
 print('Prediction: \n{}'.format(model.predict(X)))
 print('Training Accuracy: {}'.format(model.score(X, y)))
