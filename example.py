@@ -9,7 +9,6 @@ from lib.data_processing import read_dataset
 # Using COMPAS as an example
 dataset = read_dataset('data/preprocessed/compas-binary.csv')
 (n, m) = dataset.shape
-# n = 20
 X = dataset.values[:n, :m-1]
 y = dataset.values[:n, -1]
 
@@ -24,7 +23,7 @@ hyperparameters = {
     'servers': 1,  # Parameter that varies based on how much computational resource is available
 
     'visualize': True,  # Toggle whether a rule-list visualization is rendered
-    'verbose': True,  # Toggle whether event messages are printed
+    'verbose': False,  # Toggle whether event messages are printed
     'log': False,  # Toggle whether client processes log to logs/work_<id>.log files
     'profile': False,  # Toggle Snapshots for Profiling Memory Usage
 
