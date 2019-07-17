@@ -30,7 +30,7 @@ class Server:
                     service.serve()
         finally:
             for service in services:
-                service.close()
+                service.close(block=False)
 
     def start(self, block=True):
         self.process.start()
