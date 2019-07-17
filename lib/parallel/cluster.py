@@ -1,6 +1,5 @@
 from multiprocessing import Process
 from time import sleep
-from gc import collect
 
 from lib.parallel.priority_queue import PriorityQueue
 from lib.parallel.truth_table import TruthTable
@@ -28,8 +27,8 @@ class Cluster:
         Client.__run__(self, 0, self.services, self.task)
 
         for client in (clients):
-            client.stop(block=False)
+            client.stop()
         for server in servers:
-            server.stop(block=False)
-        collect()
+            server.stop()
+
         return self.services
