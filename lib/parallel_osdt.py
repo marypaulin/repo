@@ -1,5 +1,5 @@
 from queue import Empty as QueueEmpty, Full as QueueFull
-from time import time
+from time import time, sleep
 from random import random
 from signal import SIGINT, signal
 from memory_profiler import profile
@@ -198,6 +198,7 @@ class ParallelOSDT:
                 if self.verbose or self.log:
                     self.print("Worker {} Idle {}".format(self.worker_id, self.get(self.root, tuple())))
                 # results.__refresh__()
+                sleep(1)
                 continue
             (priority, capture, path) = task
 
