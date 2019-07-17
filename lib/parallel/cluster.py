@@ -26,6 +26,8 @@ class Cluster:
         # Kind of hacky but kind of works
         Client.__run__(self, 0, self.services, self.task)
 
+        print("CLUSTER COMPLETE")
+
         for client in (clients):
             client.terminate()
         for server in servers:
