@@ -196,7 +196,7 @@ class ParallelOSDT:
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
                 if self.verbose or self.log:
-                    self.print("Worker {} Idle {}".format(self.worker_id, self.terminate()))
+                    self.print("Worker {} Idle {}".format(self.worker_id, self.get(self.root, tuple())))
                 # results.__refresh__()
                 continue
             (priority, capture, path) = task
