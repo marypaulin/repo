@@ -1,6 +1,5 @@
 from multiprocessing import Lock, Pipe
-from queue import Queue
-from queue import Empty
+from collections import deque
 from threading import Thread
 # from os import close
 
@@ -48,14 +47,14 @@ class __ChannelConsumer__:
     def __init__(self, connection, lock=None):
         self.lock = lock
         self.connection = connection
-        self.buffer = Queue()
+        self.buffer = deque([])
         self.flushing = False
         self.thread = None
     
     def push(self, element, block=True):
         if self.connection == None:
             raise Exception('ChannelError: Inbound Connection Closed')
-        self.buffer.put(element)
+        self.buffer.appendleft(element)
         if not self.flushing:
             self.thread = Thread(target=self.__flush__)
             self.thread.daemon = True
@@ -74,12 +73,12 @@ class __ChannelConsumer__:
         self.flushing = True
         while self.connection != None:
             try:
-                element = self.buffer.get(block=False)
+                element = self.buffer.pop()
                 self.__push__(element)
-            except Empty:
+            except IndexError:
                 break
             except OSError as e:
-                self.buffer.put(element)
+                self.buffer.appendleft(element)
                 break
         self.flushing = False
     

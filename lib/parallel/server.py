@@ -26,6 +26,7 @@ class Server:
         signal(SIGINT, self.__interrupt__)
         try:
             while not self.interrupt:
+                # print('Server {} is alive {}'.format(server_id))
                 for service in services:
                     service.serve()
         finally:
