@@ -229,7 +229,7 @@ class ParallelOSDT:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
 
-        print('Worker {} Finishing (Complete: {}, Timeout: {}, Interrupted: {})'.format(self.worker_id, self.terminate(), self.elapsed_time() > self.max_time, ParallelOSDT.interrupt))
+        self.print('Worker {} Finishing (Complete: {}, Timeout: {}, Interrupted: {})'.format(self.worker_id, self.terminate(), self.elapsed_time() > self.max_time, ParallelOSDT.interrupt))
         # except KeyboardInterrupt: # Occurs when another worker finds the answer, resulting in a signal for early termination
         #     pass
 
@@ -559,8 +559,6 @@ class ParallelOSDT:
         # Initialize and run the multi-node client-server cluster
         cluster = Cluster(self.task, services, size=workers)
         (tasks, results, prefixes) = cluster.compute()
-
-        print("Cluster Complete")
 
         if self.terminate():
             model = self.output(results)

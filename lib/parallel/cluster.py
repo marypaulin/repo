@@ -37,15 +37,8 @@ class Cluster:
         # Kind of hacky but kind of works
         Client.__run__(self, 0, self.client_bundle, self.task)
 
-        print("Compute Complete")
-
         for client in clients:
             client.join()
-
-        print("Clients Shutdown")
-
         server.stop()
-
-        print("Server Shutdown")
 
         return self.client_bundle
