@@ -197,7 +197,7 @@ class ParallelOSDT:
             if task == None:
                 if self.verbose or self.log:
                     self.print("Worker {} Idle {}".format(self.worker_id, self.get(self.root, tuple())))
-                # results.__refresh__()
+                results.__refresh__()
                 sleep(1)
                 continue
             (priority, capture, path) = task
