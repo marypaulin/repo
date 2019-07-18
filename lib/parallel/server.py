@@ -27,9 +27,11 @@ class Server:
         try:
             while not self.interrupt:
                 modified = False
-                print("Alive")
                 for service in services:
                     modified = modified or service.serve()
+                if modified:
+                    print("Alive")
+
         finally:
             for service in services:
                 service.close(block=False)
