@@ -2,6 +2,7 @@ from multiprocessing import Process
 from os import kill
 from time import sleep
 from signal import SIGINT, signal
+from subprocess import check_call, DEVNULL, STDOUT
 
 # Wrapper class around multiprocessing.Process
 # This mainly provides convenience methods for the following
@@ -22,6 +23,10 @@ class Server:
         self.interrupt = True
     
     def __run__(self, server_id, services):
+        # Attempt to pin process to CPU core using taskset if available
+        taskset_enabled = (system("command -v taskset") != 256)
+        if taskset_enabled:
+            check_call(["taskset", "-cp", str(client_id), str(getpid())], stdout=DEVNULL, stderr=STDOUT)
         signal(SIGINT, self.__interrupt__)
         try:
             while not self.interrupt:
