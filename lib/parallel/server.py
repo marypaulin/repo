@@ -1,5 +1,5 @@
 from multiprocessing import Process
-from os import kill
+from os import kill, system, getpid
 from time import sleep
 from signal import SIGINT, signal
 from subprocess import check_call, DEVNULL, STDOUT
@@ -9,8 +9,6 @@ from subprocess import check_call, DEVNULL, STDOUT
 #  - Graceful shutdown by sending interprocess signals
 #  - Optional synchronization on setup and teardown
 #  - Standardized method calling across all data-structures for client-server pattern
-
-
 
 class Server:
     def __init__(self, server_id, services):
