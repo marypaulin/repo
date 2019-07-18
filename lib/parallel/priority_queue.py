@@ -21,10 +21,6 @@ def PriorityQueue(queue=None, degree=1, buffer_limit=None):
 
     server = __PriorityQueueServer__(queue, tuple(server_producers), server_consumer)
 
-    return (server, tuple(clients))
-
-    Degree > 1 will introduce a lock on the client producer
-
     ##################
 
     # server_consumer, client_producer = Channel(read_lock=True)
