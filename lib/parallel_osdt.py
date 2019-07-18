@@ -473,7 +473,7 @@ class ParallelOSDT:
     def enqueue(self, task):
         (priority, capture, path) = task
         if not self.is_pruned(path):
-            self.tasks.push(task, block=False)
+            self.tasks.push(task, block=True)
 
     def get(self, capture, path):
         if self.configuration['capture_equivalence']:
@@ -487,7 +487,7 @@ class ParallelOSDT:
             key = capture
         else:
             key = (capture, path)
-        self.results.put(key, result, block=False)
+        self.results.put(key, result, block=True)
 
     def update(self, capture, path, result):
         if result.overwrites(self.get(capture, path)):
