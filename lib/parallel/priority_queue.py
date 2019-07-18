@@ -1,11 +1,11 @@
 from lib.parallel.channel import Channel, EndPoint
 from heapq import heappush, heappop
 
-def PriorityQueue(queue=None, degree=1):
+def PriorityQueue(queue=None, degree=1, buffer_limit=None):
     if queue == None:
         queue = []
     # Degree > 1 will introduce a lock on the client producer
-    server_consumer, client_producer = Channel(consumers=degree, producers=1)
+    server_consumer, client_producer = Channel(consumers=degree, producers=1, buffer_limit=buffer_limit)
 
     clients = []
     server_producers = []
@@ -56,7 +56,6 @@ class __PriorityQueueServer__:
                         heappush(self.priority_queue, element)
 
             # Transfer from priorty queue to outbound queue
-            print(len(self.consumer.buffer))
             while self.priority_queue:
                 element = heappop(self.priority_queue)
                 self.consumer.push(element, block=False)

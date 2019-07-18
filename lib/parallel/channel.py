@@ -6,14 +6,14 @@ from threading import Thread
 # Wrapper class pair around the multiprocessing Pipe class made to resemble the multiprocessing Queue class
 # This implementation exposes separate producer and consumer ends to prevent replication of excess file descriptors
 
-def Channel(producers=1, consumers=1, duplex=False):
+def Channel(producers=1, consumers=1, duplex=False, buffer_limit=None):
     if duplex:
         (connection_a, connection_b) = Pipe(True)
 
-        consumer_a = __ChannelConsumer__(connection_a, lock=Lock() if producers > 1 else None)
+        consumer_a = __ChannelConsumer__(connection_a, lock=Lock() if producers > 1 else None, buffer_limit=buffer_limit)
         producer_a = __ChannelProducer__(connection_a, lock=Lock() if consumers > 1 else None)
 
-        consumer_b = __ChannelConsumer__(connection_b, lock=Lock() if producers > 1 else None)
+        consumer_b = __ChannelConsumer__(connection_b, lock=Lock() if producers > 1 else None, buffer_limit=buffer_limit)
         producer_b = __ChannelProducer__(connection_b, lock=Lock() if consumers > 1 else None)
 
         endpoint_a = __ChannelProducerConsumer__(consumer_a, producer_a)
@@ -21,7 +21,7 @@ def Channel(producers=1, consumers=1, duplex=False):
         return (endpoint_a, endpoint_b)
     else:
         (read_connection, write_connection) = Pipe(False)
-        consumer = __ChannelConsumer__(write_connection, lock=Lock() if producers > 1 else None)
+        consumer = __ChannelConsumer__(write_connection, lock=Lock() if producers > 1 else None, buffer_limit=buffer_limit)
         producer = __ChannelProducer__(read_connection, lock=Lock() if consumers > 1 else None)
         return (consumer, producer)
 
@@ -44,17 +44,20 @@ class __ChannelProducerConsumer__:
         self.consumer.close(block=block)
 
 class __ChannelConsumer__:
-    def __init__(self, connection, lock=None):
+    def __init__(self, connection, lock=None, buffer_limit=None):
         self.lock = lock
         self.connection = connection
         self.buffer = deque([])
         self.flushing = False
         self.thread = None
-        # self.buffer_size = buffer_size
+        self.buffer_limit = buffer_limit
     
     def push(self, element, block=True):
         if self.connection == None:
             raise Exception('ChannelError: Inbound Connection Closed')
+        while self.buffer_limit != None and len(self.buffer) > self.buffer_limit:
+            print("ChannelException: Buffer Overload. Size = {}".format(len(self.buffer)))
+            sleep(0.01)
         self.buffer.appendleft(element)
         if not self.flushing:
             self.thread = Thread(target=self.__flush__)

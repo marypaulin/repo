@@ -553,7 +553,7 @@ class ParallelOSDT:
         
         results = TruthTable(degree=workers, refresh_cooldown=cooldown, propagator=propagator)
         root_priority = 0
-        tasks = PriorityQueue([ ( root_priority, self.root, () ) ], degree=workers)
+        tasks = PriorityQueue([ ( root_priority, self.root, () ) ], degree=workers, buffer_limit=2048)
         services = (tasks, results, prefixes)
 
         # Initialize and run the multi-node client-server cluster
