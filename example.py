@@ -10,9 +10,9 @@ from lib.data_processing import read_dataset
 # Using COMPAS as an example
 dataset = read_dataset('data/preprocessed/compas-binary.csv')
 (n, m) = dataset.shape
-if len(sys.argv >= 3):
+if len(sys.argv) >= 3:
     n = int(sys.argv[2])
-if len(sys.argv >= 4):
+if len(sys.argv) >= 4:
     m = int(sys.argv[3])
 X = dataset.values[:n, :m-1]
 y = dataset.values[:n, -1]
