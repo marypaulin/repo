@@ -61,7 +61,6 @@ class __TruthTableServer__:
             self.table.update(updates)
 
             modified = len(updates) > 0
-            print("TruthTable Transferred {} Elements".format(len(updates)))
 
             for key, value in updates.items():
                 for endpoint in self.endpoints:

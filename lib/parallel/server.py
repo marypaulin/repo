@@ -27,11 +27,9 @@ class Server:
         try:
             while not self.interrupt:
                 modified = False
+                print("Alive")
                 for service in services:
                     modified = modified or service.serve()
-                if not modified:
-                    print("Server {} Idle".format(server_id))
-                print("Foo")
         finally:
             for service in services:
                 service.close(block=False)

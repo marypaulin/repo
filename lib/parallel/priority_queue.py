@@ -58,8 +58,6 @@ class __PriorityQueueServer__:
 
             modified = len(self.priority_queue) > 0
 
-            print("PriorityQueue Transferred {} Elements".format(len(self.priority_queue)))
-
             # Transfer from priorty queue to outbound queue
             while self.priority_queue and not self.consumer.full():
                 element = heappop(self.priority_queue)
