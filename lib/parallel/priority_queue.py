@@ -5,7 +5,7 @@ def PriorityQueue(queue=None, degree=1, buffer_limit=None):
     if queue == None:
         queue = []
     # Degree > 1 will introduce a lock on the client producer
-    server_consumer, client_producer = Channel(consumers=degree, producers=1, buffer_limit=5000)
+    server_consumer, client_producer = Channel(consumers=degree, producers=1, buffer_limit=degree*2)
 
     clients = []
     server_producers = []
@@ -57,14 +57,13 @@ class __PriorityQueueServer__:
                         heappush(self.priority_queue, element)
 
             modified = len(self.priority_queue) > 0
-            
+
             print("PriorityQueue Transferred {} Elements".format(len(self.priority_queue)))
 
             # Transfer from priorty queue to outbound queue
             while self.priority_queue and not self.consumer.full():
                 element = heappop(self.priority_queue)
                 if not self.consumer.push(element, block=False):
-                    print("Buffer Full")
                     heappush(self.priority_queue, element)
                     break
         return modified
@@ -82,7 +81,7 @@ class __PriorityQueueClient__:
         self.endpoint = endpoint
         self.online = True
 
-    def push(self, element, block=False):
+    def push(self, element, block=True):
         '''
         Pushes object into pipeline
         Returns True if successful
