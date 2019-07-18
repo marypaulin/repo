@@ -415,25 +415,16 @@ class ParallelOSDT:
             # When look-ahead is enabled, we're able to compare candidates that minimize the same capture set and prune ones worse that the best so far
             # In this implementation, we don't have individual candidates but groups of candidates with a bounding interval over the group's optimal objective
             # So instead of using one best candidate to prune other candidates, we aggregate a best bounding interval and prune groups whose interval don't overlap
-            relevant_splits = []
-            irrelevant_splits = []
-            for j in self.dataset.gini_index:
-                if j in path:
-                    continue
-                if bounding_intervals[j].lowerbound <= minimum_bounding_interval.upperbound:
-                    relevant_splits.append(j)
-                else:
-                    irrelevant_splits.append(j)
-            # relevant_splits = (j for j in self.dataset.gini_index if bounding_intervals[j].lowerbound <= minimum_bounding_interval.upperbound and not j in path)
-            # irrelevant_splits = (j for j in self.dataset.gini_index if bounding_intervals[j].lowerbound > minimum_bounding_interval.upperbound and not j in path) # SLOW
 
+            relevant_splits = (j for j in self.dataset.gini_index if bounding_intervals[j].lowerbound <= minimum_bounding_interval.upperbound and not j in path)
+            irrelevant_splits = (j for j in self.dataset.gini_index if bounding_intervals[j].lowerbound > minimum_bounding_interval.upperbound and not j in path) # SLOW
         else:
             # In the absence of look-ahead, we consider all possible splits worth considering even if the complexity cost of splitting
             # raises the lowerbound up to a level higher than possibly optimal
             relevant_splits = (j for j in self.dataset.gini_index if not j in path)
             irrelevant_splits = tuple()
 
-        return minimum_bounding_interval, minimizing_split, tuple(relevant_splits), tuple(irrelevant_splits)
+        return minimum_bounding_interval, minimizing_split, relevant_splits, irrelevant_splits
 
     def compute_bounds(self, capture):
         total, zeros, ones, minority, _majority = self.dataset.label_distribution(capture)
