@@ -12,7 +12,6 @@ from signal import SIGINT, signal
 
 
 class Server:
-    interrupt = False
     def __init__(self, server_id, services):
         self.id = server_id
         self.process = Process(target=self.__run__, args=(server_id, services))

@@ -25,7 +25,7 @@ class Cluster:
         server = Server(0, self.server_bundle)
 
         server.start(block=False)
-        for client in clients:
+        for client_id, client in enumerate(clients):
             client.start(block=False)
 
         # Permit GC on local service resources now that they have been transferred to their respective subprocesses

@@ -1,5 +1,5 @@
 from multiprocessing import Process
-from os import kill
+from os import kill, system, getpid
 from signal import SIGINT
 from time import sleep
 
@@ -10,6 +10,25 @@ class Client:
         self.process.daemon = True
 
     def __run__(self, client_id, services, task):
+
+       taskset_enabled = (system("command -v taskset") != 256)
+       # handler = signal.signal(signal.SIGINT, lambda signal_number, frame: self.terminate())
+
+       commands = []
+       for i in range(self.size):
+            (process, _connection) = pool[i]
+            process.start()
+            if taskset_enabled:
+                check_call(
+                    [
+                        "taskset",
+                        "-cp",
+                        str(i % os.cpu_count()),
+                        str(process.pid)
+                    ],
+                    stdout=DEVNULL, stderr=STDOUT
+                )
+
         try:
             task(client_id, services)
         finally:
