@@ -70,8 +70,8 @@ hyperparameters = {
 
 start = time()
 model = ParallelOSDTClassifier(**hyperparameters)
-# cProfile.run('model.fit(X, y)', sort='tottime')
-model.fit(X, y)
+cProfile.run('model.fit(X, y)', sort='tottime')
+# model.fit(X, y)
 prediction = model.predict(X)
 prediction = prediction.reshape(1, n)
 print('Runtime: {} Seconds'.format(time() - start))

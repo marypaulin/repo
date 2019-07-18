@@ -67,6 +67,7 @@ class ServerThread:
     def __run__(self, server_id, services):
         try:
             while not self.interrupt:
+                sleep(0)
                 modified = False
                 for service in services:
                     modified = modified or service.serve()
