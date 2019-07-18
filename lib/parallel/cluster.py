@@ -3,7 +3,7 @@ from multiprocessing import Process
 from lib.parallel.priority_queue import PriorityQueue
 from lib.parallel.truth_table import TruthTable
 from lib.parallel.client import Client
-from lib.parallel.server import Server
+from lib.parallel.server import Server, ServerThread
 
 class Cluster:
     def __init__(self, task, services, size=1):
@@ -22,11 +22,11 @@ class Cluster:
 
     def compute(self):
         clients = tuple(Client(i, self.client_bundles[i], self.task) for i in range(1, self.size))
-        server = Server(self.size, self.server_bundle)
+        server = ServerThread(self.size, self.server_bundle)
 
-        server.start(block=False)
+        server.start()
         for client_id, client in enumerate(clients):
-            client.start(block=False)
+            client.start()
 
         # Permit GC on local service resources now that they have been transferred to their respective subprocesses
         self.server_bundle = None

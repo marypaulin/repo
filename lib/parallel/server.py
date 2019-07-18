@@ -3,6 +3,7 @@ from os import kill, system, getpid
 from time import sleep
 from signal import SIGINT, signal
 from subprocess import check_call, DEVNULL, STDOUT
+from threading import Thread
 
 # Wrapper class around multiprocessing.Process
 # This mainly provides convenience methods for the following
@@ -31,6 +32,7 @@ class Server:
                 modified = False
                 for service in services:
                     modified = modified or service.serve()
+                sleep(0)
         finally:
             for service in services:
                 service.close(block=False)
@@ -53,3 +55,36 @@ class Server:
 
     def is_alive(self):
         return self.process.is_alive()
+
+
+class ServerThread:
+    def __init__(self, server_id, services):
+        self.id = server_id
+        self.thread = Thread(target=self.__run__, args=(server_id, services))
+        self.thread.daemon = True
+        self.interrupt = False
+
+    def __run__(self, server_id, services):
+        try:
+            while not self.interrupt:
+                modified = False
+                for service in services:
+                    modified = modified or service.serve()
+                sleep(0)
+        finally:
+            for service in services:
+                service.close(block=False)
+
+    def start(self):
+        self.thread.start()
+
+    def stop(self, block=True):
+        self.interrupt = True
+        if block:
+            self.thread.join()
+
+    def terminate(self):
+        self.interrupt = True
+
+    def join(self):
+        self.thread.join()
