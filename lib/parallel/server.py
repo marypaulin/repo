@@ -26,7 +26,7 @@ class Server:
         signal(SIGINT, self.__interrupt__)
         try:
             while not self.interrupt:
-                sleep(0.01)
+                sleep(0.001)
                 modified = False
                 for service in services:
                     modified = modified or service.serve()
