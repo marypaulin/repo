@@ -30,7 +30,7 @@ class Server:
                 for service in services:
                     modified = modified or service.serve()
 
-                print("Alive")
+                sleep(0.1)
         finally:
             for service in services:
                 service.close(block=False)
