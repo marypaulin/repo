@@ -26,8 +26,11 @@ class Server:
         signal(SIGINT, self.__interrupt__)
         try:
             while not self.interrupt:
+                modified = False
                 for service in services:
-                    service.serve()
+                    modified = modifed or service.serve()
+                if not modified:
+                    print("Server {} Idle".format(server_id))
         finally:
             for service in services:
                 service.close(block=False)

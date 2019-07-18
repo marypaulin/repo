@@ -40,6 +40,7 @@ class __TruthTableServer__:
         Stage 3: outbound
             outbound entries ready for consumption
         '''
+        modified = False
         if self.online:
             updates = {}
             # Transfer from inbound queue to broadcast buffers (if the entry is new)
@@ -56,11 +57,16 @@ class __TruthTableServer__:
                     else:
                         # print("Rejected TruthTable Update table[{}] = from {} to {}".format(vect.__str__(key), previous_value, value))
                         pass
+            
             self.table.update(updates)
+
+            modified = len(updates) > 0
+            print("TruthTable Transferred {} Elements".format(len(updates)))
+
             for key, value in updates.items():
                 for endpoint in self.endpoints:
                     endpoint.push((key, value), block=False)
-
+        return modified
     def close(self, block=True):
         self.online = False
         for endpoint in self.endpoints:

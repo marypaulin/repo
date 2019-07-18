@@ -39,6 +39,7 @@ class __PriorityQueueServer__:
         Stage 3: outbound
           sorted messages ready for distribution
         '''
+        modified = False
         if self.online:
             seen = set()
             # Transfer from inbound queue to priority queue
@@ -55,6 +56,10 @@ class __PriorityQueueServer__:
                         seen.add(key)
                         heappush(self.priority_queue, element)
 
+            modified = len(self.priority_queue) > 0
+            
+            print("PriorityQueue Transferred {} Elements".format(len(self.priority_queue)))
+
             # Transfer from priorty queue to outbound queue
             while self.priority_queue and not self.consumer.full():
                 element = heappop(self.priority_queue)
@@ -62,6 +67,7 @@ class __PriorityQueueServer__:
                     print("Buffer Full")
                     heappush(self.priority_queue, element)
                     break
+        return modified
 
     def close(self, block=True):
         self.online = False
