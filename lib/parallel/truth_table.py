@@ -12,7 +12,7 @@ def TruthTable(table=None, propagator=None, refresh_cooldown=0, degree=1):
     clients = []
     server_endpoints = []
     for i in range(degree):
-        client_endpoint, server_endpoint = Channel(duplex=True)
+        client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
         client = __TruthTableClient__(table, client_endpoint, propagator=propagator, refresh_cooldown=refresh_cooldown)
         clients.append(client)
         server_endpoints.append(server_endpoint)

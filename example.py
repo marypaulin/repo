@@ -10,10 +10,13 @@ from lib.data_processing import read_dataset
 # Using COMPAS as an example
 dataset = read_dataset('data/preprocessed/compas-binary.csv')
 (n, m) = dataset.shape
+
 if len(sys.argv) >= 3:
     n = int(sys.argv[2])
 if len(sys.argv) >= 4:
     m = int(sys.argv[3])
+
+
 X = dataset.values[:n, :m-1]
 y = dataset.values[:n, -1]
 
@@ -70,8 +73,8 @@ hyperparameters = {
 
 start = time()
 model = ParallelOSDTClassifier(**hyperparameters)
-cProfile.run('model.fit(X, y)', sort='cumtime')
-# model.fit(X, y)
+# cProfile.run('model.fit(X, y)', sort='cumtime')
+model.fit(X, y)
 prediction = model.predict(X)
 prediction = prediction.reshape(1, n)
 print('Runtime: {} Seconds'.format(time() - start))

@@ -22,36 +22,41 @@ dataset = read_dataset(input_path)
 
 timeout = float(arguments[2]) if len(arguments) >= 3 else 60
 regularization = float(arguments[3]) if len(arguments) >= 4 else 0.1
+model_name = arguments[4] if len(arguments) >= 5 else 'osdt'
+core_count = int(arguments[5]) if len(arguments) >= 6 else 1
+
 
 # Display Configurations
 print("Running Scalability Data Collection")
 print("Dataset: {}".format(input_path))
 print("Regularization: {}".format(regularization))
 print("Timeout: {}".format(timeout))
+print("Model: {}".format(model_name))
+print("Core Count: {}".format(core_count))
 sleep(3)
 
-# Run Data Collection for CART
-model_name = 'cart'
-model = DecisionTreeClassifier
-hyperparameters = {
-        'max_depth': 5,
-        'min_samples_split': math.ceil(regularization * 2 * n), 
-        'min_samples_leaf': math.ceil(regularization * n), 
-        'max_leaf_nodes': max(2, math.floor(1 / ( 2 * regularization ))), 
-        'min_impurity_decrease': regularization
-}
-output_path = 'data/scalability/{}/{}.csv'.format(dataset_name, model_name)
-scalability_analysis(dataset, model, hyperparameters, output_path)
+if model_name == 'cart':
+    # Run Data Collection for CART
+    model = DecisionTreeClassifier
+    hyperparameters = {
+            'max_depth': 5,
+            'min_samples_split': math.ceil(regularization * 2 * n), 
+            'min_samples_leaf': math.ceil(regularization * n), 
+            'max_leaf_nodes': max(2, math.floor(1 / ( 2 * regularization ))), 
+            'min_impurity_decrease': regularization
+    }
+    output_path = 'data/scalability/{}/{}.csv'.format(dataset_name, model_name)
+    scalability_analysis(dataset, model, hyperparameters, output_path)
 
-# Run Data Collection for OSDT
-model_name = 'osdt'
-model = OSDTClassifier
-hyperparameters = {'regularization': regularization, 'max_time': timeout}
-output_path = 'data/scalability/{}/{}.csv'.format(dataset_name, model_name)
-scalability_analysis(dataset, model, hyperparameters, output_path)
+elif model_name == 'osdt':
+    # Run Data Collection for OSDT
+    model = OSDTClassifier
+    hyperparameters = {'regularization': regularization, 'max_time': timeout}
+    output_path = 'data/scalability/{}/{}.csv'.format(dataset_name, model_name)
+    scalability_analysis(dataset, model, hyperparameters, output_path)
 
-# Run Data Collection for Parallel OSDT
-for core_count in [1, 2, 4, 8, 16, 32, 60]:
+elif model_name == 'parallel_osdt':
+    # Run Data Collection for Parallel OSDT
     model_name = 'parallel_osdt_{}_core'.format(core_count)
     model = ParallelOSDTClassifier
     hyperparameters = { 'regularization' : regularization, 'clients': core_count, 'max_time': timeout }
