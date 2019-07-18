@@ -1,4 +1,4 @@
-from time import time
+from time import time, sleep
 from math import ceil
 from mpl_toolkits import mplot3d
 import numpy as np
@@ -110,6 +110,8 @@ def scalability_analysis(dataset, model_class, hyperparameters, path, step_count
     for sample_size in range(1, n+1, sample_size_step):
         for feature_size in range(1, m+1, feature_size_step):
 
+            print("Subsample Shape: ({}, {})".format(sample_size, feature_size))
+            sleep(1)
             x = X[:sample_size,:feature_size]
             y = Y[:sample_size]
             model = model_class(**hyperparameters)
