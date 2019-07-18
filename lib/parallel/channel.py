@@ -57,15 +57,18 @@ class __ChannelConsumer__:
             raise Exception('ChannelError: Inbound Connection Closed')
         if self.buffer_limit != None and len(self.buffer) > self.buffer_limit:
             return False
-        self.buffer.appendleft(element)
-        if not self.flushing:
-            self.thread = Thread(target=self.__flush__)
-            self.thread.daemon = True
-            self.thread.start()
-        if block and self.thread != None:
-            self.thread.join()
-        return True
-    
+        if block:
+            if self.thread != None:
+                self.thread.join()
+            self.__push__(element)
+        else:
+            self.buffer.appendleft(element)
+            if not self.flushing:
+                self.thread = Thread(target=self.__flush__)
+                self.thread.daemon = True
+                self.thread.start()]
+            return True
+        
     def full(self):
         if self.buffer_limit == None:
             return False
