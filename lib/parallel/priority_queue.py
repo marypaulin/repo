@@ -5,7 +5,7 @@ def PriorityQueue(queue=None, degree=1, buffer_limit=None):
     if queue == None:
         queue = []
     # Degree > 1 will introduce a lock on the client producer
-    server_consumer, client_producer = Channel(consumers=degree, producers=1, buffer_limit=buffer_limit)
+    server_consumer, client_producer = Channel(consumers=degree, producers=1)
 
     clients = []
     server_producers = []
@@ -25,7 +25,7 @@ def PriorityQueue(queue=None, degree=1, buffer_limit=None):
 class __PriorityQueueServer__:
     def __init__(self, queue, producers, consumer):
         self.priority_queue = queue
-        self.producers = producers# Multiple endpoints to read from
+        self.producers = producers # Multiple endpoints to read from
         self.consumer = consumer # Single endpoint to write to
         self.online = True
 
@@ -56,9 +56,12 @@ class __PriorityQueueServer__:
                         heappush(self.priority_queue, element)
 
             # Transfer from priorty queue to outbound queue
-            while self.priority_queue:
+            while self.priority_queue and not self.consumer.full():
                 element = heappop(self.priority_queue)
-                self.consumer.push(element, block=False)
+                succes = self.consumer.push(element, block=False)
+                if not success:
+                    heappush(self.priority_queue, element)
+                    break
 
     def close(self, block=True):
         self.online = False

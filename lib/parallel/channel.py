@@ -55,9 +55,8 @@ class __ChannelConsumer__:
     def push(self, element, block=True):
         if self.connection == None:
             raise Exception('ChannelError: Inbound Connection Closed')
-        while self.buffer_limit != None and len(self.buffer) > self.buffer_limit:
-            print("ChannelException: Buffer Overload. Size = {}".format(len(self.buffer)))
-            sleep(0.01)
+        if self.buffer_limit != None and len(self.buffer) > self.buffer_limit:
+            return False
         self.buffer.appendleft(element)
         if not self.flushing:
             self.thread = Thread(target=self.__flush__)
@@ -65,6 +64,13 @@ class __ChannelConsumer__:
             self.thread.start()
         if block and self.thread != None:
             self.thread.join()
+        return True
+    
+    def full(self):
+        if self.buffer_limit == None:
+            return False
+        else:
+            return len(self.buffer) > self.buffer_limit
     
     def close(self, block=True):
         if self.connection != None:
