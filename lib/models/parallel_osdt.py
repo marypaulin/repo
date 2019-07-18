@@ -1,21 +1,19 @@
-from queue import Empty as QueueEmpty, Full as QueueFull
-from time import time, sleep
+from time import time
 from random import random
-from signal import SIGINT, signal
 from memory_profiler import profile
 
 from lib.parallel.cluster import Cluster
 from lib.parallel.priority_queue import PriorityQueue
 from lib.parallel.truth_table import TruthTable
-from lib.prefix_tree import PrefixTree
-from lib.similarity_index import SimilarityIndex
-from lib.similarity_propagator import SimilarityPropagator
-from lib.result import Result
-from lib.interval import Interval
-from lib.dataset import DataSet
-from lib.vector import Vector
-from lib.tree import Tree
-from lib.logger import Logger
+from lib.data_structures.prefix_tree import PrefixTree
+from lib.data_structures.similarity_index import SimilarityIndex
+from lib.models.similarity_propagator import SimilarityPropagator
+from lib.data_structures.result import Result
+from lib.data_structures.interval import Interval
+from lib.data_structures.dataset import DataSet
+from lib.data_structures.vector import Vector
+from lib.data_structures.tree import Tree
+from lib.experiments.logger import Logger
 
 # Theorems Applied
 
@@ -163,10 +161,6 @@ class ParallelOSDT:
         self.global_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb
         self.global_lowerbound = minority / self.dataset.sample_size + self.lamb
 
-
-    def __interrupt__(self, signal, frame):
-        self.interrupt = True
-
     @profile
     def snapshot(self):
         if self.worker_id == 0:
@@ -178,21 +172,19 @@ class ParallelOSDT:
         pass
 
     # Task method that gets run by all worker nodes
-    def task(self, worker_id, services):
-        signal(SIGINT, self.__interrupt__)
-
+    def task(self, worker_id, services, termination):
         self.worker_id = worker_id
         start_time = time()
         (tasks, results, prefixes) = services
         self.tasks = tasks
         self.results = results
         self.prefixes = prefixes
-        self.logger = Logger(path='logs/worker_{}.log'.format(worker_id)) if self.log else None
+        self.logger = Logger(path='logs/worker_{}.log'.format(self.worker_id)) if self.log else None
 
         if self.verbose or self.log:
             self.print('Worker {} Starting'.format(self.worker_id))
         
-        while not self.terminate() and self.elapsed_time() <= self.max_time and not self.interrupt:
+        while not self.complete() and self.timeout() and not termination():
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
                 if self.verbose or self.log:
@@ -227,10 +219,7 @@ class ParallelOSDT:
             else:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
-
-        self.print('Worker {} Finishing (Complete: {}, Timeout: {}, Interrupted: {})'.format(self.worker_id, self.terminate(), self.elapsed_time() > self.max_time, ParallelOSDT.interrupt))
-        # except KeyboardInterrupt: # Occurs when another worker finds the answer, resulting in a signal for early termination
-        #     pass
+        self.print('Worker {} Finishing (Complete: {}, Timeout: {}, Interrupted: {})'.format(self.worker_id, self.complete(), self.timeout(), termination()))
 
     def prioritize(self, capture, path):
         priority_metric = self.configuration['priority_metric']
@@ -461,7 +450,7 @@ class ParallelOSDT:
         pass
 
     def dequeue(self):
-            task = self.tasks.pop(block=True)
+            task = self.tasks.pop(block=False)
             if task == None:
                 return None
             (priority, capture, path) = task
@@ -506,8 +495,11 @@ class ParallelOSDT:
             left_capture, right_capture = self.dataset.split(j, capture)
             return self.solved(left_capture, path + (j, 'L')) and self.solved(right_capture, path + (j, 'R'))
 
+    def timeout(self):
+        return self.elapsed_time() <= self.max_time
+
     # Method run by worker nodes to decide when to terminate
-    def terminate(self):
+    def complete(self):
         if self.profile:  # Record a snapshot for memory profiling
             self.snapshot()
         # Termination condition
@@ -517,8 +509,8 @@ class ParallelOSDT:
         return terminate
 
     # Method for extracting the output
-    def output(self, results):
-        return Tree(self.root, results, self.dataset, capture_equivalence=self.configuration['capture_equivalence'])
+    def output(self):
+        return Tree(self.root, self.results, self.dataset, capture_equivalence=self.configuration['capture_equivalence'])
 
     def solve(self, workers=1, visualize=False):
         if self.verbose or self.log:
@@ -556,12 +548,11 @@ class ParallelOSDT:
         tasks = PriorityQueue([ ( root_priority, self.root, () ) ], degree=workers, buffer_limit=2048)
         services = (tasks, results, prefixes)
 
-        # Initialize and run the multi-node client-server cluster
-        cluster = Cluster(self.task, services, size=workers)
-        (tasks, results, prefixes) = cluster.compute()
+        # Initialize and run the cluster
+        (tasks, results, prefixes) = Cluster(self.task, services, size=workers).compute()
 
-        if self.terminate():
-            model = self.output(results)
+        if self.complete():
+            model = self.output()
             if self.verbose or self.log:
                 self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
                 self.print("Optimal Objective: {}".format(model.risk))

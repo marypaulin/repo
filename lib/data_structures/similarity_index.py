@@ -1,7 +1,7 @@
 from itertools import combinations
 from random import sample
 
-from lib.vector import Vector
+from lib.data_structures.vector import Vector
 
 # Class for storing and performing approximate neighbourhood queries on bitvectors
 #  - neighbourhood radius is defined using Hamming distance

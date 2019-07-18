@@ -1,21 +1,40 @@
 import unittest
-from multiprocessing import Process
+from lib.parallel.actor import Actor
 from lib.parallel.channel import Channel
 
 class TestChannel(unittest.TestCase):
 
-    def test_channel_flush(self):
-        consumer, producer = Channel(consumers=2, producers=2)
+    def test_locking_channel_flush(self):
+        consumer, producer = Channel(read_lock=True, write_lock=True)
 
-        def produce(consumer):
+        def produce(id, services, termination):
+            (consumer,) = services
             for i in range(10):
-                consumer.push(i, block=False)
+                consumer.push(i, block=True)
             consumer.close()
 
-        process = Process(target=produce, args=(consumer,))
+        process = Actor(0, (consumer,), produce, actor_type='process')
         process.start()
+
+        output = [producer.pop(block=True) for _i in range(10)]
+        producer.close()
+
+        self.assertEqual(output, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+    def test_non_locking_channel_flush(self):
+        consumer, producer = Channel(read_lock=False, write_lock=False)
+
+        def produce(id, services, termination):
+            (consumer,) = services
+            for i in range(10):
+                consumer.push(i, block=True)
+            consumer.close()
+
         
-        output = [ producer.pop(block=True) for _i in range(10) ]
+        process = Actor(0, (consumer,), produce, actor_type='process')
+        process.start()
+
+        output = [producer.pop(block=True) for _i in range(10)]
         producer.close()
 
         self.assertEqual(output, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])

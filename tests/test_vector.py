@@ -1,5 +1,6 @@
 import unittest
-from lib.vector import Vector
+
+from lib.data_structures.vector import Vector
 
 class TestVector(unittest.TestCase):
 

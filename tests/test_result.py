@@ -1,7 +1,7 @@
 import unittest
-from lib.similarity_index import SimilarityIndex
-from lib.result import Result
-from lib.interval import Interval
+
+from lib.data_structures.result import Result
+from lib.data_structures.interval import Interval
 
 class TestResult(unittest.TestCase):
 

@@ -1,8 +1,8 @@
 from time import time
 from math import floor
 
-from lib.result import Result
-from lib.interval import Interval
+from lib.data_structures.result import Result
+from lib.data_structures.interval import Interval
 
 class SimilarityPropagator:
     def __init__(self, index, dataset, lamb, cooldown=0):

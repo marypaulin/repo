@@ -1,4 +1,4 @@
-from lib.interval import Interval
+from lib.data_structures.interval import Interval
 
 # Structure for holding the current set of knowledge about a particular optimization problem
 # The purpose of this class is to standardize the information format for dynamically computing a global optimum

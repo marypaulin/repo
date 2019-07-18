@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 from sklearn.tree import DecisionTreeClassifier
 
-from lib.logger import Logger
-from lib.data_processing import read_dataset
+from lib.experiments.logger import Logger
+from lib.dataset import read_dataframe
 
 def accuracy_analysis(dataset, model_class, hyperparameters, path):
     X = dataset.values[:, :-1]
@@ -50,7 +50,7 @@ def accuracy_analysis(dataset, model_class, hyperparameters, path):
 def plot_accuracy_analysis(dataset_name, title):
     fig = plt.figure(figsize=(10, 8), dpi=100)
 
-    dataset = read_dataset('data/accuracy/{}/{}.csv'.format(dataset_name, 'cart'))
+    dataset = read_dataframe('data/accuracy/{}/{}.csv'.format(dataset_name, 'cart'))
     (n, m) = dataset.shape
     accuracies = {}
     for i in range(n):
@@ -64,7 +64,7 @@ def plot_accuracy_analysis(dataset_name, title):
     y = [ accuracies[width] for width in x ]
     plt.plot(x, y, label='cart', markersize=5, marker='o', linewidth=0)
 
-    dataset = read_dataset('data/accuracy/{}/{}.csv'.format(dataset_name, 'osdt'))
+    dataset = read_dataframe('data/accuracy/{}/{}.csv'.format(dataset_name, 'osdt'))
     (n, m) = dataset.shape
     accuracies = {}
     for i in range(n):
@@ -78,7 +78,7 @@ def plot_accuracy_analysis(dataset_name, title):
     y = [ accuracies[width] for width in x ]
     plt.plot(x, y, label='osdt', markersize=5, marker='o', linewidth=0)
 
-    dataset = read_dataset('data/accuracy/{}/{}.csv'.format(dataset_name, 'parallel_osdt'))
+    dataset = read_dataframe('data/accuracy/{}/{}.csv'.format(dataset_name, 'parallel_osdt'))
     (n, m) = dataset.shape
     accuracies = {}
     for i in range(n):
@@ -173,3 +173,58 @@ def compute_width(estimator):
         if is_leaves[i]:
             leaf_count += 1
     return leaf_count
+
+# Overview: Module containing functions for hyerparameter optimization
+
+# Summary: Train and select the best model over a list of different hyperparameter settings using cross validation
+# Input:
+#    dataset: Pandas dataframe containing n-1 columns of features followed by 1 column of labels
+#    model_class: Python class implementing standard sci-kit-learn model interface as follows
+#       __init__(self, hyperparameters)
+#       fit(self, X_train, y_test)
+#       score(X_test, y_test)
+#   hyperparameters: list of dictionaries each containing keyword arguments holding hyperparameter assignments for model construction
+#   retrain: flag to retrain on the full dataset using the optimal hyperparameters
+# Output:
+#   model: the model that scored the highest in test accuracy during cross-validation
+#   accuracy: the test accuracy of the model that scored the highest
+#   hyperparameter: the hyperparameter setting that resulted in the highest test accuracy
+
+def train_cross_validate(dataset, model_class, hyperparameters=[{}], retrain=False):
+    X = dataset.values[:, :-1]
+    y = dataset.values[:, -1]
+
+    # Perform cross validation over k-folds, one for each proposed hyperparameter
+    if len(hyperparameters) == 1:
+        hyperparameters = [hyperparameters[0] for _i in range(2)]
+    kfolds = KFold(n_splits=len(hyperparameters))
+
+    model_index = 0
+    optimal_hyperparameter = None
+    optimal_model = None
+    optimal_accuracy = 0
+    for train_index, test_index in kfolds.split(X):
+        X = dataset.values[:, :-1]
+        y = dataset.values[:, -1]
+
+        X_train, y_train = X[train_index], y[train_index]
+        X_test, y_test = X[test_index], y[test_index]
+        hyperparameter = hyperparameters[model_index]
+
+        model = model_class(**hyperparameter)
+        model.fit(X_train, y_train)
+        accuracy = model.score(X_test, y_test)
+
+        if accuracy >= optimal_accuracy:
+            optimal_hyperparameters = hyperparameter
+            optimal_model = model
+            optimal_accuracy = accuracy
+
+        model_index += 1
+
+    # Note: This retrains the model over the full dataset, which breaks the association with the test accuracy
+    if retrain == True:
+        optimal_model = model_class(**optimal_hyperparameter)
+        optimal_model.fit(X, y)
+
+    return optimal_model, optimal_accuracy, optimal_hyperparameter

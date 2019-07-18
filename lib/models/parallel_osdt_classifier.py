@@ -1,7 +1,7 @@
 from numpy import array
 
 # local imports
-from lib.parallel_osdt import ParallelOSDT
+from lib.models.parallel_osdt import ParallelOSDT
 
 # This is mainly a wrapper class which makes the model compliant with Sci-kit Learn's DecisionTreeClassifier interface
 # This allows for easy interoperability which (hopefully) would help with testing and acceptance into their library as well as

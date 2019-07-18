@@ -1,9 +1,4 @@
-from multiprocessing import Process
-
-from lib.parallel.priority_queue import PriorityQueue
-from lib.parallel.truth_table import TruthTable
-from lib.parallel.client import Client
-from lib.parallel.server import Server, ServerThread
+from lib.parallel.actor import Client, LocalClient, Server, LocalServer
 
 class Cluster:
     def __init__(self, task, services, size=1):
@@ -25,7 +20,7 @@ class Cluster:
         server = Server(self.size, self.server_bundle)
 
         server.start(block=False)
-        for client_id, client in enumerate(clients):
+        for client in clients:
             client.start(block=False)
 
         # Permit GC on local service resources now that they have been transferred to their respective subprocesses
@@ -34,10 +29,11 @@ class Cluster:
 
         # Run self as client 0
         # Kind of hacky but kind of works
-        Client.__run__(self, 0, self.client_bundle, self.task)
+        LocalClient(0, self.client_bundle, self.task).start()
 
         for client in clients:
-            client.join()
+            client.stop(block=False)
+
         server.stop(block=False)
 
         return self.client_bundle

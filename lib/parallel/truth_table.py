@@ -1,9 +1,8 @@
 from time import time
-from random import random
 
-from lib.result import Result
-from lib.interval import Interval
-from lib.prefix_tree import PrefixTree
+from lib.data_structures.result import Result
+from lib.data_structures.interval import Interval
+from lib.data_structures.prefix_tree import PrefixTree
 from lib.parallel.channel import Channel
 
 def TruthTable(table=None, propagator=None, refresh_cooldown=0, degree=1):
@@ -68,10 +67,11 @@ class __TruthTableServer__:
         return modified
 
     def close(self, block=True):
-        self.online = False
-        for endpoint in self.endpoints:
-            endpoint.close(block=block)
-        self.endpoints = None
+        if self.online:
+            self.online = False
+            for endpoint in self.endpoints:
+                endpoint.close(block=block)
+            self.endpoints = None
 
 class __TruthTableClient__:
     def __init__(self, table, endpoint, propagator=None, refresh_cooldown=0):
@@ -171,6 +171,7 @@ class __TruthTableClient__:
         return str(self.table)
 
     def close(self, block=True):
-        self.online = False
-        self.endpoint.close(block=block)
-        self.endpoint = None
+        if self.online:
+            self.online = False
+            self.endpoint.close(block=block)
+            self.endpoint = None

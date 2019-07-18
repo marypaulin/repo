@@ -1,6 +1,7 @@
 import unittest
-from lib.similarity_index import SimilarityIndex
-from lib.vector import Vector
+
+from lib.data_structures.similarity_index import SimilarityIndex
+from lib.data_structures.vector import Vector
 
 class TestSimilarityIndex(unittest.TestCase):
 

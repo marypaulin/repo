@@ -4,11 +4,11 @@ from time import time
 import sys
 
 # local imports
-from lib.parallel_osdt_classifier import ParallelOSDTClassifier
-from lib.data_processing import read_dataset
+from lib.models.parallel_osdt_classifier import ParallelOSDTClassifier
+from lib.data_structures.dataset import read_dataframe
 
 # Using COMPAS as an example
-dataset = read_dataset('data/preprocessed/compas-binary.csv')
+dataset = read_dataframe('data/preprocessed/compas-binary.csv')
 (n, m) = dataset.shape
 
 # arguments: <processes> <subsample?> <subfeature?>
@@ -31,7 +31,7 @@ hyperparameters = {
     'workers': int(sys.argv[1]),  # Parameter that varies based on how much computational resource is available
 
     'visualize': True,  # Toggle whether a rule-list visualization is rendered
-    'verbose': False,  # Toggle whether event messages are printed
+    'verbose': True,  # Toggle whether event messages are printed
     'log': False,  # Toggle whether client processes log to logs/work_<id>.log files
     'profile': False,  # Toggle Snapshots for Profiling Memory Usage
 

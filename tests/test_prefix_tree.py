@@ -1,5 +1,5 @@
 import unittest
-from lib.prefix_tree import PrefixTree
+from lib.data_structures.prefix_tree import PrefixTree
 
 class TestPrefixTree(unittest.TestCase):
 

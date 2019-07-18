@@ -2,11 +2,11 @@
 from time import time
 
 # local imports
-from lib.parallel_osdt_classifier import ParallelOSDTClassifier
-from lib.data_processing import read_dataset
+from lib.models.parallel_osdt_classifier import ParallelOSDTClassifier
+from lib.data_structures.dataset import read_dataframe
 
 # Using COMPAS as an example
-dataset = read_dataset('data/preprocessed/compas-binary.csv')
+dataset = read_dataframe('data/preprocessed/compas-binary.csv')
 (n, m) = dataset.shape
 X = dataset.values[:n, :m-1]
 y = dataset.values[:n, -1]

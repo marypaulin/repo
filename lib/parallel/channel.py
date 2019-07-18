@@ -8,8 +8,7 @@ from queue import Full, Empty
 
 def Channel(read_lock=False, write_lock=False, duplex=False, buffer_limit=None, channel_type=None):
     if channel_type == None:
-        channel_type = 'queue'
-    
+        channel_type = 'queue' if read_lock or write_lock else 'pipe'
     if channel_type == 'pipe':
         return PipeChannel(read_lock=read_lock, write_lock=write_lock, duplex=duplex, buffer_limit=buffer_limit)
     elif channel_type == 'queue':

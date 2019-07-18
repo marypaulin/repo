@@ -10,7 +10,7 @@ class Fibonacci:
         self.n = n
 
     # Task method that gets run by all worker nodes (clients)
-    def task(self, worker_id, services):
+    def task(self, worker_id, services, termination):
         (table, queue) = services
         try:
             while not self.terminate(table):
@@ -54,15 +54,15 @@ class Fibonacci:
     def output(self, table):
         return table.get(self.n)
 
-    def solve(self, clients=1, servers=1):
+    def solve(self, workers=1):
         # Shared Data structures that get serviced by servers
-        table = TruthTable(degree=clients)
-        queue = PriorityQueue(queue=[(self.n, self.n)], degree=clients)
+        table = TruthTable(degree=workers)
+        queue = PriorityQueue(queue=[(self.n, self.n)], degree=workers)
         services = (table, queue)
 
         # Initialize and run the multi-node client-server cluster
-        cluster = Cluster(self.task, services, clients=clients, servers=servers)
-        cluster.compute()
+        cluster = Cluster(self.task, services, size=workers)
+        (table, queue) = cluster.compute()
 
         solution = self.output(table)
         return solution

@@ -1,4 +1,3 @@
-import lib.vector as vect
 class Tree:
 
     def __init__(self, capture, table, dataset, path=None, capture_equivalence=True):

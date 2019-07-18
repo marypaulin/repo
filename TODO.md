@@ -1,6 +1,7 @@
 # TODO
- - Add Scalability Analysis
- - Add Runtime Analysis (Profiling, Memory Distributions, Load Distributions, Convergence Plot)
+ - Run Scalability Analysis, Convergence, Memory Profile, Accuracy Comparison
+ - Figure out catching of brokenpipe error
+ - Create Architectural Diagram
 
  - Sci-Kit Model Interface (Unit Tests)
  - Cache Eviction

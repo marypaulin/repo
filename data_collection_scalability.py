@@ -17,7 +17,7 @@ basename = os.path.basename(input_path)
 dataset_name, extension = os.path.splitext(basename)
 if not os.path.exists('data/scalability/{}'.format(dataset_name)):
     os.mkdir('data/scalability/{}'.format(dataset_name))
-dataset = read_dataset(input_path)
+dataset = read_datasframe(input_path)
 (n, m) = dataset.shape
 
 # arguments: <dataset_path> <timeout?> <regularization?> <model_name?> <core_count?>

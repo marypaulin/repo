@@ -1,9 +1,42 @@
 import numpy as np
 from functools import reduce
 
-from lib.vector import Vector
+from lib.data_structures.vector import Vector
+
+# third-party imports
+import pandas as pd
+from sklearn.utils import shuffle
+
+# Summary: Read in the datasets and returns a Pandas dataframe
+# Input:
+#   path: relative path to csv path
+#   sep: separation character of csv
+# Output:
+#   dataset: a Pandas dataframe containing the dataset at given path
+def read_dataframe(path, sep=None, randomize=False):
+    if sep == None:
+        with open(path) as f:
+            first_line = f.readline()
+        if len(first_line.split(';')) > len(first_line.split(',')):
+            sep = ';'
+        elif len(first_line.split(' ')) > len(first_line.split(',')):
+            sep = ' '
+        else:
+            sep = ','
+
+    dataframe = pd.DataFrame(pd.read_csv(path, sep=sep))
+    if randomize:
+        dataframe = shuffle(dataframe)
+    return dataframe
+
 
 class DataSet:
+    def read(path, sep=None, randomize=False):
+        dataframe = read_dataset(path, sep=sep, randomize=randomize)
+        X = dataframe[:, :-1]
+        y = dataframe[:, -1]
+        return Dataset(X, y)
+
     def __init__(self, X, y, compression=True):
         self.split_cache = {}
         self.label_distribution_cache = {}
@@ -26,8 +59,6 @@ class DataSet:
 
         # self.minimum_group_size = min(z[i, 0] for i in range(self.height))
         # self.maximum_group_size = max(z[i, 0] for i in range(self.height))
-
-       
 
     def split(self, j, capture=None):
         key = (j, capture)

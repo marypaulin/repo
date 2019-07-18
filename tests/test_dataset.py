@@ -1,14 +1,13 @@
 import unittest
 
-from lib.data_processing import read_dataset
-from lib.dataset import DataSet
+from lib.data_structures.dataset import DataSet, read_dataframe
 
 class TestDataset(unittest.TestCase):
 
     def test_preprocessing(self):
         # Identity is a dataset where the features form a 12x12 identity matrix, stacked vertically 3 times
         # The labels are distributed so that each equivalent group has two 0's and one 1
-        dataframe =  read_dataset('tests/fixtures/identity.csv', sep=';', randomize=True)
+        dataframe =  read_dataframe('tests/fixtures/identity.csv', sep=';', randomize=True)
         # dataframe =  read_dataset('data/preprocessed/compas-binary.csv', sep=';', randomize=True)
 
         X = dataframe.values[:, :-1]
@@ -25,7 +24,7 @@ class TestDataset(unittest.TestCase):
     def test_label_distribution(self):
         # Identity is a dataset where the features form a 12x12 identity matrix, stacked vertically 3 times
         # The labels are distributed so that each equivalent group has two 0's and one 1
-        dataframe = read_dataset('tests/fixtures/identity.csv', sep=';', randomize=True)
+        dataframe = read_dataframe('tests/fixtures/identity.csv', sep=';', randomize=True)
 
         X = dataframe.values[:, :-1]
         y = dataframe.values[:, -1]
@@ -38,7 +37,7 @@ class TestDataset(unittest.TestCase):
     def test_splits(self):
         # Identity is a dataset where the features form a 12x12 identity matrix, stacked vertically 3 times
         # The labels are distributed so that each equivalent group has two 0's and one 1
-        dataframe = read_dataset('tests/fixtures/identity.csv', sep=';', randomize=True)
+        dataframe = read_dataframe('tests/fixtures/identity.csv', sep=';', randomize=True)
 
         X = dataframe.values[:, :-1]
         y = dataframe.values[:, -1]

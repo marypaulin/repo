@@ -21,16 +21,8 @@ def PriorityQueue(queue=None, degree=1, buffer_limit=None):
 
     server = __PriorityQueueServer__(queue, tuple(server_producers), server_consumer)
 
-    ##################
-
-    # server_consumer, client_producer = Channel(read_lock=True)
-    # client_consumer, server_producer = Channel(write_lock=True)
-
-    # clients = tuple(__PriorityQueueClient__(queue, EndPoint(client_consumer, client_producer)) for _i in range(degree))
-
-    # server = __PriorityQueueServer__(queue, (server_producer,), server_consumer)
-
     return (server, tuple(clients))
+
 class __PriorityQueueServer__:
     def __init__(self, queue, producers, consumer):
         self.priority_queue = queue
@@ -76,12 +68,13 @@ class __PriorityQueueServer__:
         return modified
 
     def close(self, block=True):
-        self.online = False
-        self.consumer.close()
-        for producer in self.producers:
-            producer.close()
-        self.consumer = None
-        self.producers = None
+        if self.online:
+            self.online = False
+            self.consumer.close()
+            for producer in self.producers:
+                producer.close()
+            self.consumer = None
+            self.producers = None
 
 class __PriorityQueueClient__:
     def __init__(self, queue, endpoint):
@@ -110,6 +103,7 @@ class __PriorityQueueClient__:
         return element
 
     def close(self, block=True):
-        self.online = False
-        self.endpoint.close()
-        self.endpoint = None
+        if self.online:
+            self.online = False
+            self.endpoint.close()
+            self.endpoint = None

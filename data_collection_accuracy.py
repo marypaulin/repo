@@ -5,10 +5,10 @@ import os
 from time import sleep
 from sklearn.tree import DecisionTreeClassifier
 
-from lib.osdt_classifier import OSDTClassifier
-from lib.parallel_osdt_classifier import ParallelOSDTClassifier
-from lib.data_processing import read_dataset
-from lib.analysis import accuracy_analysis
+from lib.models.osdt_classifier import OSDTClassifier
+from lib.models.parallel_osdt_classifier import ParallelOSDTClassifier
+from lib.data_structures.dataset import read_dataframe
+from lib.experiments.analysis import accuracy_analysis
 
 # Extract Arguments
 arguments = sys.argv
@@ -17,7 +17,7 @@ basename = os.path.basename(input_path)
 dataset_name, extension = os.path.splitext(basename)
 if not os.path.exists('data/accuracy/{}'.format(dataset_name)):
     os.mkdir('data/accuracy/{}'.format(dataset_name))
-dataset = read_dataset(input_path)
+dataset = read_dataframe(input_path)
 (n, m) = dataset.shape
 
 timeout = float(arguments[2]) if len(arguments) >= 3 else 60

@@ -1,5 +1,5 @@
 import unittest
-from lib.interval import Interval
+from lib.data_structures.interval import Interval
 
 class TestInterval(unittest.TestCase):
 
