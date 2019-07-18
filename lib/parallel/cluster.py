@@ -37,7 +37,7 @@ class Cluster:
         Client.__run__(self, 0, self.client_bundle, self.task)
 
         for client in clients:
-            client.join(block=False)
+            client.join()
         server.stop(block=False)
 
         return self.client_bundle
