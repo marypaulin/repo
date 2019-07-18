@@ -6,23 +6,23 @@ from time import sleep
 # Wrapper class pair around the multiprocessing Pipe class made to resemble the multiprocessing Queue class
 # This implementation exposes separate producer and consumer ends to prevent replication of excess file descriptors
 
-def Channel(producers=1, consumers=1, duplex=False, buffer_limit=None):
+def Channel(read_lock=False, write_lock=False, duplex=False, buffer_limit=None):
     if duplex:
         (connection_a, connection_b) = Pipe(True)
 
-        consumer_a = __ChannelConsumer__(connection_a, lock=Lock() if producers > 1 else None, buffer_limit=buffer_limit)
-        producer_a = __ChannelProducer__(connection_a, lock=Lock() if consumers > 1 else None)
+        consumer_a = __ChannelConsumer__(connection_a, lock=Lock() if read_lock or write_lock else None, buffer_limit=buffer_limit)
+        producer_a = __ChannelProducer__(connection_a, lock=Lock() if read_lock or write_lock else None)
 
-        consumer_b = __ChannelConsumer__(connection_b, lock=Lock() if producers > 1 else None, buffer_limit=buffer_limit)
-        producer_b = __ChannelProducer__(connection_b, lock=Lock() if consumers > 1 else None)
+        consumer_b = __ChannelConsumer__(connection_b, lock=Lock() if read_lock or write_lock else None, buffer_limit=buffer_limit)
+        producer_b = __ChannelProducer__(connection_b, lock=Lock() if read_lock or write_lock else None)
 
         endpoint_a = __ChannelProducerConsumer__(consumer_a, producer_a)
         endpoint_b = __ChannelProducerConsumer__(consumer_b, producer_b)
         return (endpoint_a, endpoint_b)
     else:
         (read_connection, write_connection) = Pipe(False)
-        consumer = __ChannelConsumer__(write_connection, lock=Lock() if producers > 1 else None, buffer_limit=buffer_limit)
-        producer = __ChannelProducer__(read_connection, lock=Lock() if consumers > 1 else None)
+        consumer = __ChannelConsumer__(write_connection, lock=Lock() if write_lock else None, buffer_limit=buffer_limit)
+        producer = __ChannelProducer__(read_connection, lock=Lock() if read_lock else None)
         return (consumer, producer)
 
 def EndPoint(consumer, producer):
