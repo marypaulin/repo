@@ -5,7 +5,7 @@ def PriorityQueue(queue=None, degree=1, buffer_limit=None):
     if queue == None:
         queue = []
     # Degree > 1 will introduce a lock on the client producer
-    server_consumer, client_producer = Channel(consumers=degree, producers=1)
+    server_consumer, client_producer = Channel(consumers=degree, producers=1, buffer_limit=5000)
 
     clients = []
     server_producers = []
@@ -60,6 +60,7 @@ class __PriorityQueueServer__:
                 element = heappop(self.priority_queue)
                 succes = self.consumer.push(element, block=False)
                 if not success:
+                    print("Buffer Full")
                     heappush(self.priority_queue, element)
                     break
 
