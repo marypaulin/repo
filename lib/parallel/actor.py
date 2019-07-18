@@ -15,7 +15,6 @@ def LocalClient(id, services, task):
 def LocalServer(id, services):
     return Actor(id, services, __server_task__, actor_type='local')
 
-
 def __server_task__(id, services, termination):
     while not termination():
         for service in services:
@@ -54,8 +53,7 @@ class __ProcessActor__:
     def __init__(self, id, services, task):
         self.__termination__ = Value('d', 0)
         self.id = id
-        self.actor = Process(target=self.__run__, args=(
-            self.id, services, task, lambda: self.__termination__.value == 1))
+        self.actor = Process(target=self.__run__, args=(self.id, services, task, lambda: self.__termination__.value == 1))
         self.actor.daemon = True
         self.exception = None
 
@@ -63,8 +61,7 @@ class __ProcessActor__:
         # Attempt to pin process to CPU core using taskset if available
         taskset_enabled = (system("command -v taskset") != 256)
         if taskset_enabled:
-            check_call(["taskset", "-cp", str(client_id),
-                        str(getpid())], stdout=DEVNULL, stderr=STDOUT)
+            check_call(["taskset", "-cp", str(id), str(getpid())], stdout=DEVNULL, stderr=STDOUT)
         try:
             task(id, services, termination)
         except Exception as e:
@@ -94,8 +91,7 @@ class __ThreadActor__:
     def __init__(self, id, services, task):
         self.__termination__ = Event()
         self.id = id
-        self.actor = Thread(target=self.__run__, args=(
-            self.id, services, task, self.__termination__.isSet))
+        self.actor = Thread(target=self.__run__, args=(self.id, services, task, self.__termination__.isSet))
         self.actor.daemon = True
         self.exception = None
         self.alive = Event()

@@ -15,4 +15,39 @@
 
 # Debug History
 
-- 5d1e00b0a7a70bbab6242fc01b2b6c4c01d9a0d6 Machine, Pipe + Queue, 1 Core, 14 s
+- Commit Hash: 5d1e00b0a7a70bbab6242fc01b2b6c4c01d9a0d6 
+- Machine: Local
+- Network Composition: Pipe + Queue
+- Processes: 1 Worker, 1 Server
+- Runtime: 14 s
+
+- Commit Hash: 5d1e00b0a7a70bbab6242fc01b2b6c4c01d9a0d6 
+- Machine: Local
+- Network Composition: Pipe + Queue
+- Processes: 2 Worker, 1 Server
+- Runtime: 13 s
+
+- Commit Hash: 5d1e00b0a7a70bbab6242fc01b2b6c4c01d9a0d6 
+- Machine: Local
+- Network Composition: Pipe + Queue
+- Processes: 4 Worker, 1 Server
+- Runtime: 31 s
+
+
+- Commit Hash: 5d1e00b0a7a70bbab6242fc01b2b6c4c01d9a0d6 
+- Machine: Local
+- Network Composition: Pipe + Queue
+- Processes: 1 Worker, 1 Server
+- Runtime: 60+ s
+
+- Commit Hash: 5d1e00b0a7a70bbab6242fc01b2b6c4c01d9a0d6 
+- Machine: Local
+- Network Composition: Pipe + Queue
+- Processes: 2 Worker, 1 Server
+- Runtime: _ s
+
+- Commit Hash: 5d1e00b0a7a70bbab6242fc01b2b6c4c01d9a0d6 
+- Machine: Local
+- Network Composition: Pipe + Queue
+- Processes: 3 Worker, 1 Server
+- Runtime: _ s
