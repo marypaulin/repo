@@ -58,8 +58,7 @@ class __PriorityQueueServer__:
             # Transfer from priorty queue to outbound queue
             while self.priority_queue and not self.consumer.full():
                 element = heappop(self.priority_queue)
-                success = self.consumer.push(element, block=False)
-                if not success:
+                if not self.consumer.push(element, block=False):
                     print("Buffer Full")
                     heappush(self.priority_queue, element)
                     break
