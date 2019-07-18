@@ -22,7 +22,7 @@ class Cluster:
 
     def compute(self):
         clients = tuple(Client(i, self.client_bundles[i], self.task) for i in range(1, self.size))
-        server = Server(0, self.server_bundle)
+        server = Server(self.size, self.server_bundle)
 
         server.start(block=False)
         for client_id, client in enumerate(clients):
