@@ -66,7 +66,7 @@ class __ChannelConsumer__:
             if not self.flushing:
                 self.thread = Thread(target=self.__flush__)
                 self.thread.daemon = True
-                self.thread.start()]
+                self.thread.start()
             return True
         
     def full(self):
