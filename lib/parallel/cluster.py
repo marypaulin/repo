@@ -1,5 +1,4 @@
 from multiprocessing import Process
-from time import sleep
 
 from lib.parallel.priority_queue import PriorityQueue
 from lib.parallel.truth_table import TruthTable

@@ -22,7 +22,7 @@ class Client:
     def start(self, block=True):
         self.process.start()
         while not self.is_alive():
-            sleep(0.1)
+            pass
 
     def stop(self, block=True):
         kill(self.process.pid, SIGINT)

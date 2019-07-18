@@ -1,4 +1,4 @@
-from time import time, sleep
+from time import time
 from random import random
 
 from lib.result import Result

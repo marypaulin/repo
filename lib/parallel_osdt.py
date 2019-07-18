@@ -193,7 +193,7 @@ class ParallelOSDT:
             self.print('Worker {} Starting'.format(self.worker_id))
         
         while not self.terminate() and self.elapsed_time() <= self.max_time and not self.interrupt:
-
+            sleep(0.01)
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
                 if self.verbose or self.log:
@@ -473,7 +473,7 @@ class ParallelOSDT:
     def enqueue(self, task):
         (priority, capture, path) = task
         if not self.is_pruned(path):
-            self.tasks.push(task, block=True)
+            self.tasks.push(task, block=False)
 
     def get(self, capture, path):
         if self.configuration['capture_equivalence']:
@@ -487,7 +487,7 @@ class ParallelOSDT:
             key = capture
         else:
             key = (capture, path)
-        self.results.put(key, result, block=True)
+        self.results.put(key, result, block=False)
 
     def update(self, capture, path, result):
         if result.overwrites(self.get(capture, path)):

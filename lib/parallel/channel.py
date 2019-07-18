@@ -1,7 +1,6 @@
 from multiprocessing import Lock, Pipe
 from collections import deque
 from threading import Thread
-from time import sleep
 
 # Wrapper class pair around the multiprocessing Pipe class made to resemble the multiprocessing Queue class
 # This implementation exposes separate producer and consumer ends to prevent replication of excess file descriptors
