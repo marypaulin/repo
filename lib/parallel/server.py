@@ -73,7 +73,7 @@ class ServerThread:
                     modified = modified or service.serve()
         finally:
             for service in services:
-                service.close(block=False)
+                service.close()
 
     def start(self):
         self.thread.start()
