@@ -2,7 +2,7 @@ from multiprocessing import Process
 from os import kill, system, getpid
 from signal import SIGINT
 from time import sleep
-
+from subprocess import check_call, DEVNULL, STDOUT
 class Client:
     def __init__(self, client_id, services, task):
         self.id = client_id
