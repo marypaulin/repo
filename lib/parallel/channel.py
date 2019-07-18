@@ -38,6 +38,9 @@ class __ChannelProducerConsumer__:
     def pop(self, block=True):
         return self.producer.pop(block=block)
 
+    def full(self):
+        return self.consumer.full()
+
     def close(self, block=True):
         self.producer.close(block=block)
         self.consumer.close(block=block)
@@ -60,12 +63,15 @@ class __ChannelConsumer__:
             if self.thread != None:
                 self.thread.join()
             self.__push__(element)
+            return True
         else:
             self.buffer.appendleft(element)
             if not self.flushing:
                 self.thread = Thread(target=self.__flush__)
                 self.thread.daemon = True
                 self.thread.start()
+            if block:
+                self.thread.join()
             return True
         
     def full(self):

@@ -193,7 +193,6 @@ class ParallelOSDT:
             self.print('Worker {} Starting'.format(self.worker_id))
         
         while not self.terminate() and self.elapsed_time() <= self.max_time and not self.interrupt:
-            sleep(0.01)
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
                 if self.verbose or self.log:

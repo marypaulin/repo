@@ -66,6 +66,7 @@ class __TruthTableServer__:
                 for endpoint in self.endpoints:
                     endpoint.push((key, value), block=False)
         return modified
+
     def close(self, block=True):
         self.online = False
         for endpoint in self.endpoints:
