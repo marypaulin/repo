@@ -11,6 +11,7 @@ from lib.data_processing import read_dataset
 dataset = read_dataset('data/preprocessed/compas-binary.csv')
 (n, m) = dataset.shape
 
+# arguments: <processes> <subsample?> <subfeature?>
 if len(sys.argv) >= 3:
     n = int(sys.argv[2])
 if len(sys.argv) >= 4:

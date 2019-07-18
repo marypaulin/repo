@@ -20,6 +20,7 @@ if not os.path.exists('data/scalability/{}'.format(dataset_name)):
 dataset = read_dataset(input_path)
 (n, m) = dataset.shape
 
+# arguments: <dataset_path> <timeout?> <regularization?> <model_name?> <core_count?>
 timeout = float(arguments[2]) if len(arguments) >= 3 else 60
 regularization = float(arguments[3]) if len(arguments) >= 4 else 0.1
 model_name = arguments[4] if len(arguments) >= 5 else 'osdt'
@@ -59,6 +60,6 @@ elif model_name == 'parallel_osdt':
     # Run Data Collection for Parallel OSDT
     model_name = 'parallel_osdt_{}_core'.format(core_count)
     model = ParallelOSDTClassifier
-    hyperparameters = { 'regularization' : regularization, 'clients': core_count, 'max_time': timeout }
+    hyperparameters = { 'regularization' : regularization, 'workers': core_count, 'max_time': timeout }
     output_path = 'data/scalability/{}/{}.csv'.format(dataset_name, model_name)
     scalability_analysis(dataset, model, hyperparameters, output_path)
