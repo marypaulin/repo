@@ -4,33 +4,35 @@ from heapq import heappush, heappop
 def PriorityQueue(queue=None, degree=1, buffer_limit=None):
     if queue == None:
         queue = []
-    # # Degree > 1 will introduce a lock on the client producer
-    # server_consumer, client_producer = Channel(read_lock=True)
-
-    # clients = []
-    # server_producers = []
-    # for i in range(degree):
-    #     client_consumer, server_producer = Channel()
-
-    #     client_endpoint = EndPoint(client_consumer, client_producer)
-    #     client = __PriorityQueueClient__(queue, client_endpoint)
-    #     clients.append(client)
-
-    #     server_producers.append(server_producer)
-
-    # server = __PriorityQueueServer__(queue, tuple(server_producers), server_consumer)
-
-    # return (server, tuple(clients))
 
     # Degree > 1 will introduce a lock on the client producer
+    server_consumer, client_producer = Channel(read_lock=True)
+
+    clients = []
+    server_producers = []
+    for i in range(degree):
+        client_consumer, server_producer = Channel()
+
+        client_endpoint = EndPoint(client_consumer, client_producer)
+        client = __PriorityQueueClient__(queue, client_endpoint)
+        clients.append(client)
+
+        server_producers.append(server_producer)
+
+    server = __PriorityQueueServer__(queue, tuple(server_producers), server_consumer)
+
+    return (server, tuple(clients))
+
+    Degree > 1 will introduce a lock on the client producer
 
     ##################
-    server_consumer, client_producer = Channel(read_lock=True)
-    client_consumer, server_producer = Channel(write_lock=True)
 
-    clients = tuple(__PriorityQueueClient__(queue, EndPoint(client_consumer, client_producer)) for _i in range(degree))
+    # server_consumer, client_producer = Channel(read_lock=True)
+    # client_consumer, server_producer = Channel(write_lock=True)
 
-    server = __PriorityQueueServer__(queue, (server_producer,), server_consumer)
+    # clients = tuple(__PriorityQueueClient__(queue, EndPoint(client_consumer, client_producer)) for _i in range(degree))
+
+    # server = __PriorityQueueServer__(queue, (server_producer,), server_consumer)
 
     return (server, tuple(clients))
 class __PriorityQueueServer__:
