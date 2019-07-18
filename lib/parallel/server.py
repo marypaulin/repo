@@ -29,9 +29,8 @@ class Server:
                 modified = False
                 for service in services:
                     modified = modified or service.serve()
-                if not modified:
-                    print("Alive")
 
+                print("Alive")
         finally:
             for service in services:
                 service.close(block=False)
