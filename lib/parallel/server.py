@@ -26,7 +26,6 @@ class Server:
         signal(SIGINT, self.__interrupt__)
         try:
             while not self.interrupt:
-                sleep(0.01)
                 for service in services:
                     service.serve()
         finally:

@@ -56,6 +56,7 @@ class __PriorityQueueServer__:
                         heappush(self.priority_queue, element)
 
             # Transfer from priorty queue to outbound queue
+            print(len(self.consumer.buffer))
             while self.priority_queue:
                 element = heappop(self.priority_queue)
                 self.consumer.push(element, block=False)

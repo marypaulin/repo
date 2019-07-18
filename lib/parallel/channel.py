@@ -50,6 +50,7 @@ class __ChannelConsumer__:
         self.buffer = deque([])
         self.flushing = False
         self.thread = None
+        # self.buffer_size = buffer_size
     
     def push(self, element, block=True):
         if self.connection == None:
