@@ -460,7 +460,7 @@ class ParallelOSDT:
         pass
 
     def dequeue(self):
-            task = self.tasks.pop(block=False)
+            task = self.tasks.pop(block=True)
             if task == None:
                 return None
             (priority, capture, path) = task

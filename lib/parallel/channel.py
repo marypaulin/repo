@@ -119,27 +119,38 @@ class __ChannelProducer__:
             raise Exception('ChannelError: Outbound Connection Closed')
         
         # Note: 'None' indicates indefinite waiting, '0' indicates no waiting
-        timeout = None if block else 0
-
         element = None
         if self.lock != None:
             with self.lock:
-                if self.connection.poll(timeout):
+                if block:
                     try:
                         element = self.connection.recv()
                     except EOFError:
                         pass
                     except Exception as e:
                         print(e)
-                
+                elif self.connection.poll(0):
+                    try:
+                        element = self.connection.recv()
+                    except EOFError:
+                        pass
+                    except Exception as e:
+                        print(e)
         else:
-            if self.connection.poll(timeout):
+            if block:
                 try:
                     element = self.connection.recv()
                 except EOFError:
                     pass
                 except Exception as e:
-                    print(e)                    
+                    print(e)
+            elif self.connection.poll(0):
+                try:
+                    element = self.connection.recv()
+                except EOFError:
+                    pass
+                except Exception as e:
+                    print(e)
         return element
 
     def close(self, block=True):

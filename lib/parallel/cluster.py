@@ -24,9 +24,9 @@ class Cluster:
         clients = tuple(Client(i, self.client_bundles[i], self.task) for i in range(1, self.size))
         server = Server(self.size, self.server_bundle)
 
-        server.start()
+        server.start(block=False)
         for client_id, client in enumerate(clients):
-            client.start()
+            client.start(block=False)
 
         # Permit GC on local service resources now that they have been transferred to their respective subprocesses
         self.server_bundle = None
@@ -37,7 +37,7 @@ class Cluster:
         Client.__run__(self, 0, self.client_bundle, self.task)
 
         for client in clients:
-            client.join()
-        server.stop()
+            client.join(block=False)
+        server.stop(block=False)
 
         return self.client_bundle
