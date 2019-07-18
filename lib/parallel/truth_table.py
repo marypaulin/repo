@@ -110,7 +110,7 @@ class __TruthTableClient__:
                 if result.optimizer != None and self.propagator.tracking(key):
                     self.propagator.untrack(key)
                 
-                updates = self.propagator.propagate(key, result, self.client_table)
+                updates = self.propagator.propagate(key, result, self.table)
                 for update_key, update_value in updates.items():
                     self.put(update_key, update_value)
 

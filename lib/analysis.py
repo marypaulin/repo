@@ -109,7 +109,6 @@ def scalability_analysis(dataset, model_class, hyperparameters, path, step_count
 
     for sample_size in range(1, n+1, sample_size_step):
         for feature_size in range(1, m+1, feature_size_step):
-
             print("Subsample Shape: ({}, {})".format(sample_size, feature_size))
             sleep(1)
             x = X[:sample_size,:feature_size]
@@ -143,7 +142,7 @@ def plot_scalability_analysis(dataset, title, z_limit=None):
     if z_limit != None:
         ax.set_zlim(0, z_limit)
 
-    ax.view_init(30, -120)
+    ax.view_init(50, -20)
     
 # Parses the DecisionTreeClassifier from Sci-Kit Learn according to their documentation
 # Returns the number of leaves in this model
