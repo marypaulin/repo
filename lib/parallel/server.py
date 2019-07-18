@@ -24,7 +24,7 @@ class Server:
         # Attempt to pin process to CPU core using taskset if available
         taskset_enabled = (system("command -v taskset") != 256)
         if taskset_enabled:
-            check_call(["taskset", "-cp", str(client_id), str(getpid())], stdout=DEVNULL, stderr=STDOUT)
+            check_call(["taskset", "-cp", str(server_id), str(getpid())], stdout=DEVNULL, stderr=STDOUT)
         signal(SIGINT, self.__interrupt__)
         try:
             while not self.interrupt:
