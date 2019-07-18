@@ -26,11 +26,10 @@ class Server:
         signal(SIGINT, self.__interrupt__)
         try:
             while not self.interrupt:
+                sleep(0.01)
                 modified = False
                 for service in services:
                     modified = modified or service.serve()
-
-                sleep(0.1)
         finally:
             for service in services:
                 service.close(block=False)
