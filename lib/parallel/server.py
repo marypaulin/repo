@@ -28,7 +28,7 @@ class Server:
             while not self.interrupt:
                 modified = False
                 for service in services:
-                    modified = modifed or service.serve()
+                    modified = modified or service.serve()
                 if not modified:
                     print("Server {} Idle".format(server_id))
         finally:
