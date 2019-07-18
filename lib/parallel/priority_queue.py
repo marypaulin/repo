@@ -5,7 +5,7 @@ def PriorityQueue(queue=None, degree=1, buffer_limit=None):
     if queue == None:
         queue = []
     # Degree > 1 will introduce a lock on the client producer
-    server_consumer, client_producer = Channel(consumers=degree, producers=1, buffer_limit=degree*2)
+    server_consumer, client_producer = Channel(consumers=degree, producers=1)
 
     clients = []
     server_producers = []
