@@ -70,7 +70,6 @@ class ServerThread:
                 modified = False
                 for service in services:
                     modified = modified or service.serve()
-                sleep(0)
         finally:
             for service in services:
                 service.close(block=False)
