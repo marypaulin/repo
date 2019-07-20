@@ -1,13 +1,15 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+from gc import collect
 from time import time, sleep
 from math import ceil
 from mpl_toolkits import mplot3d
-import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 from sklearn.tree import DecisionTreeClassifier
 
 from lib.experiments.logger import Logger
-from lib.dataset import read_dataframe
+from lib.data_structures.dataset import read_dataframe
 
 def accuracy_analysis(dataset, model_class, hyperparameters, path):
     X = dataset.values[:, :-1]
@@ -110,16 +112,24 @@ def scalability_analysis(dataset, model_class, hyperparameters, path, step_count
     for sample_size in range(1, n+1, sample_size_step):
         for feature_size in range(1, m+1, feature_size_step):
             print("Subsample Shape: ({}, {})".format(sample_size, feature_size))
+
+            # Try to standardize starting state
+            collect()
             sleep(1)
+
+            # Take Subsample
             x = X[:sample_size,:feature_size]
             y = Y[:sample_size]
+
             model = model_class(**hyperparameters)
             start = time()
             try:
                 model.fit(x, y)
-            except Exception:
+            except Exception as e:
+                print(e)
                 pass
             runtime = time() - start
+
             logger.log([sample_size, feature_size, runtime])
 
 def plot_scalability_analysis(dataset, title, z_limit=None):

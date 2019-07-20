@@ -1,7 +1,7 @@
-
-import math
 import sys
-import os
+from os import mkdir
+from os.path import basename, splitext, exists
+from math import ceil, floor
 from time import sleep
 from sklearn.tree import DecisionTreeClassifier
 
@@ -13,10 +13,10 @@ from lib.experiments.analysis import accuracy_analysis
 # Extract Arguments
 arguments = sys.argv
 input_path = arguments[1]
-basename = os.path.basename(input_path)
-dataset_name, extension = os.path.splitext(basename)
-if not os.path.exists('data/accuracy/{}'.format(dataset_name)):
-    os.mkdir('data/accuracy/{}'.format(dataset_name))
+basename = basename(input_path)
+dataset_name, extension = splitext(basename)
+if not exists('data/accuracy/{}'.format(dataset_name)):
+    mkdir('data/accuracy/{}'.format(dataset_name))
 dataset = read_dataframe(input_path)
 (n, m) = dataset.shape
 
@@ -34,9 +34,9 @@ model_name = 'cart'
 model = DecisionTreeClassifier
 hyperparameters = [{
     'max_depth': None,
-    'min_samples_split': math.ceil(regularization * 2 * n),
-    'min_samples_leaf': math.ceil(regularization * n),
-    'max_leaf_nodes': max(2, math.floor(1 / (2 * regularization))),
+    'min_samples_split': ceil(regularization * 2 * n),
+    'min_samples_leaf': ceil(regularization * n),
+    'max_leaf_nodes': max(2, floor(1 / (2 * regularization))),
     'min_impurity_decrease': regularization
 } for regularization in regularizations]
 output_path = 'data/accuracy/{}/{}.csv'.format(dataset_name, model_name)

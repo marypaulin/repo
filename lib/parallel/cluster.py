@@ -1,4 +1,5 @@
 from lib.parallel.actor import Client, LocalClient, Server, LocalServer
+from multiprocessing import Value
 
 class Cluster:
     def __init__(self, task, services, size=1):
@@ -16,12 +17,13 @@ class Cluster:
         self.client_bundle = self.client_bundles[0]
 
     def compute(self):
-        clients = tuple(Client(i, self.client_bundles[i], self.task) for i in range(1, self.size))
-        server = Server(self.size, self.server_bundle)
+        peers = Value('d', self.size)
+        clients = tuple(Client(i, self.client_bundles[i], self.task, peers=peers) for i in range(1, self.size))
+        server = Server(self.size, self.server_bundle, peers=peers)
 
-        server.start(block=False)
+        server.start()
         for client in clients:
-            client.start(block=False)
+            client.start()
 
         # Permit GC on local service resources now that they have been transferred to their respective subprocesses
         self.server_bundle = None
@@ -29,11 +31,16 @@ class Cluster:
 
         # Run self as client 0
         # Kind of hacky but kind of works
-        LocalClient(0, self.client_bundle, self.task).start()
+        LocalClient(0, self.client_bundle, self.task, peers=peers).start()
+
+        # print("Cluster Complete")
 
         for client in clients:
-            client.stop(block=False)
-
-        server.stop(block=False)
+            # client.join()
+            if client.exception != None:
+                print(client.exception)
+        # server.join()
+        if server.exception != None:
+            print(server.exception)
 
         return self.client_bundle

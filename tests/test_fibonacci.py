@@ -2,7 +2,7 @@ import unittest
 
 from lib.models.fibonacci import Fibonacci
 
-class TestCluster(unittest.TestCase):
+class TestFibonacci(unittest.TestCase):
     # Fibonacci effectively performs a small functional test on cluster.py
     # That was the purpose of creating it from the start
     def test_cluster_on_fibonacci(self):

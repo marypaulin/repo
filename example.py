@@ -17,6 +17,7 @@ if len(sys.argv) >= 3:
 if len(sys.argv) >= 4:
     m = int(sys.argv[3])
 
+profile = False
 
 X = dataset.values[:n, :m-1]
 y = dataset.values[:n, -1]
@@ -74,10 +75,12 @@ hyperparameters = {
 
 start = time()
 model = ParallelOSDTClassifier(**hyperparameters)
-cProfile.run('model.fit(X, y)', sort='cumtime')
-# model.fit(X, y)
+if profile:
+    cProfile.run('model.fit(X, y)', sort='tottime')
+else:
+    model.fit(X, y)
 prediction = model.predict(X)
-prediction = prediction.reshape(1, n)
+prediction = prediction.reshape(1, n)[0]
 print('Runtime: {} Seconds'.format(time() - start))
 print('Prediction: \n{}'.format(prediction))
 print('Training Accuracy: {}'.format(model.score(X, y)))

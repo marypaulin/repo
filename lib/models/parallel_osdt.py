@@ -3,11 +3,12 @@ from random import random
 from memory_profiler import profile
 
 from lib.parallel.cluster import Cluster
-from lib.parallel.priority_queue import PriorityQueue
-from lib.parallel.truth_table import TruthTable
-from lib.data_structures.prefix_tree import PrefixTree
-from lib.data_structures.similarity_index import SimilarityIndex
+from lib.parallel.queue_service import QueueService
+from lib.parallel.dictionary_service import DictionaryService
 from lib.models.similarity_propagator import SimilarityPropagator
+from lib.data_structures.prefix_tree import PrefixTree
+from lib.data_structures.heap_queue import HeapQueue
+from lib.data_structures.similarity_index import SimilarityIndex
 from lib.data_structures.result import Result
 from lib.data_structures.interval import Interval
 from lib.data_structures.dataset import DataSet
@@ -172,7 +173,7 @@ class ParallelOSDT:
         pass
 
     # Task method that gets run by all worker nodes
-    def task(self, worker_id, services, termination):
+    def task(self, worker_id, services, peers):
         self.worker_id = worker_id
         start_time = time()
         (tasks, results, prefixes) = services
@@ -183,12 +184,12 @@ class ParallelOSDT:
 
         if self.verbose or self.log:
             self.print('Worker {} Starting'.format(self.worker_id))
-        
-        while not self.complete() and self.timeout() and not termination():
+
+        while not self.complete() and not self.timeout(): #  and peers.value == self.workers:
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
                 if self.verbose or self.log:
-                    self.print("Worker {} Idle {}".format(self.worker_id, self.get(self.root, tuple())))
+                    print("Worker {} Idle {}".format(self.worker_id, self.get(self.root, tuple())))
                 continue
             (priority, capture, path) = task
 
@@ -219,7 +220,8 @@ class ParallelOSDT:
             else:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
-        self.print('Worker {} Finishing (Complete: {}, Timeout: {}, Interrupted: {})'.format(self.worker_id, self.complete(), self.timeout(), termination()))
+
+        self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
 
     def prioritize(self, capture, path):
         priority_metric = self.configuration['priority_metric']
@@ -496,7 +498,7 @@ class ParallelOSDT:
             return self.solved(left_capture, path + (j, 'L')) and self.solved(right_capture, path + (j, 'R'))
 
     def timeout(self):
-        return self.elapsed_time() <= self.max_time
+        return self.elapsed_time() > self.max_time
 
     # Method run by worker nodes to decide when to terminate
     def complete(self):
@@ -530,12 +532,12 @@ class ParallelOSDT:
             for key, value in self.configuration.items():
                 self.print("  {} = {}".format(key, value))
         
+        self.workers = workers
         self.start_time = time()
         self.root = Vector.ones(self.dataset.height)  # Root capture
         cooldown = self.configuration['synchronization_cooldown']
         # Set of "services" which are data structures that require management by a server process and get consumed by client processes
-        prefixes = TruthTable(table=PrefixTree(minimize=True), degree=workers, refresh_cooldown=cooldown)
-        # suffixes = TruthTable(table=PrefixTree(minimize=True), degree=workers, refresh_cooldown=cooldown)
+        prefixes = DictionaryService(table=PrefixTree(minimize=True), degree=workers, refresh_cooldown=cooldown)
 
         if self.configuration['similarity_threshold'] > 0:
             similarity_index = SimilarityIndex(distance=self.configuration['similarity_threshold'], dimensions=self.dataset.height, tables=self.dataset.height)
@@ -543,9 +545,9 @@ class ParallelOSDT:
         else:
             propagator = None
         
-        results = TruthTable(degree=workers, refresh_cooldown=cooldown, propagator=propagator)
+        results = DictionaryService(degree=workers, refresh_cooldown=cooldown, propagator=propagator)
         root_priority = 0
-        tasks = PriorityQueue([ ( root_priority, self.root, () ) ], degree=workers, buffer_limit=2048)
+        tasks = QueueService(queue=HeapQueue([( root_priority, self.root, () )]), degree=workers, buffer_limit=2048)
         services = (tasks, results, prefixes)
 
         # Initialize and run the cluster
@@ -568,7 +570,7 @@ class ParallelOSDT:
 
     def __default_configuration__(self):
         return {
-            'priority_metric': 'uniform', # Decides how tasks are prioritized
+            'priority_metric': 'depth', # Decides how tasks are prioritized
             'deprioritization': 0.01, # Decides how much to push back a task if it has pending dependencies
 
             # Toggles the assumption about objective independence when composing subtrees (Theorem 1)

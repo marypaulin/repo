@@ -1,6 +1,6 @@
-from multiprocessing import Lock, Pipe, Queue
+from multiprocessing import Lock, Pipe, Queue, Value
 from collections import deque
-from threading import Thread
+from threading import Thread, Event
 from queue import Full, Empty
 
 # Wrapper class pair around the multiprocessing Pipe class made to resemble the multiprocessing Queue class
@@ -15,7 +15,6 @@ def Channel(read_lock=False, write_lock=False, duplex=False, buffer_limit=None, 
         return QueueChannel(read_lock=read_lock, write_lock=write_lock, duplex=duplex, buffer_limit=buffer_limit)
     else:
         raise Exception("ChannelException: Invalid Channel Type {}".format(channel_type))
-
 
 def PipeChannel(read_lock=False, write_lock=False, duplex=False, buffer_limit=None):
     if duplex:
@@ -72,73 +71,54 @@ class __ProducerConsumer__:
         self.consumer = consumer
         self.producer = producer
 
-    def push(self, element, block=True):
-        self.consumer.push(element, block=block)
+    def push(self, element, block=False):
+        return self.consumer.push(element, block=block)
     
-    def pop(self, block=True):
+    def pop(self, block=False):
         return self.producer.pop(block=block)
 
     def full(self):
         return self.consumer.full()
-
-    def close(self, block=True):
-        self.producer.close(block=block)
-        self.consumer.close(block=block)
 
 class __ConnectionConsumer__:
     def __init__(self, connection, lock=None, buffer_limit=None):
         self.lock = lock
         self.connection = connection
         self.buffer = deque([])
-        self.flushing = False
+        self.flushing = Event()
         self.thread = None
         self.buffer_limit = buffer_limit
     
-    def push(self, element, block=True):
-        if self.connection == None:
-            raise Exception('ChannelError: Inbound Connection Closed')
+    def push(self, element, block=False):
         if self.buffer_limit != None and len(self.buffer) > self.buffer_limit:
             return False
+        
+        self.buffer.appendleft(element)
+        if not self.flushing.is_set():
+            self.thread = Thread(target=self.__flush__)
+            self.thread.daemon = True
+            self.thread.start()
+        
         if block:
-            if self.thread != None:
-                self.thread.join()
-            self.__push__(element)
-            return True
-        else:
-            self.buffer.appendleft(element)
-            if not self.flushing:
-                self.thread = Thread(target=self.__flush__)
-                self.thread.daemon = True
-                self.thread.start()
-            if block:
-                self.thread.join()
-            return True
+            self.thread.join()
+        
+        return True
         
     def full(self):
         if self.buffer_limit == None:
             return False
         else:
             return len(self.buffer) > self.buffer_limit
-    
-    def close(self, block=True):
-        if self.connection != None:
-            self.connection.close()
-            if block and self.thread != None:
-                self.thread.join()
-            self.connection = None
 
     def __flush__(self):
-        self.flushing = True
-        while self.connection != None:
+        self.flushing.set()
+        while True:
             try:
                 element = self.buffer.pop()
                 self.__push__(element)
-            except IndexError:
+            except IndexError: # Buffer is empty
                 break
-            except OSError as e:
-                self.buffer.appendleft(element)
-                break
-        self.flushing = False
+        self.flushing.clear()
     
     def __push__(self, element):
         if self.lock != None:
@@ -147,19 +127,13 @@ class __ConnectionConsumer__:
         else:
             self.connection.send(element)
 
-
 class __ConnectionProducer__:
     def __init__(self, connection, lock):
         self.lock = lock
         self.connection = connection
-    
-
-    def pop(self, block=True):
-        if self.connection == None:
-            raise Exception('ChannelError: Outbound Connection Closed')
-        
-        # Note: 'None' indicates indefinite waiting, '0' indicates no waiting
+    def pop(self, block=False):
         element = None
+        timeout = None if block else 0
         if self.lock != None:
             with self.lock:
                 if block:
@@ -169,9 +143,10 @@ class __ConnectionProducer__:
                         pass
                     except Exception as e:
                         print(e)
-                elif self.connection.poll(0):
+                else: 
                     try:
-                        element = self.connection.recv()
+                        if self.connection.poll(timeout):
+                            element = self.connection.recv()
                     except EOFError:
                         pass
                     except Exception as e:
@@ -184,65 +159,35 @@ class __ConnectionProducer__:
                     pass
                 except Exception as e:
                     print(e)
-            elif self.connection.poll(0):
+            else: 
                 try:
-                    element = self.connection.recv()
+                    if self.connection.poll(timeout):
+                        element = self.connection.recv()
                 except EOFError:
                     pass
                 except Exception as e:
                     print(e)
         return element
 
-    def close(self, block=True):
-        if self.connection != None:
-            while block and self.pop(block=False) != None:
-                pass
-            if self.lock != None:
-                with self.lock:
-                    self.connection.close()
-            else:
-                self.connection.close()
-            self.connection = None
-
-
-
 class __QueueConsumer__:
     def __init__(self, queue):
         self.queue = queue
-    
-    def push(self, element, block=True):
+    def push(self, element, block=False):
         try:
             self.queue.put(element, block)
             return True
         except Full:
             return False
-        except BrokenPipeError as e:
-            self.close()
-            return False
-        
     def full(self):
         return False
-    
-    def close(self, block=True):
-        self.queue.close()
-        if not block:
-            self.queue.cancel_join_thread()
 
 class __QueueProducer__:
     def __init__(self, queue):
         self.queue = queue
-    
-    def pop(self, block=True):
+
+    def pop(self, block=False):
         try:
             element = self.queue.get(block)
             return element
         except Empty:
             return None
-        except BrokenPipeError as e:
-            self.close()
-            return False
-
-    def close(self, block=True):
-        self.queue.close()
-        if not block:
-            self.queue.cancel_join_thread()

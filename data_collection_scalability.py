@@ -1,7 +1,9 @@
 # Run some experiments to determine effectiveness of different optimizations on scalability, accuracy, and speed
-import math
 import sys
-import os
+from math import ceil, floor
+from os import mkdir
+from os.path import basename, splitext, exists
+from gc import collect
 from time import sleep
 from sklearn.tree import DecisionTreeClassifier
 
@@ -13,10 +15,10 @@ from lib.analysis import scalability_analysis
 # Extract Arguments
 arguments = sys.argv
 input_path = arguments[1]
-basename = os.path.basename(input_path)
-dataset_name, extension = os.path.splitext(basename)
-if not os.path.exists('data/scalability/{}'.format(dataset_name)):
-    os.mkdir('data/scalability/{}'.format(dataset_name))
+basename = basename(input_path)
+dataset_name, extension = splitext(basename)
+if not exists('data/scalability/{}'.format(dataset_name)):
+    mkdir('data/scalability/{}'.format(dataset_name))
 dataset = read_datasframe(input_path)
 (n, m) = dataset.shape
 
@@ -41,9 +43,9 @@ if model_name == 'cart':
     model = DecisionTreeClassifier
     hyperparameters = {
             'max_depth': 5,
-            'min_samples_split': math.ceil(regularization * 2 * n), 
-            'min_samples_leaf': math.ceil(regularization * n), 
-            'max_leaf_nodes': max(2, math.floor(1 / ( 2 * regularization ))), 
+            'min_samples_split': ceil(regularization * 2 * n), 
+            'min_samples_leaf': ceil(regularization * n), 
+            'max_leaf_nodes': max(2, floor(1 / ( 2 * regularization ))), 
             'min_impurity_decrease': regularization
     }
     output_path = 'data/scalability/{}/{}.csv'.format(dataset_name, model_name)

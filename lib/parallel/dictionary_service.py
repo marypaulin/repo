@@ -5,24 +5,26 @@ from lib.data_structures.interval import Interval
 from lib.data_structures.prefix_tree import PrefixTree
 from lib.parallel.channel import Channel
 
-def TruthTable(table=None, propagator=None, refresh_cooldown=0, degree=1):
+def DictionaryService(table=None, propagator=None, refresh_cooldown=0, degree=1):
     if table == None:
         table = {}
     clients = []
     server_endpoints = []
     for i in range(degree):
         client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
-        client = __TruthTableClient__(table, client_endpoint, propagator=propagator, refresh_cooldown=refresh_cooldown)
+        client = __DictionaryClient__(table, client_endpoint, propagator=propagator, refresh_cooldown=refresh_cooldown)
         clients.append(client)
         server_endpoints.append(server_endpoint)
 
-    server = __TruthTableServer__({}, tuple(server_endpoints))
+    server = __DictionaryServer__({}, tuple(server_endpoints))
 
     return (server, tuple(clients))
 
-class __TruthTableServer__:
+
+class __DictionaryServer__:
     def __init__(self, table, endpoints):
         self.table = {}
+        self.updates = {}
         self.endpoints = endpoints
         self.online = True
 
@@ -41,7 +43,7 @@ class __TruthTableServer__:
         '''
         modified = False
         if self.online:
-            updates = {}
+            self.updates = {}
             # Transfer from inbound queue to broadcast buffers (if the entry is new)
             for endpoint in self.endpoints:
                 while True:
@@ -51,29 +53,25 @@ class __TruthTableServer__:
                     (key, value) = element
                     previous_value = self.table.get(key)
                     if type(previous_value) != Result or value.overwrites(previous_value):
-                        # print("TruthTable Update table[{}] = from {} to {}".format(str(key), str(previous_value), str(value)))
-                        updates[key] = value
+                        # print("DictionaryTable Update table[{}] from {} to {}".format(str(key), str(previous_value), str(value)))
+                        self.updates[key] = value
                     else:
-                        # print("Rejected TruthTable Update table[{}] = from {} to {}".format(vect.__str__(key), previous_value, value))
+                        # print("Rejected DictionaryTable Update table[{}] = from {} to {}".format(str(key), str(previous_value), str(value)))
                         pass
             
-            self.table.update(updates)
+            self.table.update(self.updates)
+            modified = len(self.updates) > 0
+            # print(self.table)
 
-            modified = len(updates) > 0
-
-            for key, value in updates.items():
+            for key, value in self.updates.items():
                 for endpoint in self.endpoints:
-                    endpoint.push((key, value), block=False)
+                    endpoint.push((key, value), block=True)
         return modified
 
-    def close(self, block=True):
-        if self.online:
-            self.online = False
-            for endpoint in self.endpoints:
-                endpoint.close(block=block)
-            self.endpoints = None
+    def flush(self):
+        self.serve()
 
-class __TruthTableClient__:
+class __DictionaryClient__:
     def __init__(self, table, endpoint, propagator=None, refresh_cooldown=0):
         self.table = table
         self.endpoint = endpoint
@@ -96,7 +94,6 @@ class __TruthTableClient__:
             return
         
         while True:
-
             element = self.endpoint.pop(block=False)
             if element == None:
                 break
@@ -124,7 +121,7 @@ class __TruthTableClient__:
         self.__refresh__()
         return key in self.table
 
-    def get(self, key, block=True):
+    def get(self, key, block=False):
         '''
         Queries local cache for value
         Triggers a refresh upon miss
@@ -137,7 +134,7 @@ class __TruthTableClient__:
                 self.__refresh__()
         return self.table.get(key)
 
-    def put(self, key, value, block=True, prefilter=True):
+    def put(self, key, value, block=False, prefilter=True):
         '''
         Stores key-value into local cache and sends entry into pipeline
         Returns True if successfully sent into pipeline
@@ -149,29 +146,31 @@ class __TruthTableClient__:
             return False
 
         self.table[key] = value
-        self.endpoint.push((key, value), block=block)
+        return self.endpoint.push((key, value), block=block)
     
     def shortest_prefix(self, key):
         if type(self.table) != PrefixTree:
-            raise Exception("TruthTableError: TruthTable of internal type {} does no support prefix queries".format(type(self.table)))
+            raise Exception("DictionaryServiceError: DictionaryTable of internal type {} does no support prefix queries".format(type(self.table)))
         self.__refresh__()
         return self.table.shortest_prefix(key)
 
     def longest_prefix(self, key):
         if type(self.table) != PrefixTree:
-            raise Exception("TruthTableError: TruthTable of internal type {} does no support prefix queries".format(type(self.table)))
+            raise Exception("DictionaryTableError: DictionaryTable of internal type {} does no support prefix queries".format(type(self.table)))
         self.__refresh__()
         return self.table.longest_prefix(key)
 
+    def __getitem__(self, key):
+        return self.get(key, block=False)
+
+    def __setitem__(self, key, value):
+        return self.put(key, value, block=False)
+
     def __contains__(self, key):
-        self.__refresh__()
-        return key in self.table
+        return self.has(key)
 
     def __str__(self):
         return str(self.table)
 
-    def close(self, block=True):
-        if self.online:
-            self.online = False
-            self.endpoint.close(block=block)
-            self.endpoint = None
+    def flush(self):
+        self.__refresh__()

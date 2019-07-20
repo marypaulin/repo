@@ -10,7 +10,7 @@ from lib.data_structures.dataset import read_dataframe
 from lib.models.parallel_osdt import ParallelOSDT
 
 class TestOSDT(unittest.TestCase):
-    pass
+
     # Consistency test 
     def test_osdt_on_compas(self):
         dataset = read_dataframe('data/preprocessed/compas-binary.csv', sep=';')
@@ -20,7 +20,7 @@ class TestOSDT(unittest.TestCase):
         lamb = 0.005
 
         start = time()
-        problem = ParallelOSDT(X, y, lamb, max_time=25)
+        problem = ParallelOSDT(X, y, lamb, max_time=60)
         print("\nRunning OSDT COMPAS consistency test")
         model = problem.solve(workers=2, visualize=True)
         finish = time()

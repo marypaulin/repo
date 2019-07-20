@@ -10,10 +10,9 @@ class TestChannel(unittest.TestCase):
         def produce(id, services, termination):
             (consumer,) = services
             for i in range(10):
-                consumer.push(i, block=True)
-            consumer.close()
+                consumer.push(i)
 
-        process = Actor(0, (consumer,), produce, actor_type='process')
+        process = Actor(0, (consumer,), produce, actor_type='process', graceful=True)
         process.start()
 
         output = [producer.pop(block=True) for _i in range(10)]
@@ -27,11 +26,9 @@ class TestChannel(unittest.TestCase):
         def produce(id, services, termination):
             (consumer,) = services
             for i in range(10):
-                consumer.push(i, block=True)
-            consumer.close()
-
+                consumer.push(i)
         
-        process = Actor(0, (consumer,), produce, actor_type='process')
+        process = Actor(0, (consumer,), produce, actor_type='process', graceful=True)
         process.start()
 
         output = [producer.pop(block=True) for _i in range(10)]
