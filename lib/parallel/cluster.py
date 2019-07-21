@@ -17,7 +17,7 @@ class Cluster:
         self.client_bundle = self.client_bundles[0]
 
     def compute(self):
-        (output_consumer, output_producer) = Channel(write_lock=True, channel_type='pipe')
+        (output_consumer, output_producer) = Channel(write_lock=True, channel_type='queue')
         clients = tuple(Client(i, self.client_bundles[i], self.task, output_channel=output_consumer) for i in range(0, self.size))
         server = Server(self.size, self.server_bundle, output_channel=output_consumer)
 
