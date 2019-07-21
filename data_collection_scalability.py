@@ -21,7 +21,7 @@ basename = basename(input_path)
 dataset_name, extension = splitext(basename)
 if not exists('data/scalability/{}'.format(dataset_name)):
     mkdir('data/scalability/{}'.format(dataset_name))
-dataset = read_datasframe(input_path)
+dataset = read_dataframe(input_path)
 (n, m) = dataset.shape
 
 timeout = float(arguments[2]) if len(arguments) >= 3 else 60
