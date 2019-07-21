@@ -125,12 +125,12 @@ class __ConnectionConsumer__:
             with self.lock:
                 try:
                     self.connection.send(element)
-                except BrokenPipeError:
+                except Exception:
                     pass
         else:
             try:
                 self.connection.send(element)
-            except BrokenPipeError:
+            except Exception:
                 pass
 
 class __ConnectionProducer__:

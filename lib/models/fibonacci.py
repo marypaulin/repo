@@ -11,11 +11,11 @@ class Fibonacci:
         self.n = n
 
     # Task method that gets run by all worker nodes (clients)
-    def task(self, worker_id, services, peers):
+    def task(self, worker_id, services):
         (table, queue) = services
         self.table = table
         self.queue = queue
-        while not self.complete() and not peers.value == self.workers:
+        while not self.complete():
             message = self.queue.pop(block=False)
             if message == None:
                 continue
@@ -46,6 +46,8 @@ class Fibonacci:
                     # print("Fib({}) = {}".format( n, output))
                 else: # Dependencies not resolved, re-enqueue problem
                     queue.push((priority+0.5, n))  # re-enqueue problem
+
+        return self.output()
 
     # Method run by worker nodes to decide when to terminate
     def complete(self):

@@ -5,63 +5,48 @@ from subprocess import check_call, DEVNULL, STDOUT
 from traceback import print_exc
 
 
-def Client(id, services, task, client_type='process', peers=None):
-    return Actor(id, services, task, actor_type=client_type, peers=peers)
+def Client(id, services, task, client_type='process', output_channel=None):
+    return Actor(id, services, task, actor_type=client_type, output_channel=output_channel)
 
-def Server(id, services, server_type='process', peers=None):
-    return Actor(id, services, __server_task__, actor_type=server_type, peers=peers)
+def Server(id, services, server_type='process', output_channel=None):
+    return Actor(id, services, __server_task__, actor_type=server_type, output_channel=output_channel)
 
-def LocalClient(id, services, task, peers=None):
-    return Actor(id, services, task, actor_type='local', peers=peers)
+def LocalClient(id, services, task, output_channel=None):
+    return Actor(id, services, task, actor_type='local', output_channel=output_channel)
 
-def LocalServer(id, services, peers=None):
-    return Actor(id, services, __server_task__, actor_type='local', peers=peers)
+def LocalServer(id, services, output_channel=None):
+    return Actor(id, services, __server_task__, actor_type='local', output_channel=output_channel)
 
-def ThreadClient(id, services, task, client_type='thread', peers=None):
-    return Actor(id, services, task, actor_type=client_type, peers=peers)
+def ThreadClient(id, services, task, client_type='thread', output_channel=None):
+    return Actor(id, services, task, actor_type=client_type, output_channel=output_channel)
 
-def ThreadServer(id, services, peers=None):
-    return Actor(id, services, __server_task__, actor_type='thread', peers=peers)
+def ThreadServer(id, services, output_channel=None):
+    return Actor(id, services, __server_task__, actor_type='thread', output_channel=output_channel)
 
-def __server_task__(id, services, peers):
-    while peers.value > 0: # Continue servicing as it is not alone
+def __server_task__(id, services):
+    while True: # Continue servicing as it is not alone
         for service in services:
             service.serve()
 
-def __tear_down__(actor_id, services, peers):
-    if peers != None:
-        print("Actor {} Starting Teardown".format(actor_id))
-        with peers.get_lock():
-            peers.value -= 1
-        while peers.value > 0:
-            for service in services:
-                service.flush()
-        print("Actor {} Finished Teardown".format(actor_id))
-
-
-def Actor(actor_id, services, task, actor_type='process', peers=None):
+def Actor(actor_id, services, task, actor_type='process', output_channel=None):
     if actor_type == 'process':
-        return __ProcessActor__(actor_id, services, task, peers=peers)
+        return __ProcessActor__(actor_id, services, task, output_channel=output_channel)
     elif actor_type == 'thread':
-        return __ThreadActor__(actor_id, services, task, peers=peers)
+        return __ThreadActor__(actor_id, services, task, output_channel=output_channel)
     elif actor_type == 'local':
-        return __LocalActor__(actor_id, services, task, peers=peers)
+        return __LocalActor__(actor_id, services, task, output_channel=output_channel)
     else:
         raise Exception("ActorException: Invalid Actor Type {}".format(actor_type))
 
 class __LocalActor__:
-    def __init__(self, actor_id, services, task, peers=None):
-        self.id = actor_id
-        self.services = services
-        self.task = task
-        self.__run__ = lambda: task(actor_id, services, peers)
-        self.services = services
-        self.peers = peers
-        self.result = None
+    def __init__(self, actor_id, services, task, output_channel=None):
+        self.__run__ = lambda: task(actor_id, services)
+        self.output_channel = output_channel
 
     def start(self, block=False):
-        self.result = self.__run__()
-        __tear_down__(self.id, self.services, self.peers)
+        result = self.__run__()
+        self.output_channel.push(result, block=False)
+
     def join(self):
         return
 
@@ -69,26 +54,23 @@ class __LocalActor__:
         return False
 
 class __ProcessActor__:
-    def __init__(self, actor_id, services, task, peers=None):
-        self.id = actor_id
-        self.actor = Process(target=self.__run__, args=(self.id, services, task, peers))
+    def __init__(self, actor_id, services, task, output_channel=None):
+        self.actor = Process(target=self.__run__, args=(actor_id, services, task))
         self.actor.daemon = True
-        self.exception = None
-        self.result = None
+        self.output_channel = output_channel
 
-    def __run__(self, actor_id, services, task, peers):
+    def __run__(self, actor_id, services, task):
         # Attempt to pin process to CPU core using taskset if available
         taskset_enabled = (system("command -v taskset") != 256)
         if taskset_enabled:
             check_call(["taskset", "-cp", str(actor_id), str(getpid())], stdout=DEVNULL, stderr=STDOUT)
         try:
-            self.result = task(actor_id, services, peers)
+            result = task(actor_id, services)
+            self.output_channel.push(result, block=False)
         except Exception as e:
             self.exception = e
             print_exc()
             print("ActorException: Actor ID {} caught: {}".format(actor_id, e))
-        finally:
-            __tear_down__(actor_id, services, peers)
 
     def start(self, block=False):
         self.actor.start()
@@ -102,24 +84,22 @@ class __ProcessActor__:
         return self.actor.is_alive()
 
 class __ThreadActor__:
-    def __init__(self, actor_id, services, task, peers=None):
-        self.id = actor_id
-        self.actor = Thread(target=self.__run__, args=(self.id, services, task, peers))
+    def __init__(self, actor_id, services, task, output_channel=None):
+        self.actor = Thread(target=self.__run__, args=(actor_id, services, task))
         self.actor.daemon = True
-        self.exception = None
+        self.output_channel = output_channel
         self.alive = Event()
-        self.result = None
 
-    def __run__(self, actor_id, services, task, peers):
+    def __run__(self, actor_id, services, task):
         self.alive.set()
         try:
-            self.result = task(actor_id, services, peers)
+            result = task(actor_id, services)
+            self.output_channel.push(result, block=False)
         except Exception as e:
             self.exception = e
             print_exc()
             print("ActorException: Actor ID {} caught: {}".format(actor_id, e))
         finally:
-            __tear_down__(actor_id, services, peers)
             self.alive.clear()
 
     def start(self, block=False):

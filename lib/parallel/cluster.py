@@ -1,6 +1,6 @@
-from lib.parallel.actor import Client, LocalClient, Server, LocalServer
-from multiprocessing import Value
 
+from lib.parallel.actor import Client, LocalClient, Server, LocalServer
+from lib.parallel.channel import Channel
 class Cluster:
     def __init__(self, task, services, size=1):
         self.task = task
@@ -17,9 +17,9 @@ class Cluster:
         self.client_bundle = self.client_bundles[0]
 
     def compute(self):
-        peers = Value('i', self.size)
-        clients = tuple(Client(i, self.client_bundles[i], self.task, peers=peers) for i in range(1, self.size))
-        server = Server(self.size, self.server_bundle, peers=peers)
+        (output_consumer, output_producer) = Channel(write_lock=True, channel_type='queue')
+        clients = tuple(Client(i, self.client_bundles[i], self.task, output_channel=output_consumer) for i in range(0, self.size))
+        server = Server(self.size, self.server_bundle, output_channel=output_consumer)
 
         server.start()
         for client in clients:
@@ -29,25 +29,31 @@ class Cluster:
         self.server_bundle = None
         self.client_bundles = None
 
-        # Run self as client 0
-        # Kind of hacky but kind of works
-        local_client = LocalClient(0, self.client_bundle, self.task, peers=peers)
-        local_client.start()
+        # # Run self as client 0
+        # # Kind of hacky but kind of works
+        # local_client = LocalClient(0, self.client_bundle, self.task, peers=peers)
+        # local_client.start()
 
-        print("Cluster Complete")
+        # print("Cluster Complete")
 
-        # for client in clients:
-        #     client.join()
-            # if client.exception != None:
-            #     print(client.exception)
+        # # for client in clients:
+        # #     client.join()
+        #     # if client.exception != None:
+        #     #     print(client.exception)
 
-        print("Client Shutdown")
+        # print("Client Shutdown")
         
-        # server.join()
-        # if server.exception != None:
-        #     print(server.exception)
+        # # server.join()
+        # # if server.exception != None:
+        # #     print(server.exception)
 
-        print("Server Shutdown")
+        # print("Server Shutdown")
 
+        while True:
+            result = output_producer.pop(block=False)
+            if result != None:
+                break
 
-        return local_client.result
+        # Possibly terminate daemon actors?
+
+        return result

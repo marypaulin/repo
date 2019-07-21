@@ -173,7 +173,7 @@ class ParallelOSDT:
         pass
 
     # Task method that gets run by all worker nodes
-    def task(self, worker_id, services, peers):
+    def task(self, worker_id, services):
         self.worker_id = worker_id
         start_time = time()
         (tasks, results, prefixes) = services
@@ -222,7 +222,7 @@ class ParallelOSDT:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
 
-        self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
+        print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
         
         return self.output()
 
