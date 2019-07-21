@@ -222,9 +222,9 @@ class ParallelOSDT:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
 
-        print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
-        
-        return self.output()
+        self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
+
+        return self.output() if self.complete() else None
 
     def prioritize(self, capture, path):
         priority_metric = self.configuration['priority_metric']
