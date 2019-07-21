@@ -64,7 +64,11 @@ class __ProcessActor__:
         # Attempt to pin process to CPU core using taskset if available
         taskset_enabled = (system("command -v taskset") != 256)
         if taskset_enabled:
-            check_call(["taskset", "-cp", str(actor_id), str(getpid())], stdout=DEVNULL, stderr=STDOUT)
+            try:
+                print("taskset", "-cp", str(actor_id), str(getpid()))
+                check_call(["taskset", "-cp", str(actor_id), str(getpid())], stdout=DEVNULL, stderr=STDOUT)
+            except Exception:
+                pass
         try:
             result = task(actor_id, services)
             if self.output_channel != None:

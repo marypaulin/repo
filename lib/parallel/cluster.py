@@ -29,26 +29,6 @@ class Cluster:
         self.server_bundle = None
         self.client_bundles = None
 
-        # # Run self as client 0
-        # # Kind of hacky but kind of works
-        # local_client = LocalClient(0, self.client_bundle, self.task, peers=peers)
-        # local_client.start()
-
-        # print("Cluster Complete")
-
-        # # for client in clients:
-        # #     client.join()
-        #     # if client.exception != None:
-        #     #     print(client.exception)
-
-        # print("Client Shutdown")
-        
-        # # server.join()
-        # # if server.exception != None:
-        # #     print(server.exception)
-
-        # print("Server Shutdown")
-
         while True:
             result = output_producer.pop(block=False)
             if result != None:
