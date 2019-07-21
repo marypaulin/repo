@@ -8,28 +8,37 @@ from lib.models.parallel_osdt_classifier import ParallelOSDTClassifier
 from lib.data_structures.dataset import read_dataframe
 
 # Using COMPAS as an example
-dataset = read_dataframe('data/preprocessed/compas-binary.csv')
+# dataset = read_dataframe('data/preprocessed/compas-binary.csv')
+dataset = read_dataframe('data/census-data/census_c1s5ky0.2_0_0_test.csv')
 (n, m) = dataset.shape
+regularization = 0.01
+workers = 1
 
 # arguments: <processes> <subsample?> <subfeature?>
+if len(sys.argv) >= 2:
+    regularation = float(sys.argv[1])
 if len(sys.argv) >= 3:
     n = int(sys.argv[2])
 if len(sys.argv) >= 4:
     m = int(sys.argv[3])
+if len(sys.argv) >= 5:
+    workers = int(sys.argv[4])
 
-profile = True
+print(regularation, n, m, workers)
+
+profile = False
 
 X = dataset.values[:n, :m-1]
 y = dataset.values[:n, -1]
 
 hyperparameters = {
     # Regularization coefficient which effects the penalty on model complexity
-    'regularization': 0.005,
+    'regularization': regularation,
 
     'max_depth': float('Inf'),  # User-specified limit on the model
-    'max_time': 60,  # User-specified limit on the runtime
+    'max_time': float('Inf'),  # User-specified limit on the runtime
 
-    'workers': int(sys.argv[1]),  # Parameter that varies based on how much computational resource is available
+    'workers': workers,  # Parameter that varies based on how much computational resource is available
 
     'visualize': True,  # Toggle whether a rule-list visualization is rendered
     'verbose': False,  # Toggle whether event messages are printed
