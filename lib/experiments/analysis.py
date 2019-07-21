@@ -123,9 +123,9 @@ def scalability_analysis(dataset, model_class, hyperparameters, path, step_count
 
             model = model_class(**hyperparameters)
             start = time()
-            sample_size = 5
+            reruns = 5
             runtimes = []
-            for i in range(sample_size):
+            for i in range(reruns):
                 try:
                     model.fit(x, y)
                 except Exception as e:
@@ -135,7 +135,7 @@ def scalability_analysis(dataset, model_class, hyperparameters, path, step_count
                 runtimes.append(runtime)
             
             list.sort(runtimes)
-            runtime = floor(sample_size/2)
+            runtime = floor(reruns/2)
             logger.log([sample_size, feature_size, runtime])
 
 def plot_scalability_analysis(dataset, title, z_limit=None):
