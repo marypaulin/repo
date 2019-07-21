@@ -1,22 +1,23 @@
 from time import time
+from random import shuffle
 
 from lib.data_structures.result import Result
 from lib.data_structures.interval import Interval
 from lib.data_structures.prefix_tree import PrefixTree
 from lib.parallel.channel import Channel
 
-def DictionaryService(table=None, propagator=None, refresh_cooldown=0, degree=1):
+def DictionaryService(table=None, propagator=None, synchronization_cooldown=0, degree=1):
     if table == None:
         table = {}
     clients = []
     server_endpoints = []
     for i in range(degree):
         client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
-        client = __DictionaryClient__(table, client_endpoint, propagator=propagator, refresh_cooldown=refresh_cooldown)
+        client = __DictionaryClient__(table, client_endpoint, propagator=propagator, synchronization_cooldown=synchronization_cooldown)
         clients.append(client)
         server_endpoints.append(server_endpoint)
 
-    server = __DictionaryServer__({}, tuple(server_endpoints))
+    server = __DictionaryServer__({}, server_endpoints)
 
     return (server, tuple(clients))
 
@@ -43,6 +44,9 @@ class __DictionaryServer__:
         '''
         modified = False
         if self.online:
+
+            shuffle(self.endpoints)
+
             self.updates = {}
             # Transfer from inbound queue to broadcast buffers (if the entry is new)
             for endpoint in self.endpoints:
@@ -72,15 +76,15 @@ class __DictionaryServer__:
         self.serve()
 
 class __DictionaryClient__:
-    def __init__(self, table, endpoint, propagator=None, refresh_cooldown=0):
+    def __init__(self, table, endpoint, propagator=None, synchronization_cooldown=0):
         self.table = table
         self.endpoint = endpoint
-        self.refresh_cooldown = refresh_cooldown
+        self.synchronization_cooldown = synchronization_cooldown
         self.propagator = propagator
-        self.last_refresh = 0
+        self.last_synchronization = 0
         self.online = True
 
-    def __refresh__(self):
+    def synchronize(self):
         '''
         Receives broadcasted entries from pipeline into local cache
         '''
@@ -88,8 +92,8 @@ class __DictionaryClient__:
         if not self.online:
             return
 
-        if time() > self.last_refresh + self.refresh_cooldown:
-            self.last_refresh = time()
+        if time() > self.last_synchronization + self.synchronization_cooldown:
+            self.last_synchronization = time()
         else:
             return
         
@@ -118,7 +122,7 @@ class __DictionaryClient__:
         Returns True upon hit (after refresh)
         Returns False upon miss (after refresh)
         '''
-        self.__refresh__()
+        self.synchronize()
         return key in self.table
 
     def get(self, key, block=False):
@@ -128,10 +132,10 @@ class __DictionaryClient__:
         Returns value upon hit (after refresh)
         Returns None upon miss (after refresh)
         '''
-        self.__refresh__()
+        self.synchronize()
         if block:
             while not key in self.table:
-                self.__refresh__()
+                self.synchronize()
         return self.table.get(key)
 
     def put(self, key, value, block=False, prefilter=True):
@@ -151,13 +155,13 @@ class __DictionaryClient__:
     def shortest_prefix(self, key):
         if type(self.table) != PrefixTree:
             raise Exception("DictionaryServiceError: DictionaryTable of internal type {} does no support prefix queries".format(type(self.table)))
-        self.__refresh__()
+        self.synchronize()
         return self.table.shortest_prefix(key)
 
     def longest_prefix(self, key):
         if type(self.table) != PrefixTree:
             raise Exception("DictionaryTableError: DictionaryTable of internal type {} does no support prefix queries".format(type(self.table)))
-        self.__refresh__()
+        self.synchronize()
         return self.table.longest_prefix(key)
 
     def __getitem__(self, key):
@@ -173,4 +177,4 @@ class __DictionaryClient__:
         return str(self.table)
 
     def flush(self):
-        self.__refresh__()
+        self.synchronize()

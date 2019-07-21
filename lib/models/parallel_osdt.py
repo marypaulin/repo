@@ -201,6 +201,7 @@ class ParallelOSDT:
             # Information is gained everytime a subproblem (direct child or any descendent) gains information
             # The original source of information comes from base cases where the support set can no longer be split so the optimum
             # is calculated directly without searching. From there, information propagates up all ancestry paths in a hierarchical pattern
+
             if result.optimum.uncertainty > 0: # Recursive case
                 # This method creates a generator of all subproblems that need to be solved
                 # It also has many side-effects such as:
@@ -536,18 +537,32 @@ class ParallelOSDT:
         self.start_time = time()
         self.root = Vector.ones(self.dataset.height)  # Root capture
         cooldown = self.configuration['synchronization_cooldown']
+
         # Set of "services" which are data structures that require management by a server process and get consumed by client processes
-        prefixes = DictionaryService(table=PrefixTree(minimize=True), degree=workers, refresh_cooldown=cooldown)
+        prefixes = DictionaryService(
+            table=PrefixTree(minimize=True), 
+            degree=workers, 
+            synchronization_cooldown=cooldown)
 
         if self.configuration['similarity_threshold'] > 0:
-            similarity_index = SimilarityIndex(distance=self.configuration['similarity_threshold'], dimensions=self.dataset.height, tables=self.dataset.height)
+            similarity_index = SimilarityIndex(
+                distance=self.configuration['similarity_threshold'],
+                dimensions=self.dataset.height,
+                tables=self.dataset.height)
             propagator = SimilarityPropagator(similarity_index, self.dataset, self.lamb, cooldown=cooldown)
         else:
             propagator = None
         
-        results = DictionaryService(degree=workers, refresh_cooldown=cooldown, propagator=propagator)
+        results = DictionaryService(
+            degree=workers, 
+            synchronization_cooldown=cooldown,
+            propagator=propagator)
         root_priority = 0
-        tasks = QueueService(queue=HeapQueue([( root_priority, self.root, () )]), degree=workers, buffer_limit=2048)
+        tasks = QueueService(
+            queue=HeapQueue([( root_priority, self.root, () )]),
+            degree=workers,
+            synchronization_cooldown=cooldown)
+        
         services = (tasks, results, prefixes)
 
         # Initialize and run the cluster
@@ -597,7 +612,7 @@ class ParallelOSDT:
             # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
             'interval_look_ahead': True,
             # Cooldown timer (seconds) on synchornization operations
-            'synchronization_cooldown': 0.1,
+            'synchronization_cooldown': 0.5,
             # Cache Limit
             'cache_limit': float('Inf')
         }

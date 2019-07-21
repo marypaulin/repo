@@ -17,7 +17,7 @@ if len(sys.argv) >= 3:
 if len(sys.argv) >= 4:
     m = int(sys.argv[3])
 
-profile = False
+profile = True
 
 X = dataset.values[:n, :m-1]
 y = dataset.values[:n, -1]

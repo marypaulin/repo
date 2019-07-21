@@ -36,10 +36,10 @@ class Cluster:
         # print("Cluster Complete")
 
         for client in clients:
-            # client.join()
+            client.join()
             if client.exception != None:
                 print(client.exception)
-        # server.join()
+        server.join()
         if server.exception != None:
             print(server.exception)
 
