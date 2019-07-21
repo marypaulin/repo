@@ -10,26 +10,31 @@ from lib.data_structures.heap_queue import HeapQueue
 def QueueService(queue=None, degree=1, synchronization_cooldown=0):
     if queue == None:
         queue = HeapQueue()
+
+    server_consumer, client_producer = Channel(read_lock=True, channel_type='queue')
     global_length = Value('d', len(queue))
     clients = []
-    server_endpoints = []
+    server_producers = []
     for i in range(degree):
-        client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
+        # client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
+        client_consumer, server_producer = Channel(channel_type='pipe')
 
+        client_endpoint = EndPoint(client_consumer, client_producer)
         client = __QueueClient__(queue, client_endpoint, global_length, 
             degree=degree, synchronization_cooldown=synchronization_cooldown)
         clients.append(client)
 
-        server_endpoints.append(server_endpoint)
+        server_producers.append(server_producer)
 
-    server = __QueueServer__(queue, server_endpoints, global_length)
+    server = __QueueServer__(queue, server_consumer, server_producers, global_length)
 
     return (server, tuple(clients))
 
 class __QueueServer__:
-    def __init__(self, queue, endpoints, global_length):
+    def __init__(self, queue, consumer, producers, global_length):
         self.queue = queue
-        self.endpoints = endpoints
+        self.consumer = consumer
+        self.producers = producers
         self.global_length = global_length
         self.online = True
 
@@ -45,15 +50,13 @@ class __QueueServer__:
         '''
         modified = False
         if self.online:
-
-            shuffle(self.endpoints)
-
+            # shuffle(self.endpoints)
             filtered = 0
             seen = set()
             # Transfer from inbound queue to priority queue
-            for endpoint in self.endpoints:
+            for producer in self.producers:
                 while not self.queue.full():
-                    element = endpoint.pop(block=False)
+                    element = producer.pop(block=False)
                     if element == None:
                         break
                     key = element if not type(element) in {tuple, list} else element[1:]
@@ -67,13 +70,9 @@ class __QueueServer__:
                 self.global_length.value -= filtered
 
             modified = len(self.queue) > 0
-           
-
-            for endpoint in cycle(self.endpoints):
-                if self.queue.empty():
-                    break
+            while not self.queue.empty() and not self.consumer.full():
                 element = self.queue.pop()
-                if not endpoint.push(element, block=False):
+                if not self.consumer.push(element, block=False):
                     self.queue.push(element)
                     break
 
