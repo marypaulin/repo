@@ -65,7 +65,5 @@ class Fibonacci:
         services = (table, queue)
 
         # Initialize and run the multi-node client-server cluster
-        (table, queue) = Cluster(self.task, services, size=workers).compute()
-
-        solution = self.output()
+        solution = Cluster(self.task, services, size=workers).compute()
         return solution

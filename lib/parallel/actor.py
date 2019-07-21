@@ -45,7 +45,8 @@ class __LocalActor__:
 
     def start(self, block=False):
         result = self.__run__()
-        self.output_channel.push(result, block=False)
+        if self.output_channel != None:
+            self.output_channel.push(result, block=False)
 
     def join(self):
         return
@@ -66,7 +67,8 @@ class __ProcessActor__:
             check_call(["taskset", "-cp", str(actor_id), str(getpid())], stdout=DEVNULL, stderr=STDOUT)
         try:
             result = task(actor_id, services)
-            self.output_channel.push(result, block=False)
+            if self.output_channel != None:
+                self.output_channel.push(result, block=False)
         except Exception as e:
             self.exception = e
             print_exc()
@@ -94,7 +96,8 @@ class __ThreadActor__:
         self.alive.set()
         try:
             result = task(actor_id, services)
-            self.output_channel.push(result, block=False)
+            if self.output_channel != None:
+                self.output_channel.push(result, block=False)
         except Exception as e:
             self.exception = e
             print_exc()
