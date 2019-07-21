@@ -17,7 +17,7 @@ class Cluster:
         self.client_bundle = self.client_bundles[0]
 
     def compute(self):
-        peers = Value('d', self.size)
+        peers = Value('i', self.size)
         clients = tuple(Client(i, self.client_bundles[i], self.task, peers=peers) for i in range(1, self.size))
         server = Server(self.size, self.server_bundle, peers=peers)
 
@@ -31,16 +31,23 @@ class Cluster:
 
         # Run self as client 0
         # Kind of hacky but kind of works
-        LocalClient(0, self.client_bundle, self.task, peers=peers).start()
+        local_client = LocalClient(0, self.client_bundle, self.task, peers=peers)
+        local_client.start()
 
-        # print("Cluster Complete")
+        print("Cluster Complete")
 
-        for client in clients:
-            client.join()
-            if client.exception != None:
-                print(client.exception)
-        server.join()
-        if server.exception != None:
-            print(server.exception)
+        # for client in clients:
+        #     client.join()
+            # if client.exception != None:
+            #     print(client.exception)
 
-        return self.client_bundle
+        print("Client Shutdown")
+        
+        # server.join()
+        # if server.exception != None:
+        #     print(server.exception)
+
+        print("Server Shutdown")
+
+
+        return local_client.result

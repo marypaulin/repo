@@ -123,9 +123,15 @@ class __ConnectionConsumer__:
     def __push__(self, element):
         if self.lock != None:
             with self.lock:
-                self.connection.send(element)
+                try:
+                    self.connection.send(element)
+                except BrokenPipeError:
+                    pass
         else:
-            self.connection.send(element)
+            try:
+                self.connection.send(element)
+            except BrokenPipeError:
+                pass
 
 class __ConnectionProducer__:
     def __init__(self, connection, lock):
@@ -141,32 +147,24 @@ class __ConnectionProducer__:
                         element = self.connection.recv()
                     except EOFError:
                         pass
-                    except Exception as e:
-                        print(e)
                 else: 
                     try:
                         if self.connection.poll(timeout):
                             element = self.connection.recv()
                     except EOFError:
                         pass
-                    except Exception as e:
-                        print(e)
         else:
             if block:
                 try:
                     element = self.connection.recv()
                 except EOFError:
                     pass
-                except Exception as e:
-                    print(e)
             else: 
                 try:
                     if self.connection.poll(timeout):
                         element = self.connection.recv()
                 except EOFError:
                     pass
-                except Exception as e:
-                    print(e)
         return element
 
 class __QueueConsumer__:

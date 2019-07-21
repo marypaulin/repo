@@ -12,7 +12,7 @@ def QueueService(queue=None, degree=1, synchronization_cooldown=0):
         queue = HeapQueue()
 
     server_consumer, client_producer = Channel(read_lock=True, channel_type='queue')
-    global_length = Value('d', len(queue))
+    global_length = Value('i', len(queue))
     clients = []
     server_producers = []
     for i in range(degree):
@@ -149,4 +149,4 @@ class __QueueClient__:
         return element
 
     def flush(self):
-        pass
+        self.synchronize()

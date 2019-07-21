@@ -223,6 +223,8 @@ class ParallelOSDT:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
 
         self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
+        
+        return self.output()
 
     def prioritize(self, capture, path):
         priority_metric = self.configuration['priority_metric']
@@ -566,22 +568,22 @@ class ParallelOSDT:
         services = (tasks, results, prefixes)
 
         # Initialize and run the cluster
-        (tasks, results, prefixes) = Cluster(self.task, services, size=workers).compute()
+        model = Cluster(self.task, services, size=workers).compute()
 
-        if self.complete():
-            model = self.output()
+        # if self.complete():
+        #     model = self.output()
+        if self.verbose or self.log:
+            self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
+            self.print("Optimal Objective: {}".format(model.risk))
+        if visualize:
+            model.visualize(self.dataset.width) # Renders a rule-list visualization
             if self.verbose or self.log:
-                self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
-                self.print("Optimal Objective: {}".format(model.risk))
-            if visualize:
-                model.visualize(self.dataset.width) # Renders a rule-list visualization
-                if self.verbose or self.log:
-                    self.print('Optimal Model:\n{}'.format(model.visualization))
-            return model
-        else:
-            if self.verbose or self.log:
-                self.print("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
-            raise Exception("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
+                self.print('Optimal Model:\n{}'.format(model.visualization))
+        return model
+        # else:
+        #     if self.verbose or self.log:
+        #         self.print("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
+        #     raise Exception("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
 
     def __default_configuration__(self):
         return {

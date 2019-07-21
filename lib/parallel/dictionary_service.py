@@ -65,11 +65,10 @@ class __DictionaryServer__:
             
             self.table.update(self.updates)
             modified = len(self.updates) > 0
-            # print(self.table)
 
             for key, value in self.updates.items():
                 for endpoint in self.endpoints:
-                    endpoint.push((key, value), block=True)
+                    endpoint.push((key, value), block=False)
         return modified
 
     def flush(self):
