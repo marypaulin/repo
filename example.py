@@ -67,7 +67,7 @@ hyperparameters = {
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
         'interval_look_ahead': True,
         # Cooldown timer (seconds) on synchornization operations
-        'synchronization_cooldown': 0.01,
+        'synchronization_cooldown': 0.001,
         # Cache Limit
         'cache_limit': float('Inf')
     }

@@ -109,7 +109,7 @@ class __QueueClient__:
 
         target = ceil(self.global_length.value / self.degree)
 
-        if abs(target - len(self.queue)) / max(self.global_length.value, 1) < 0.5:
+        if abs(target - len(self.queue)) / max(self.global_length.value, 1) < 0.1:
             return
 
         # Push elements if over the average
