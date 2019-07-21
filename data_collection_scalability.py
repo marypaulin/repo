@@ -13,6 +13,8 @@ from lib.data_processing import read_dataset
 from lib.analysis import scalability_analysis
 
 # Extract Arguments
+# arguments: <dataset_path> <timeout?> <regularization?> <model_name?> <core_count?>
+
 arguments = sys.argv
 input_path = arguments[1]
 basename = basename(input_path)
@@ -22,7 +24,6 @@ if not exists('data/scalability/{}'.format(dataset_name)):
 dataset = read_datasframe(input_path)
 (n, m) = dataset.shape
 
-# arguments: <dataset_path> <timeout?> <regularization?> <model_name?> <core_count?>
 timeout = float(arguments[2]) if len(arguments) >= 3 else 60
 regularization = float(arguments[3]) if len(arguments) >= 4 else 0.1
 model_name = arguments[4] if len(arguments) >= 5 else 'osdt'

@@ -11,6 +11,7 @@ from lib.data_structures.dataset import read_dataframe
 from lib.experiments.analysis import accuracy_analysis
 
 # Extract Arguments
+# arguments: <dataset_path> <timeout?>
 arguments = sys.argv
 input_path = arguments[1]
 basename = basename(input_path)
