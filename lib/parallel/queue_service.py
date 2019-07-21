@@ -11,7 +11,7 @@ def QueueService(queue=None, degree=1, synchronization_cooldown=0):
     if queue == None:
         queue = HeapQueue()
 
-    server_consumer, client_producer = Channel(read_lock=True, channel_type='queue')
+    server_consumer, client_producer = Channel(read_lock=True, channel_type='pipe')
     global_length = Value('i', len(queue))
     clients = []
     server_producers = []
