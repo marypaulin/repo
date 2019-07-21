@@ -35,5 +35,8 @@ class Cluster:
                 break
 
         # Possibly terminate daemon actors?
+        server.actor.terminate()
+        for client in clients:
+            client.actor.terminate()
 
         return result
