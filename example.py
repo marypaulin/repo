@@ -8,32 +8,37 @@ from lib.models.parallel_osdt_classifier import ParallelOSDTClassifier
 from lib.data_structures.dataset import read_dataframe
 
 # Using COMPAS as an example
-# dataset = read_dataframe('data/preprocessed/compas-binary.csv')
-dataset = read_dataframe('data/census-data/census_c1s5ky0.2_0_0_test.csv')
+
+dataset = read_dataframe('data/preprocessed/compas-binary.csv')
+regularization = 0.005
+
+# dataset = read_dataframe('data/preprocessed/census.csv')
+# regularization = 0.2
+
 (n, m) = dataset.shape
-regularization = 0.01
 workers = 1
 
 # arguments: <processes> <subsample?> <subfeature?>
 if len(sys.argv) >= 2:
-    regularation = float(sys.argv[1])
+    workers = int(sys.argv[1])
 if len(sys.argv) >= 3:
     n = int(sys.argv[2])
 if len(sys.argv) >= 4:
     m = int(sys.argv[3])
 if len(sys.argv) >= 5:
-    workers = int(sys.argv[4])
+    regularization = float(sys.argv[4])
 
-print(regularation, n, m, workers)
 
-profile = False
+print(regularization, n, m, workers)
+
+profile = True
 
 X = dataset.values[:n, :m-1]
 y = dataset.values[:n, -1]
 
 hyperparameters = {
     # Regularization coefficient which effects the penalty on model complexity
-    'regularization': regularation,
+    'regularization': regularization,
 
     'max_depth': float('Inf'),  # User-specified limit on the model
     'max_time': float('Inf'),  # User-specified limit on the runtime
@@ -70,9 +75,9 @@ hyperparameters = {
         'equivalent_point_lowerbound': True,
 
         # Toggles compression of dataset based on equivalent point aggregation
-        'equivalent_point_compression': True,
+        'equivalent_point_compression': False,
         # Toggles whether asynchronous tasks can be cancelled after being issued
-        'task_cancellation': True,
+        'task_cancellation': False,
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
         'interval_look_ahead': True,
         # Cooldown timer (seconds) on synchornization operations

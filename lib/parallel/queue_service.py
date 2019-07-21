@@ -28,6 +28,11 @@ def QueueService(queue=None, degree=1, synchronization_cooldown=0):
 
     server = __QueueServer__(queue, server_consumer, server_producers, global_length)
 
+    if degree <= 1:
+        server.online = False
+        for client in clients:
+            client.online = False
+
     return (server, tuple(clients))
 
 class __QueueServer__:

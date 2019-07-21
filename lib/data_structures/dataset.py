@@ -29,7 +29,7 @@ def read_dataframe(path, sep=None, randomize=False):
         dataframe = shuffle(dataframe)
     return dataframe
 
-
+# There must be a compression threshold beyond which it is no longer worth compressing
 class DataSet:
     def read(path, sep=None, randomize=False):
         dataframe = read_dataset(path, sep=sep, randomize=randomize)
@@ -44,6 +44,7 @@ class DataSet:
 
         (n, m) = X.shape
         self.sample_size = n  # Number of rows (non-unique)
+        self.y = Vector(y)
 
         # Performs a compression by aggregating groups of rows with identical features
         z, rows, columns = self.__summarize__(X, y)
@@ -79,15 +80,24 @@ class DataSet:
         key = capture
         cache = self.label_distribution_cache
         if not key in cache:
-            if capture == None:
-                capture = Vector.ones(self.height)
 
-            (zeros, ones, minority, majority) = reduce(
-                lambda x, y: tuple(sum(z) for z in zip(x, y)),
-                ( (*self.z[i], min(self.z[i]), max(self.z[i])) for i in range(self.height) if capture[i] == 1),
-                (0, 0, 0, 0))
-
-            cache[key] = (zeros + ones, zeros, ones, minority, majority)
+            if self.compression:
+                if capture == None:
+                    capture = Vector.ones(self.height)
+                (zeros, ones, minority, majority) = reduce(
+                    lambda x, y: tuple(sum(z) for z in zip(x, y)),
+                    ( (*self.z[i], min(self.z[i]), max(self.z[i])) for i in range(self.height) if capture[i] == 1),
+                    (0, 0, 0, 0))
+                cache[key] = (zeros + ones, zeros, ones, minority, majority)
+            else:
+                if capture == None:
+                    capture = Vector.ones(self.sample_size)
+                zeros = (capture & (~self.y)).count() # Rows that are both captured and labeled false
+                ones = (capture & self.y).count() # Rows that are both captured and labeled True
+                minority = (capture & (~self.z)).count() # Rows that are both captured and not in majority
+                majority = (capture & self.z).count() # Rows that are both capures and in majority
+                total = zeros + ones
+                cache[key] = (total, zeros, ones, minority, majority)
         return cache[key]
         
 
@@ -108,23 +118,23 @@ class DataSet:
         columns = tuple(Vector(X[:, j]) for j in range(m))
         rows = tuple(Vector(X[i, :]) for i in range(n))
 
+        
+        z = {}
+        for i in range(n):
+            row = rows[i]
+            if z.get(row) == None:
+                # z stores a tuple for each unique row (equivalent point set)
+                # the tuple stores (in order) the frequency of labels 0 and 1
+                z[row] = [0, 0]
+
+            # Increment the corresponding label frequency in the equivalent point set
+            z[row][y[i]] += 1
+
+        reduced_rows = list(z.keys())
+        compression_rate = len(rows) / len(reduced_rows)
+        print("Row Compression Factor: {}".format(round(compression_rate, 3)))
+
         if self.compression:
-            z = {}
-            for i in range(n):
-                row = rows[i]
-                if z.get(row) == None:
-                    # z stores a tuple for each unique row (equivalent point set)
-                    # the tuple stores (in order) the frequency of labels 0 and 1
-                    z[row] = [0, 0]
-
-                # Increment the corresponding label frequency in the equivalent point set
-                z[row][y[i]] += 1
-
-
-            reduced_rows = list(z.keys())
-            compression_rate = len(rows) / len(reduced_rows)
-            # print("Row Compression Factor: {}".format(round(compression_rate, 3)))
-    
             # Greedy method of ordering rows to maximize trailing zeros in columns
             # This makes column vector have leading zeros, reducing memory comsumption
             reduced_columns = tuple(Vector(row[j] for row in reduced_rows) for j in range(m))
@@ -136,7 +146,8 @@ class DataSet:
             columns = tuple(Vector(row[j] for row in reduced_rows) for j in range(m))
             rows = tuple(reduced_rows)
         else:
-            z = tuple( (int(y[i] == 0), int(y[i] == 1)) for i in range(n) )
+            majority = [ int(z[rows[i]][y[i]] == max(z[rows[i]])) for i in range(n)]
+            z = Vector(majority)
 
         return z, rows, columns
 

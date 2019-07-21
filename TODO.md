@@ -1,5 +1,5 @@
 # TODO
- - Ensure census is binary
+ - Adaptive Compression
  - Rerun for 2 - 32 on census
  - Add architecture diagram for IPC + Pruning Sequence
  - PyVisualization of Problem Trace

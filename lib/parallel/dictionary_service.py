@@ -19,6 +19,11 @@ def DictionaryService(table=None, propagator=None, synchronization_cooldown=0, d
 
     server = __DictionaryServer__({}, server_endpoints)
 
+    if degree <= 1:
+        server.online = False
+        for client in clients:
+            client.online = False
+
     return (server, tuple(clients))
 
 
