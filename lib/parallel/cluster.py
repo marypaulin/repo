@@ -34,7 +34,7 @@ class Cluster:
         self.client_bundles = None
 
         result = None
-        while time() - start_time > max_time:
+        while time() - start_time < max_time:
             result = output_producer.pop(block=False)
             if result != None:
                 break

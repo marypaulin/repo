@@ -27,7 +27,7 @@ hyperparameters = {
     'regularization': 0.005,
 
     'max_depth': float('Inf'),  # User-specified limit on the model
-    'max_time': 0,  # User-specified limit on the runtime
+    'max_time': 60,  # User-specified limit on the runtime
 
     'workers': int(sys.argv[1]),  # Parameter that varies based on how much computational resource is available
 

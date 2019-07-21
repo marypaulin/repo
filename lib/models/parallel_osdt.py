@@ -568,7 +568,7 @@ class ParallelOSDT:
         services = (tasks, results, prefixes)
 
         # Initialize and run the cluster
-        model = Cluster(self.task, services, size=workers).compute()
+        model = Cluster(self.task, services, size=workers).compute(self.max_time)
 
         if model != None:
             if self.verbose or self.log:
