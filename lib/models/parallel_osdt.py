@@ -570,20 +570,19 @@ class ParallelOSDT:
         # Initialize and run the cluster
         model = Cluster(self.task, services, size=workers).compute()
 
-        # if self.complete():
-        #     model = self.output()
-        if self.verbose or self.log:
-            self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
-            self.print("Optimal Objective: {}".format(model.risk))
-        if visualize:
-            model.visualize(self.dataset.width) # Renders a rule-list visualization
+        if model != None:
             if self.verbose or self.log:
-                self.print('Optimal Model:\n{}'.format(model.visualization))
-        return model
-        # else:
-        #     if self.verbose or self.log:
-        #         self.print("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
-        #     raise Exception("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
+                self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
+                self.print("Optimal Objective: {}".format(model.risk))
+            if visualize:
+                model.visualize(self.dataset.width) # Renders a rule-list visualization
+                if self.verbose or self.log:
+                    self.print('Optimal Model:\n{}'.format(model.visualization))
+            return model
+        else:
+            if self.verbose or self.log:
+                self.print("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
+            raise Exception("ParallelOSDTError: Early Termination after {} seconds".format(round(self.elapsed_time(), 3)))
 
     def __default_configuration__(self):
         return {
