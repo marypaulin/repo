@@ -66,3 +66,5 @@ elif model_name == 'parallel_osdt':
     hyperparameters = { 'regularization' : regularization, 'workers': core_count, 'max_time': timeout }
     output_path = 'data/scalability/{}/{}.csv'.format(dataset_name, model_name)
     scalability_analysis(dataset, model, hyperparameters, output_path)
+else:
+    print('Invalid model name {}'.format(model_name))
