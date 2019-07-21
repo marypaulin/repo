@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from gc import collect
 from time import time, sleep
-from math import ceil
+from math import ceil, floor
 from mpl_toolkits import mplot3d
 from sklearn.model_selection import KFold
 from sklearn.tree import DecisionTreeClassifier
@@ -123,13 +123,19 @@ def scalability_analysis(dataset, model_class, hyperparameters, path, step_count
 
             model = model_class(**hyperparameters)
             start = time()
-            try:
-                model.fit(x, y)
-            except Exception as e:
-                print(e)
-                pass
-            runtime = time() - start
-
+            sample_size = 5
+            runtimes = []
+            for i in range(sample_size):
+                try:
+                    model.fit(x, y)
+                except Exception as e:
+                    print(e)
+                    pass
+                runtime = time() - start
+                runtimes.append(runtime)
+            
+            list.sort(runtimes)
+            runtime = floor(sample_size/2)
             logger.log([sample_size, feature_size, runtime])
 
 def plot_scalability_analysis(dataset, title, z_limit=None):
