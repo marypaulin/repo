@@ -1,9 +1,9 @@
 # TODO
- - Add 2-stage shutdown for clusters:
-   - Initialize semaphore at cluster size
-   - Stage one exits on completion, timeout, or semaphore == 0
-   - During stage 2 every worker decrements semaphore
-   - Stage two exits on semaphore == 0
+ - Ensure census is binary
+ - Rerun for 2 - 32 on census
+ - Add architecture diagram for IPC + Pruning Sequence
+ - PyVisualization of Problem Trace
+ - Log analysis for deadlock
  - Try LEAP server
  - graph visualization
  - Try arranging priority on Leviathan

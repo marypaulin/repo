@@ -18,8 +18,7 @@ hyperparameters = {
     'max_depth': float('Inf'),  # User-specified limit on the model
     'max_time': float('Inf'),  # User-specified limit on the runtime
 
-    'clients': 1,  # Parameter that varies based on how much computational resource is available
-    'servers': 1,  # Parameter that varies based on how much computational resource is available
+    'workers': 1,  # Parameter that varies based on how much computational resource is available
 
     'visualize': True,  # Toggle whether a rule-list visualization is rendered
     'verbose': False,  # Toggle whether event messages are printed
@@ -57,7 +56,7 @@ hyperparameters = {
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
         'interval_look_ahead': True,
         # Cooldown timer (seconds) on synchornization operations
-        'synchronization_cooldown': 0.1
+        'synchronization_cooldown': 0.01
     }
 }
 

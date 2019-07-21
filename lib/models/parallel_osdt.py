@@ -162,7 +162,7 @@ class ParallelOSDT:
         self.global_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb
         self.global_lowerbound = minority / self.dataset.sample_size + self.lamb
 
-    @profile
+    # @profile
     def snapshot(self):
         if self.worker_id == 0:
             if self.profiler == None:
