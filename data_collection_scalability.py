@@ -7,10 +7,10 @@ from gc import collect
 from time import sleep
 from sklearn.tree import DecisionTreeClassifier
 
-from lib.osdt_classifier import OSDTClassifier
-from lib.parallel_osdt_classifier import ParallelOSDTClassifier
-from lib.data_processing import read_dataset
-from lib.analysis import scalability_analysis
+from lib.models.osdt_classifier import OSDTClassifier
+from lib.models.parallel_osdt_classifier import ParallelOSDTClassifier
+from lib.data_structures.dataset import read_dataframe
+from lib.experiments.analysis import scalability_analysis
 
 # Extract Arguments
 # arguments: <dataset_path> <timeout?> <regularization?> <model_name?> <core_count?>
