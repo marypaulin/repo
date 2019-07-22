@@ -1,7 +1,7 @@
 from itertools import cycle
 from random import shuffle
 from multiprocessing import Value
-from math import ceil
+from math import ceil, floor
 from time import time
 
 from lib.parallel.channel import Channel, EndPoint
@@ -20,18 +20,13 @@ def QueueService(queue=None, degree=1, synchronization_cooldown=0):
         client_consumer, server_producer = Channel(channel_type='pipe')
 
         client_endpoint = EndPoint(client_consumer, client_producer)
-        client = __QueueClient__(queue, client_endpoint, global_length, 
+        client = __QueueClient__(queue.new(), client_endpoint, global_length, 
             degree=degree, synchronization_cooldown=synchronization_cooldown)
         clients.append(client)
 
         server_producers.append(server_producer)
 
     server = __QueueServer__(queue, server_consumer, server_producers, global_length)
-
-    if degree <= 1:
-        server.online = False
-        for client in clients:
-            client.online = False
 
     return (server, tuple(clients))
 
@@ -74,6 +69,8 @@ class __QueueServer__:
             with self.global_length.get_lock():
                 self.global_length.value -= filtered
 
+            print("Server queue has {} items".format(len(self.queue)))
+
             modified = len(self.queue) > 0
             while not self.queue.empty() and not self.consumer.full():
                 element = self.queue.pop()
@@ -112,22 +109,22 @@ class __QueueClient__:
                 self.global_length.value += self.delta
             self.delta = 0
 
-        target = ceil(self.global_length.value / self.degree)
+        target = self.global_length.value / self.degree
+        lower_target = floor(target)
+        upper_target = ceil(target)
 
-        if abs(target - len(self.queue)) / max(self.global_length.value, 1) < 0.5:
-            return
-
-        # Push elements if over the average
-        while len(self.queue) > target and not self.queue.empty():
-            element = self.queue.pop()
-            self.endpoint.push(element, block=False)
-
-        # Pop element if under the average
-        while len(self.queue) < target:
-            element = self.endpoint.pop(block=False)
-            if element == None:
-                break
-            self.queue.push(element)
+        if len(self.queue) > upper_target:
+            # Push elements if over the average
+            while len(self.queue) > target and not self.queue.empty():
+                element = self.queue.pop()
+                self.endpoint.push(element, block=False)
+        elif len(self.queue) < lower_target or len(self.queue) == 0:
+            # Pop element if under the average
+            while True:
+                element = self.endpoint.pop(block=False)
+                if element == None:
+                    break
+                self.queue.push(element)
 
     def push(self, element, block=False):
         '''
@@ -135,9 +132,10 @@ class __QueueClient__:
         Returns True if successful
         Returns False if unsuccessful
         '''
-        self.synchronize()
+        
         success = self.queue.push(element)
         self.delta += 1
+        self.synchronize()
         return success
 
     def pop(self, block=False):
@@ -147,11 +145,16 @@ class __QueueClient__:
         Returns (None, None) if unsuccessful
         '''
         element = self.queue.pop()
-        if element == None:
-            self.synchronize()
-        else:
+        if element != None:
             self.delta -= 1
+        self.synchronize()
         return element
+
+    def length(self, local=True):
+        if local:
+            return len(self.queue)
+        else:
+            return self.global_length.value
 
     def flush(self):
         self.synchronize()

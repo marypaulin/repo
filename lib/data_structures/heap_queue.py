@@ -27,9 +27,8 @@ class HeapQueue:
     def full(self):
         return self.limit != None and self.length >= self.limit
 
-    def clear(self):
-        while self.pop() != None:
-            pass
+    def new(self):
+        return HeapQueue(limit=self.limit)
 
     def __len__(self):
         return self.length

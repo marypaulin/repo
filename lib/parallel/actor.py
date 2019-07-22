@@ -9,21 +9,21 @@ def Client(id, services, task, client_type='process', output_channel=None):
     return Actor(id, services, task, actor_type=client_type, output_channel=output_channel)
 
 def Server(id, services, server_type='process', output_channel=None):
-    return Actor(id, services, __server_task__, actor_type=server_type, output_channel=output_channel)
+    return Actor(id, services, server_task, actor_type=server_type, output_channel=output_channel)
 
 def LocalClient(id, services, task, output_channel=None):
     return Actor(id, services, task, actor_type='local', output_channel=output_channel)
 
 def LocalServer(id, services, output_channel=None):
-    return Actor(id, services, __server_task__, actor_type='local', output_channel=output_channel)
+    return Actor(id, services, server_task, actor_type='local', output_channel=output_channel)
 
 def ThreadClient(id, services, task, client_type='thread', output_channel=None):
     return Actor(id, services, task, actor_type=client_type, output_channel=output_channel)
 
 def ThreadServer(id, services, output_channel=None):
-    return Actor(id, services, __server_task__, actor_type='thread', output_channel=output_channel)
+    return Actor(id, services, server_task, actor_type='thread', output_channel=output_channel)
 
-def __server_task__(id, services):
+def server_task(id, services):
     while True: # Continue servicing as it is not alone
         for service in services:
             service.serve()

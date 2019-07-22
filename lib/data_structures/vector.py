@@ -41,7 +41,7 @@ class Vector:
             # if isinstance(data, GeneratorType):
             #     data = tuple(data)
             # self.data = mpz(''.join(str(datum) for datum in data[::-1]), base)
-            bitstring = ''.join(str(datum) for datum in data)
+            bitstring = ''.join(repr(datum) for datum in data)
             self.data = mpz(bitstring, base)
             self.length = len(bitstring)
         if self.data < 0:

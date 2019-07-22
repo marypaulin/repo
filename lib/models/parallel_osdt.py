@@ -154,7 +154,10 @@ class ParallelOSDT:
         self.profile = profile
         self.log = log
         self.logger = None
-        self.profiler = None
+        self.snapshot_cooldown = 0.5
+        self.last_snapshot = 0
+        self.convergence_logger = None
+        self.distribution_logger = None
         self.interrupt = False
 
         # Global Upperbound
@@ -164,13 +167,20 @@ class ParallelOSDT:
 
     # @profile
     def snapshot(self):
-        if self.worker_id == 0:
-            if self.profiler == None:
-                self.profiler = Logger(path='data/convergence/convergence.csv', header=['time', 'lowerbound', 'upperbound'])
-            root = self.results.get(self.root, block=False)
-            if root != None and root.optimum != None:
-                self.profiler.log([self.elapsed_time(), root.optimum.lowerbound, root.optimum.upperbound])
-        pass
+        if time() > self.last_snapshot + self.snapshot_cooldown:
+            self.last_snapshot = time()
+        else:
+            return
+        
+        if self.convergence_logger == None:
+            self.convergence_logger = Logger(path='data/convergence/worker_{}.csv'.format(self.worker_id), header=['time', 'lowerbound', 'upperbound'])
+        root = self.results.get(self.root, block=False)
+        if root != None and root.optimum != None:
+            self.convergence_logger.log([self.elapsed_time(), root.optimum.lowerbound, root.optimum.upperbound])
+
+        if self.distribution_logger == None:
+            self.distribution_logger = Logger(path='data/distribution/worker_{}.csv'.format(self.worker_id), header=['time', 'local_queue_length', 'global_queue_length'])
+        self.distribution_logger.log([self.elapsed_time(), self.tasks.length(), self.tasks.length(local=False) ])
 
     # Task method that gets run by all worker nodes
     def task(self, worker_id, services):
@@ -186,10 +196,16 @@ class ParallelOSDT:
             self.print('Worker {} Starting'.format(self.worker_id))
 
         while not self.complete() and not self.timeout(): #  and peers.value == self.workers:
+
+            self.results.synchronize()
+            self.prefixes.synchronize()
+            print("Client {} queue has {} items".format(worker_id, len(self.tasks.queue)))
+
+            if self.profile: # Data for worker analysis
+                self.snapshot()
+
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
-                # if self.verbose or self.log:
-                #     print("Worker {} Idle {}".format(self.worker_id, self.get(self.root, tuple())))
                 continue
             (priority, capture, path) = task
 
@@ -208,6 +224,7 @@ class ParallelOSDT:
                 #  - Further propagating information through this problem when possible
                 #  - Pruning irrelevant subproblems when possible
                 #  - Pruning the current problem when possible
+
                 for j in self.dependencies(task, result):
                     left_capture, right_capture = self.dataset.split(j, capture=capture)
 
@@ -221,6 +238,9 @@ class ParallelOSDT:
             else:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
+
+        if self.profile:  # Data for worker analysis
+            self.snapshot()
 
         self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
 
@@ -505,8 +525,6 @@ class ParallelOSDT:
 
     # Method run by worker nodes to decide when to terminate
     def complete(self):
-        if self.profile:  # Record a snapshot for memory profiling
-            self.snapshot()
         # Termination condition
         # root = self.results.get(self.root, block=False)
         # terminate = root != None and root.optimizer != None and root.optimum.uncertainty == 0
@@ -568,7 +586,7 @@ class ParallelOSDT:
         services = (tasks, results, prefixes)
 
         # Initialize and run the cluster
-        model = Cluster(self.task, services, size=workers).compute(self.max_time)
+        model = Cluster(self.task, services, size=workers, server_period=cooldown).compute(self.max_time)
 
         if model != None:
             if self.verbose or self.log:
@@ -587,7 +605,7 @@ class ParallelOSDT:
     def __default_configuration__(self):
         return {
             'priority_metric': 'depth', # Decides how tasks are prioritized
-            'deprioritization': 0.01, # Decides how much to push back a task if it has pending dependencies
+            'deprioritization': 0.1, # Decides how much to push back a task if it has pending dependencies
 
             # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
             'hierarchical_lowerbound': True, 
@@ -613,9 +631,9 @@ class ParallelOSDT:
             # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
             'interval_look_ahead': True,
             # Cooldown timer (seconds) on synchornization operations
-            'synchronization_cooldown': 0.01,
+            'synchronization_cooldown': 0.1,
             # Cache Limit
-            'cache_limit': float('Inf')
+            'cache_limit': 1
         }
 
     def elapsed_time(self):

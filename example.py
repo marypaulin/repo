@@ -31,7 +31,7 @@ if len(sys.argv) >= 5:
 
 print(regularization, n, m, workers)
 
-profile = True
+profile = False
 
 X = dataset.values[:n, :m-1]
 y = dataset.values[:n, -1]
@@ -48,10 +48,10 @@ hyperparameters = {
     'visualize': True,  # Toggle whether a rule-list visualization is rendered
     'verbose': False,  # Toggle whether event messages are printed
     'log': False,  # Toggle whether client processes log to logs/work_<id>.log files
-    'profile': False,  # Toggle Snapshots for Profiling Memory Usage
+    'profile': True,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
-        'priority_metric': 'uniform',  # Decides how tasks are prioritized
+        'priority_metric': 'depth',  # Decides how tasks are prioritized
         # Decides how much to push back a task if it has pending dependencies
         'deprioritization': 0.01,
 

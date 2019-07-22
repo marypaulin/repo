@@ -147,7 +147,7 @@ def plot_scalability_analysis(dataset, title, z_limit=None):
     Y, X = np.meshgrid(y, x)
     Z = np.array(dataset.values[:,2]).reshape(len(x), len(y))
 
-    fig = plt.figure(figsize=(10, 8), dpi=100)
+    fig = plt.figure(figsize=(8, 6), dpi=100)
     ax = plt.axes(projection='3d')
     ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='viridis', edgecolor='none')
     ax.set_xlabel('Sample Size N')
