@@ -199,7 +199,7 @@ class ParallelOSDT:
 
             self.results.synchronize()
             self.prefixes.synchronize()
-            print("Client {} queue has {} items".format(worker_id, len(self.tasks.queue)))
+            # print("Client {} queue has {} items".format(worker_id, len(self.tasks.queue)))
 
             if self.profile: # Data for worker analysis
                 self.snapshot()

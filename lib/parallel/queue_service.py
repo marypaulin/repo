@@ -69,7 +69,7 @@ class __QueueServer__:
             with self.global_length.get_lock():
                 self.global_length.value -= filtered
 
-            print("Server queue has {} items".format(len(self.queue)))
+            # print("Server queue has {} items".format(len(self.queue)))
 
             modified = len(self.queue) > 0
             while not self.queue.empty() and not self.consumer.full():
