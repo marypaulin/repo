@@ -83,7 +83,7 @@ hyperparameters = {
         # Cooldown timer (seconds) on synchornization operations
         'synchronization_cooldown': 0.0,
         # Cache Limit
-        'cache_limit': float('Inf')
+        'cache_limit': 1
     }
 }
 

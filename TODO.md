@@ -2,7 +2,7 @@
  - Dependency chains spread across many processes are causing issues
 
  - Decide how to get locality for dependency chains (reduce synchronization)
- - Fix path pruning which is killing termination
+ - Okay so pruning seems to be "fine" but a bit slow
 
  - Benchmark Julia IPC
  - Adaptive Compression
