@@ -36,7 +36,6 @@ class PrefixTree:
         self.size = 0
 
     def accepts(self, key, value):
-        return True
         return not self.has(key) or self.get(key) != value
 
     # Returns True if the key exists in the key-set

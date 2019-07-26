@@ -77,7 +77,7 @@ hyperparameters = {
         # Toggles compression of dataset based on equivalent point aggregation
         'equivalent_point_compression': True,
         # Toggles whether asynchronous tasks can be cancelled after being issued
-        'task_cancellation': False,
+        'task_cancellation': True,
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
         'interval_look_ahead': True,
         # Cooldown timer (seconds) on synchornization operations

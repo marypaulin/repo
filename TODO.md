@@ -1,14 +1,11 @@
 # TODO
  - Dependency chains spread across many processes are causing issues
 
- - Decide overwrite policy for hashtable and prefix tree
  - Decide how to get locality for dependency chains (reduce synchronization)
- - Try reducing synchronization cooldown
  - Fix path pruning which is killing termination
 
  - Benchmark Julia IPC
  - Adaptive Compression
-
 
  - Sci-Kit Model Interface (Unit Tests)
  - Cache Eviction

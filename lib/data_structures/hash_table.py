@@ -12,7 +12,6 @@ class HashTable:
         self.table[key] = value
 
     def accepts(self, key, value):
-        return True
         return not key in self.table or self.table[key] != value
 
     def __contains__(self, key):
