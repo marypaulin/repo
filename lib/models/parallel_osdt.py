@@ -1,6 +1,7 @@
-from time import time
+from time import time, sleep
 from random import random
 from memory_profiler import profile
+from pickle import dump, load
 
 from lib.parallel.cluster import Cluster
 from lib.parallel.queue_service import QueueService
@@ -8,6 +9,7 @@ from lib.parallel.dictionary_service import DictionaryService
 from lib.models.similarity_propagator import SimilarityPropagator
 from lib.data_structures.prefix_tree import PrefixTree
 from lib.data_structures.heap_queue import HeapQueue
+from lib.data_structures.result_table import ResultTable
 from lib.data_structures.similarity_index import SimilarityIndex
 from lib.data_structures.result import Result
 from lib.data_structures.interval import Interval
@@ -15,6 +17,7 @@ from lib.data_structures.dataset import DataSet
 from lib.data_structures.vector import Vector
 from lib.data_structures.tree import Tree
 from lib.experiments.logger import Logger
+from lib.experiments.visualizer import Visualizer
 
 # Theorems Applied
 
@@ -158,12 +161,15 @@ class ParallelOSDT:
         self.last_snapshot = 0
         self.convergence_logger = None
         self.distribution_logger = None
+        self.memory_logger = None
+        self.visualizer = None
         self.interrupt = False
 
         # Global Upperbound
         _total, zeros, ones, minority, _majority = self.dataset.label_distribution()
         self.global_upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb
         self.global_lowerbound = minority / self.dataset.sample_size + self.lamb
+
 
     # @profile
     def snapshot(self):
@@ -182,6 +188,10 @@ class ParallelOSDT:
             self.distribution_logger = Logger(path='data/distribution/worker_{}.csv'.format(self.worker_id), header=['time', 'local_queue_length', 'global_queue_length'])
         self.distribution_logger.log([self.elapsed_time(), self.tasks.length(), self.tasks.length(local=False) ])
 
+        if self.memory_logger == None:
+            self.memory_logger = Logger(path='data/memory/worker_{}.csv'.format(self.worker_id), header=['time', 'local_table_size'])
+        self.memory_logger.log([self.elapsed_time(), len(self.results)])
+
     # Task method that gets run by all worker nodes
     def task(self, worker_id, services):
         self.worker_id = worker_id
@@ -195,20 +205,26 @@ class ParallelOSDT:
         if self.verbose or self.log:
             self.print('Worker {} Starting'.format(self.worker_id))
 
-        while not self.complete() and not self.timeout(): #  and peers.value == self.workers:
+        # Set up visualizer channel when ready
+        if self.visualize_training:
+            self.visualizer = Visualizer(self.worker_id, self.dataset)
+            self.tasks.visualizer = self.visualizer
+            self.results.visualizer = self.visualizer
 
-            self.results.synchronize()
-            self.prefixes.synchronize()
-            # print("Client {} queue has {} items".format(worker_id, len(self.tasks.queue)))
+        while not self.complete() and not self.timeout(): #  and peers.value == self.workers:
+            # print("Client {} queue has {} items".format(self.worker_id, len(self.tasks.queue)))
 
             if self.profile: # Data for worker analysis
                 self.snapshot()
 
+            self.results.synchronize()
+            self.prefixes.synchronize()
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
                 continue
             (priority, capture, path) = task
 
+            
             # Initialize the results table entry if not already initialized, and returns the persisted entry
             # If an entry already exists, simply load the existing one
             result = self.find_or_create_result(capture, path)
@@ -240,6 +256,7 @@ class ParallelOSDT:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
 
         if self.profile:  # Data for worker analysis
+            self.last_snapshot = 0
             self.snapshot()
 
         self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
@@ -274,7 +291,7 @@ class ParallelOSDT:
         if not capture in self.results:
             bounding_interval, support, majority_label = self.compute_bounds(capture)
             if (self.configuration['accuracy_lowerbound'] and bounding_interval.lowerbound > support):
-                optimizer, optimum = None, Interval(float('Inf'), float('Inf'))
+                optimizer, optimum = None, Interval(float('Inf'))
                 result = Result(optimizer=optimizer, optimum=optimum)
             elif (len(path) / 2 >= self.max_depth or capture.count() <= 1 or bounding_interval.uncertainty <= 0 or
                 (self.configuration['support_lowerbound'] and 0.5 * support <= self.lamb) or # Insufficient support for splitting
@@ -535,7 +552,7 @@ class ParallelOSDT:
     def output(self):
         return Tree(self.root, self.results, self.dataset, capture_equivalence=self.configuration['capture_equivalence'])
 
-    def solve(self, workers=1, visualize=False):
+    def solve(self, workers=1, visualize_model=False, visualize_training=False):
         if self.verbose or self.log:
             self.print("Starting Parallel OSDT")
 
@@ -553,6 +570,8 @@ class ParallelOSDT:
             for key, value in self.configuration.items():
                 self.print("  {} = {}".format(key, value))
         
+        self.visualize_training = visualize_training
+        self.visualize_model = visualize_model
         self.workers = workers
         self.start_time = time()
         self.root = Vector.ones(self.dataset.height)  # Root capture
@@ -574,9 +593,11 @@ class ParallelOSDT:
             propagator = None
         
         results = DictionaryService(
+            table=ResultTable(),
             degree=workers, 
             synchronization_cooldown=cooldown,
             propagator=propagator)
+        results[0].dataset = self.dataset
         root_priority = 0
         tasks = QueueService(
             queue=HeapQueue([( root_priority, self.root, () )]),
@@ -592,7 +613,7 @@ class ParallelOSDT:
             if self.verbose or self.log:
                 self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
                 self.print("Optimal Objective: {}".format(model.risk))
-            if visualize:
+            if self.visualize_model:
                 model.visualize(self.dataset.width) # Renders a rule-list visualization
                 if self.verbose or self.log:
                     self.print('Optimal Model:\n{}'.format(model.visualization))
@@ -625,7 +646,7 @@ class ParallelOSDT:
             'equivalent_point_lowerbound': True,
 
             # Toggles compression of dataset based on equivalent point aggregation
-            'equivalent_point_compression': False,
+            'equivalent_point_compression': True,
             # Toggles whether asynchronous tasks can be cancelled after being issued
             'task_cancellation': True,
             # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)

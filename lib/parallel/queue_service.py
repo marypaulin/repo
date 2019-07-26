@@ -94,6 +94,7 @@ class __QueueClient__:
         self.delta = 0
         self.last_synchronization = 0
         self.online = True
+        self.visualizer = None
 
     def synchronize(self):
         if not self.online:
@@ -110,21 +111,24 @@ class __QueueClient__:
             self.delta = 0
 
         target = self.global_length.value / self.degree
-        lower_target = floor(target)
-        upper_target = ceil(target)
+        tolerance = floor(self.global_length.value * 0.1)
+        lower_target = floor(target) - tolerance
+        upper_target = ceil(target) + tolerance
 
-        if len(self.queue) > upper_target:
-            # Push elements if over the average
-            while len(self.queue) > target and not self.queue.empty():
+        if len(self.queue) > upper_target and len(self.queue) > 1:
+            while len(self.queue) > target and len(self.queue) > 1:
                 element = self.queue.pop()
                 self.endpoint.push(element, block=False)
-        elif len(self.queue) < lower_target or len(self.queue) == 0:
-            # Pop element if under the average
-            while True:
+                if self.visualizer != None:
+                    self.visualizer.send(('queue', 'pop', element))
+        elif len(self.queue) < lower_target or len(self.queue) < 1:
+            while len(self.queue) < target or len(self.queue) < 1:
                 element = self.endpoint.pop(block=False)
                 if element == None:
                     break
                 self.queue.push(element)
+                if self.visualizer != None:
+                    self.visualizer.send(('queue', 'push', element))
 
     def push(self, element, block=False):
         '''
@@ -132,11 +136,12 @@ class __QueueClient__:
         Returns True if successful
         Returns False if unsuccessful
         '''
-        
-        success = self.queue.push(element)
-        self.delta += 1
         self.synchronize()
-        return success
+        self.queue.push(element)
+        self.delta += 1
+        if self.visualizer != None:
+            self.visualizer.send(('queue', 'push', element))
+        return
 
     def pop(self, block=False):
         '''
@@ -144,10 +149,12 @@ class __QueueClient__:
         Returns (priority, element) if successful
         Returns (None, None) if unsuccessful
         '''
+        self.synchronize()
         element = self.queue.pop()
         if element != None:
             self.delta -= 1
-        self.synchronize()
+            if self.visualizer != None:
+                self.visualizer.send(('queue', 'pop', element))
         return element
 
     def length(self, local=True):

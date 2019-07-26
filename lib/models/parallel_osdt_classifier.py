@@ -19,7 +19,8 @@ class ParallelOSDTClassifier:
                 workers = 1, # Parameter that varies based on how much computational resource is available
 
                 configuration = None, # More configurations around toggling optimizations and prioritization options
-                visualize = False, # Toggle whether a rule-list visualization is rendered
+                 visualize_model=False,  # Toggle whether a rule-list visualization is rendered
+                 visualize_training=False,  # Toggle whether a dependency visualization is streamed
                 verbose = False, # Toggle whether event messages are printed
                 log = False,
                 profile = False): # Toggle whether processes log their events
@@ -33,7 +34,8 @@ class ParallelOSDTClassifier:
         self.workers = workers
 
         self.configuration = configuration
-        self.visualize = visualize
+        self.visualize_model = visualize_model
+        self.visualize_training = visualize_training
         self.verbose = verbose
         self.log = log
         self.profile = profile
@@ -44,8 +46,8 @@ class ParallelOSDTClassifier:
             configuration=self.configuration,
             max_depth=self.max_depth, max_time=self.max_time,
             verbose=self.verbose, log=self.log, profile=self.profile)
-        self.model = problem.solve(workers=self.workers, visualize=self.visualize)
-        if self.visualize:
+        self.model = problem.solve(workers=self.workers, visualize_model=self.visualize_model, visualize_training=self.visualize_training)
+        if self.visualize_model:
             self.width = len(self.model.rule_lists(m))
         return
 

@@ -20,9 +20,11 @@ class Result:
     # This ensures that the precision of our optimum estimate increases monotonically
     # This also ensures we don't accidentally lose information by overwriting with a less precise estimate
     def overwrites(self, result):
-        if result == None:
+        if result == None: # Can always overwrite a null value
             return True
-        if self.optimum.uncertainty == 0 or self.optimum.subset(result.optimum) or self.running == True and result.running == False:
+        if result.optimizer != None: # Cannot overwrite a result that is already optimal
+            return False
+        if self.optimum.subset(result.optimum): # Can overwrite when this optimum subsets the current optimum
             return True
         return False
 

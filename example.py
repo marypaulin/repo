@@ -28,7 +28,6 @@ if len(sys.argv) >= 4:
 if len(sys.argv) >= 5:
     regularization = float(sys.argv[4])
 
-
 print(regularization, n, m, workers)
 
 profile = False
@@ -41,14 +40,15 @@ hyperparameters = {
     'regularization': regularization,
 
     'max_depth': float('Inf'),  # User-specified limit on the model
-    'max_time': float('Inf'),  # User-specified limit on the runtime
+    'max_time': 300,  # User-specified limit on the runtime
 
     'workers': workers,  # Parameter that varies based on how much computational resource is available
 
-    'visualize': True,  # Toggle whether a rule-list visualization is rendered
+    'visualize_model': True,  # Toggle whether a rule-list visualization is rendered
+    'visualize_training': False,  # Toggle whether a dependency graph is streamed at runtime
     'verbose': False,  # Toggle whether event messages are printed
     'log': False,  # Toggle whether client processes log to logs/work_<id>.log files
-    'profile': True,  # Toggle Snapshots for Profiling Memory Usage
+    'profile': False,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
         'priority_metric': 'depth',  # Decides how tasks are prioritized
@@ -77,7 +77,7 @@ hyperparameters = {
         # Toggles compression of dataset based on equivalent point aggregation
         'equivalent_point_compression': True,
         # Toggles whether asynchronous tasks can be cancelled after being issued
-        'task_cancellation': True,
+        'task_cancellation': False,
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
         'interval_look_ahead': True,
         # Cooldown timer (seconds) on synchornization operations
@@ -90,7 +90,7 @@ hyperparameters = {
 start = time()
 model = ParallelOSDTClassifier(**hyperparameters)
 if profile:
-    cProfile.run('model.fit(X, y)', sort='tottime')
+    cProfile.run('model.fit(X, y)', sort='cumtime')
 else:
     model.fit(X, y)
 prediction = model.predict(X)

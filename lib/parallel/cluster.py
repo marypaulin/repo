@@ -16,15 +16,12 @@ class Cluster:
 
         # Extract bundles of client interfaces out of each service
         self.client_bundles = tuple( tuple( service[1][client_id] for service in services ) for client_id in range(self.size))
-        self.client_bundle = self.client_bundles[0]
-
-
 
     def compute(self, max_time):
 
         def server_task(server_id, services):
             while True:  # Continue servicing as it is not alone
-                sleep(self.server_period)
+                # sleep(self.server_period)
                 for service in services:
                     service.serve()
 

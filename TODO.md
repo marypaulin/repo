@@ -1,8 +1,17 @@
 # TODO
- - Log analysis for deadlock
- - Figure out distribution problem
- - Benchmark Julia IPC
  - PyVisualization of Problem Trace
+ - Graph entire dependency tree from local dictionary
+ - Edges are:
+   - directed
+   - grey for unknown
+   - solid for optimal
+   - dashed for pruned
+ - Nodes are:
+   - bold for in-local-queue
+   - colour proportional to uncertainty
+
+   
+ - Benchmark Julia IPC
  - Adaptive Compression
 
 
