@@ -217,8 +217,8 @@ class ParallelOSDT:
             if self.profile: # Data for worker analysis
                 self.snapshot()
 
-            self.results.synchronize()
-            self.prefixes.synchronize()
+            # self.results.synchronize()
+            # self.prefixes.synchronize()
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
                 continue

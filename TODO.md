@@ -1,16 +1,11 @@
 # TODO
- - PyVisualization of Problem Trace
- - Graph entire dependency tree from local dictionary
- - Edges are:
-   - directed
-   - grey for unknown
-   - solid for optimal
-   - dashed for pruned
- - Nodes are:
-   - bold for in-local-queue
-   - colour proportional to uncertainty
+ - Dependency chains spread across many processes are causing issues
 
-   
+ - Decide overwrite policy for hashtable and prefix tree
+ - Decide how to get locality for dependency chains (reduce synchronization)
+ - Try reducing synchronization cooldown
+ - Fix path pruning which is killing termination
+
  - Benchmark Julia IPC
  - Adaptive Compression
 
