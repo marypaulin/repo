@@ -1,4 +1,5 @@
 # TODO
+ - IRIS dataset run on both similarity implementation
  - Dependency chains spread across many processes are causing issues
 
  - Decide how to get locality for dependency chains (reduce synchronization)

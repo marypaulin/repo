@@ -48,7 +48,7 @@ hyperparameters = {
     'visualize_training': False,  # Toggle whether a dependency graph is streamed at runtime
     'verbose': False,  # Toggle whether event messages are printed
     'log': False,  # Toggle whether client processes log to logs/work_<id>.log files
-    'profile': False,  # Toggle Snapshots for Profiling Memory Usage
+    'profile': True,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
         'priority_metric': 'depth',  # Decides how tasks are prioritized

@@ -12,6 +12,7 @@ from lib.data_structures.heap_queue import HeapQueue
 from lib.data_structures.result_table import ResultTable
 from lib.data_structures.similarity_index import SimilarityIndex
 from lib.data_structures.result import Result
+from lib.data_structures.task import Task
 from lib.data_structures.interval import Interval
 from lib.data_structures.dataset import DataSet
 from lib.data_structures.vector import Vector
@@ -222,12 +223,10 @@ class ParallelOSDT:
             task = self.dequeue() # Change to non-blocking since we don't have an alternatve idle task anywyas
             if task == None:
                 continue
-            (priority, capture, path) = task
-
             
             # Initialize the results table entry if not already initialized, and returns the persisted entry
             # If an entry already exists, simply load the existing one
-            result = self.find_or_create_result(capture, path)
+            result = self.find_or_create_result(task.capture, task.path)
 
             # An entry with non-zero uncertainty indicates that the precise optimum is not yet found due to lack of information
             # Information is gained everytime a subproblem (direct child or any descendent) gains information
@@ -242,18 +241,18 @@ class ParallelOSDT:
                 #  - Pruning the current problem when possible
 
                 for j in self.dependencies(task, result):
-                    left_capture, right_capture = self.dataset.split(j, capture=capture)
+                    left_capture, right_capture = self.dataset.split(j, capture=task.capture)
 
-                    left_path = path + (j, 'L')
+                    left_path = task.path + (j, 'L')
                     left_priority = self.prioritize(left_capture, left_path)
-                    self.enqueue((left_priority, left_capture, left_path))
+                    self.enqueue(Task(left_priority, left_capture, left_path))
 
-                    right_path = path + (j, 'R')
+                    right_path = task.path + (j, 'R')
                     right_priority = self.prioritize(right_capture, right_path)
-                    self.enqueue((right_priority, right_capture, right_path))
+                    self.enqueue(Task(right_priority, right_capture, right_path))
             else:
                 if self.verbose or self.log:
-                    self.print('Case: Cached, Problem: {}:{} => {}'.format(path, capture, result))
+                    self.print('Case: Cached, Problem: {}:{} => {}'.format(task.path, task.capture, result))
 
         if self.profile:  # Data for worker analysis
             self.last_snapshot = 0
@@ -313,7 +312,9 @@ class ParallelOSDT:
         return result
 
     def dependencies(self, task, current_result):
-        (priority, capture, path) = task
+        priority = task.priority
+        capture = task.capture
+        path = task.path
         # Attempts to solve the problem of which of j in 1:m features to split on or to just use a leaf
         minimum_bounding_interval, minimizing_split, relevant_splits, irrelevant_splits = self.minimize_choice_of_split(capture, path)
         # minimum_bounding_interval = The current best known bound over the objective when considering all the choices
@@ -350,8 +351,8 @@ class ParallelOSDT:
             for j in irrelevant_splits:
                 self.prune(path + (j,))
             # Be sure to re-enqueue this task since it's not finished
-            self.enqueue((priority + self.configuration['deprioritization'], capture, path))
-            if self.configuration['cache_limit'] == float('Inf') and current_result.running:
+            self.enqueue(Task(priority + self.configuration['deprioritization'], capture, path))
+            if self.configuration['independence'] < 1 and (self.configuration['independence'] == 0 or random() >= self.configuration['independence']) and current_result.running:
                 dependencies = tuple()
             else:
                 dependencies = relevant_splits
@@ -495,15 +496,13 @@ class ParallelOSDT:
             task = self.tasks.pop(block=False)
             if task == None:
                 return None
-            (priority, capture, path) = task
-            if self.is_pruned(path):
-                self.print('Case: Pruned, Problem: {}:{}'.format(path, capture))
+            if self.is_pruned(task.path):
+                self.print('Case: Pruned, Problem: {}:{}'.format(task.path, task.capture))
                 return None
             return task
                     
     def enqueue(self, task):
-        (priority, capture, path) = task
-        if not self.is_pruned(path):
+        if not self.is_pruned(task.path):
             self.tasks.push(task, block=False)
 
     def get(self, capture, path):
@@ -600,7 +599,7 @@ class ParallelOSDT:
         results[0].dataset = self.dataset
         root_priority = 0
         tasks = QueueService(
-            queue=HeapQueue([( root_priority, self.root, () )]),
+            queue=HeapQueue([Task(root_priority, self.root, tuple())]),
             degree=workers,
             synchronization_cooldown=cooldown)
         
@@ -654,7 +653,7 @@ class ParallelOSDT:
             # Cooldown timer (seconds) on synchornization operations
             'synchronization_cooldown': 0.1,
             # Cache Limit
-            'cache_limit': 1
+            'independence': 0.5
         }
 
     def elapsed_time(self):

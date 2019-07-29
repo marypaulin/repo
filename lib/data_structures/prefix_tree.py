@@ -82,7 +82,7 @@ class PrefixTree:
         node = self.node
         for element in key:
             if not element in node.children:
-                return
+                return # Ignore removal if not found
             else:
                 node = node.children[element]
         node.value = None

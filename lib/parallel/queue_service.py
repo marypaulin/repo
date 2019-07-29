@@ -6,37 +6,58 @@ from time import time
 
 from lib.parallel.channel import Channel, EndPoint
 from lib.data_structures.heap_queue import HeapQueue
+from lib.data_structures.task import Task
+from lib.data_structures.path_cluster import PathCluster
+from lib.data_structures.capture_cluster import CaptureCluster
 
-def QueueService(queue=None, degree=1, synchronization_cooldown=0):
+def QueueService(queue=None, degree=1, synchronization_cooldown=0, alpha=1.0, beta=0.05):
     if queue == None:
         queue = HeapQueue()
 
-    server_consumer, client_producer = Channel(read_lock=True, channel_type='queue')
     global_length = Value('i', len(queue))
     clients = []
-    server_producers = []
+    server_endpoints = []
     for i in range(degree):
-        # client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
-        client_consumer, server_producer = Channel(channel_type='pipe')
+        client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
 
-        client_endpoint = EndPoint(client_consumer, client_producer)
         client = __QueueClient__(queue.new(), client_endpoint, global_length, 
-            degree=degree, synchronization_cooldown=synchronization_cooldown)
+            degree=degree, synchronization_cooldown=synchronization_cooldown, beta=beta)
         clients.append(client)
 
-        server_producers.append(server_producer)
+        server_endpoints.append(server_endpoint)
 
-    server = __QueueServer__(queue, server_consumer, server_producers, global_length)
+    server = __QueueServer__(queue, server_endpoints, global_length, alpha=alpha)
 
     return (server, tuple(clients))
 
 class __QueueServer__:
-    def __init__(self, queue, consumer, producers, global_length):
+    def __init__(self, queue, endpoints, global_length, alpha=1.0):
         self.queue = queue
-        self.consumer = consumer
-        self.producers = producers
+        self.endpoints = endpoints
         self.global_length = global_length
+        self.clusters = tuple(CaptureCluster() for _ in endpoints)
+        self.alpha = alpha
         self.online = True
+
+    def optimal_cluster_index(self, element):
+        optimum = -float('Inf')
+        optimizer = None
+
+        max_size = -float('Inf')
+        min_size = float('Inf')
+        for cluster in self.clusters:
+            max_size = max(max_size, len(cluster))
+            min_size = min(min_size, len(cluster))
+
+        # Maximize proximity to cluster to prioritize cache locality (based on approximate measure of knowledge over dependencies)
+        # Minimuze cluster size to prioritize even task distribution
+        for i, cluster in enumerate(self.clusters):
+            score = cluster.proximity(element) - self.alpha * (len(cluster) - min_size) / max((max_size - min_size), 1)
+            if score > optimum:
+                optimum = score
+                optimizer = i
+        return optimizer
+
 
     def serve(self):
         '''
@@ -54,12 +75,17 @@ class __QueueServer__:
             filtered = 0
             seen = set()
             # Transfer from inbound queue to priority queue
-            for producer in self.producers:
+            for i, producer in enumerate(self.endpoints):
+                cluster = self.clusters[i]
                 while not self.queue.full():
                     element = producer.pop(block=False)
                     if element == None:
                         break
-                    key = element if not type(element) in {tuple, list} else element[1:]
+
+                    cluster.remove(element)
+
+
+                    key = element if not type(element) == Task else element.key()
                     if not key in seen:
                         seen.add(key)
                         self.queue.push(element)
@@ -72,11 +98,11 @@ class __QueueServer__:
             # print("Server queue has {} items".format(len(self.queue)))
 
             modified = len(self.queue) > 0
-            while not self.queue.empty() and not self.consumer.full():
+            while not self.queue.empty():
                 element = self.queue.pop()
-                if not self.consumer.push(element, block=False):
-                    self.queue.push(element)
-                    break
+                optimal_index = self.optimal_cluster_index(element)
+                self.clusters[optimal_index].add(element)
+                self.endpoints[optimal_index].push(element, block=False)
 
         return modified
 
@@ -84,12 +110,13 @@ class __QueueServer__:
         self.serve()
 
 class __QueueClient__:
-    def __init__(self, queue, endpoint, global_length, degree=1, synchronization_cooldown=0):
+    def __init__(self, queue, endpoint, global_length, degree=1, synchronization_cooldown=0, beta = 0.01):
         self.queue = queue
         self.endpoint = endpoint
         self.global_length = global_length
         self.synchronization_cooldown = synchronization_cooldown
 
+        self.beta = beta
         self.degree = degree
         self.delta = 0
         self.last_synchronization = 0
@@ -111,7 +138,7 @@ class __QueueClient__:
             self.delta = 0
 
         target = self.global_length.value / self.degree
-        tolerance = floor(self.global_length.value * 0.1)
+        tolerance = floor(self.global_length.value * self.beta)
         lower_target = floor(target) - tolerance
         upper_target = ceil(target) + tolerance
 
