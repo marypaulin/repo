@@ -23,9 +23,9 @@ class ResultTable:
             if self.accepts(key, value):
                 self.table[key] = value
         else:
-            with self.lock:
-                if self.accepts(key, value):
-                    self.table[key] = value
+            # with self.lock:
+            if self.accepts(key, value):
+                self.table[key] = value
 
 
     def accepts(self, key, value):
