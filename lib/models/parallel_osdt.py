@@ -595,14 +595,14 @@ class ParallelOSDT:
             propagator = None
         
         results = DictionaryService(
-            table=ResultTable(table=manager.dict()),
+            table=ResultTable(table=dict()),
             degree=workers, 
             synchronization_cooldown=cooldown,
             propagator=propagator)
         results[0].dataset = self.dataset
         root_priority = 0
         tasks = QueueService(
-            queue=HeapQueue( manager.list([Task(root_priority, self.root, tuple())]) ),
+            queue=HeapQueue( list([Task(root_priority, self.root, tuple())]) ),
             degree=workers,
             synchronization_cooldown=cooldown)
         
