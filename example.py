@@ -77,7 +77,7 @@ hyperparameters = {
         # Toggles compression of dataset based on equivalent point aggregation
         'equivalent_point_compression': True,
         # Toggles whether asynchronous tasks can be cancelled after being issued
-        'task_cancellation': True,
+        'task_cancellation': False,
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
         'interval_look_ahead': True,
         # Cooldown timer (seconds) on synchornization operations
@@ -90,7 +90,7 @@ hyperparameters = {
 start = time()
 model = ParallelOSDTClassifier(**hyperparameters)
 if profile:
-    cProfile.run('model.fit(X, y)', sort='cumtime')
+    cProfile.run('model.fit(X, y)', sort='tottime')
 else:
     model.fit(X, y)
 prediction = model.predict(X)
