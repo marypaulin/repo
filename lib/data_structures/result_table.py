@@ -1,8 +1,16 @@
+from multiprocessing import Lock
+from multiprocessing.managers import DictProxy
+
 from lib.data_structures.result import Result
 
 class ResultTable:
     def __init__(self, table=None):
-        self.table = table if table != None else {}
+        if type(table) == DictProxy:
+            self.table = table
+            self.lock = Lock()
+        else:
+            self.table = table if table != None else {}
+            self.lock = None
     
     def __getitem__(self, key):
         return self.table[key]
@@ -11,7 +19,14 @@ class ResultTable:
         return self.table.get(key)
 
     def __setitem__(self, key, value):
-        self.table[key] = value
+        if self.lock == None:
+            if self.accepts(key, value):
+                self.table[key] = value
+        else:
+            with self.lock:
+                if self.accepts(key, value):
+                    self.table[key] = value
+
 
     def accepts(self, key, value):
         accepted = (type(self.table.get(key)) != Result) or (value.overwrites(self.table.get(key)))
@@ -29,6 +44,9 @@ class ResultTable:
 
     def __str__(self):
         return str(self.table)
+
+    def __repr__(self):
+        return repr(self.table)
 
     def __len__(self):
         return len(self.table)

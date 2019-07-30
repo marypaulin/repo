@@ -22,7 +22,7 @@ class TestOSDT(unittest.TestCase):
         start = time()
         problem = ParallelOSDT(X, y, lamb, max_time=60)
         print("\nRunning OSDT COMPAS consistency test")
-        model = problem.solve(workers=2, visualize=True)
+        model = problem.solve(workers=2, visualize_model=True)
         finish = time()
         print('Training Time = {} seconds'.format(round(finish - start, 3)))
 

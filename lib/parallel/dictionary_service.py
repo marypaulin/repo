@@ -1,4 +1,4 @@
-from time import time
+from time import time, sleep
 from random import shuffle
 from copy import deepcopy
 
@@ -9,9 +9,75 @@ from lib.data_structures.interval import Interval
 from lib.data_structures.prefix_tree import PrefixTree
 from lib.parallel.channel import Channel
 
+def SharedDictionaryService(table, propagator=None, degree=1):
+    return (__SharedDictionaryServer__(table), tuple(__SharedDictionaryClient__(table) for _ in range(degree)))
+
+class __SharedDictionaryServer__:
+    def __init__(self, table):
+        self.table = table
+
+    def serve(self):
+        pass
+
+class __SharedDictionaryClient__:
+    def __init__(self, table):
+        self.table = table
+
+    def synchronize(self):
+        pass
+
+    def has(self, key):
+        return key in self.table
+
+    def get(self, key, block=False):
+        return self.table.get(key)
+
+    def put(self, key, value, block=False):
+        # print(type(self.table))
+        # with self.table.table.get_lock():
+        #     if self.table.accepts(key, value):
+                
+        self.table[key] = value
+
+    def shortest_prefix(self, key):
+        if type(self.table) != PrefixTree:
+            raise Exception("DictionaryServiceError: DictionaryTable of internal type {} does no support prefix queries".format(type(self.table)))
+        return self.table.shortest_prefix(key)
+
+    def longest_prefix(self, key):
+        if type(self.table) != PrefixTree:
+            raise Exception("DictionaryTableError: DictionaryTable of internal type {} does no support prefix queries".format(type(self.table)))
+        return self.table.longest_prefix(key)
+
+    def __getitem__(self, key):
+        return self.table.get(key, block=False)
+
+    def __setitem__(self, key, value):
+        self.table.put(key, value, block=False)
+
+    def __contains__(self, key):
+        return self.has(key)
+
+    def __str__(self):
+        return str(self.table)
+    
+    def __repr__(self):
+        return repr(self.table)
+
+    def __len__(self):
+        return len(self.table)
+
+    def flush(self):
+        pass
+
+
 def DictionaryService(table=None, propagator=None, synchronization_cooldown=0, degree=1):
     if table == None:
         table = HashTable()
+
+    if table != None and table.lock != None:
+        return SharedDictionaryService(table, propagator=propagator, degree=degree)
+    
     clients = []
     server_endpoints = []
     for i in range(degree):
@@ -91,7 +157,6 @@ class __DictionaryServer__:
             for key, value in self.updates.items():
                 for endpoint in self.endpoints:
                     endpoint.push((key, value), block=False)
-
 
         return modified
 

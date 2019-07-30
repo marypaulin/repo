@@ -23,6 +23,7 @@ class Fibonacci:
             # Check status
             result = table[n]
 
+
             if result == None:  # New problem
                 if n <= 2:  # Base Case
                     output = 1
@@ -33,10 +34,14 @@ class Fibonacci:
                     dependencies = (n-1, n-2)
                     table[n] = (n-1, n-2)  # Memoize pending problem
                     if not n-1 in table:
-                        queue.push((priority-1, n-1)) # Enqueue subproblem
+                        queue.push((priority-1, n-1), block=False) # Enqueue subproblem
+
                     if not n-2 in table:
-                        queue.push((priority-2, n-2)) # Enqueue subproblem
-                    queue.push((priority+0.5, n)) # re-enqueue problem
+                        queue.push((priority-2, n-2), block=False)
+
+                    # re-enqueue problem
+                    queue.push((priority+0.5, n), block=False)
+
             else:  # Revisited problem
                 if type(result) == int: # Problem solved (No work needed)
                     pass
@@ -46,7 +51,7 @@ class Fibonacci:
                     # print("Fib({}) = {}".format( n, output))
                 else: # Dependencies not resolved, re-enqueue problem
                     queue.push((priority+0.5, n))  # re-enqueue problem
-
+       
         return self.output()
 
     # Method run by worker nodes to decide when to terminate

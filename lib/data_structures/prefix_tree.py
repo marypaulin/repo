@@ -29,7 +29,7 @@ class PrefixTree:
         self.base = 2
         self.size = 0
         self.minimize = minimize
-
+        self.lock = None
     
     def clear(self):
         self.node = PrefixTreeNode()
@@ -77,7 +77,7 @@ class PrefixTree:
 
     # Remove any association with the key if there is one
     def remove(self, key):
-        if len(key) == 0:
+        if len(key) == 0 or self.size == 0:
             return  # This specific implementation excludes empty keys so that we don't trivially prefix match everything
         node = self.node
         for element in key:

@@ -2,6 +2,7 @@ from time import time, sleep
 from random import random
 from memory_profiler import profile
 from pickle import dump, load
+from multiprocessing import Manager
 
 from lib.parallel.cluster import Cluster
 from lib.parallel.queue_service import QueueService
@@ -576,6 +577,8 @@ class ParallelOSDT:
         self.root = Vector.ones(self.dataset.height)  # Root capture
         cooldown = self.configuration['synchronization_cooldown']
 
+        manager = Manager()
+
         # Set of "services" which are data structures that require management by a server process and get consumed by client processes
         prefixes = DictionaryService(
             table=PrefixTree(minimize=True), 
@@ -592,14 +595,14 @@ class ParallelOSDT:
             propagator = None
         
         results = DictionaryService(
-            table=ResultTable(),
+            table=ResultTable(table=manager.dict()),
             degree=workers, 
             synchronization_cooldown=cooldown,
             propagator=propagator)
         results[0].dataset = self.dataset
         root_priority = 0
         tasks = QueueService(
-            queue=HeapQueue([Task(root_priority, self.root, tuple())]),
+            queue=HeapQueue( manager.list([Task(root_priority, self.root, tuple())]) ),
             degree=workers,
             synchronization_cooldown=cooldown)
         

@@ -1,8 +1,8 @@
 from itertools import cycle
-from random import shuffle
+from random import shuffle, randint
 from multiprocessing import Value
 from math import ceil, floor
-from time import time
+from time import time, sleep
 
 from lib.parallel.channel import Channel, EndPoint
 from lib.data_structures.heap_queue import HeapQueue
@@ -10,9 +10,47 @@ from lib.data_structures.task import Task
 from lib.data_structures.path_cluster import PathCluster
 from lib.data_structures.capture_cluster import CaptureCluster
 
-def QueueService(queue=None, degree=1, synchronization_cooldown=0, alpha=1.0, beta=0.05):
+def SharedQueueService(queue, degree=1):
+    return (__SharedQueueServer__(queue), tuple(__SharedQueueClient__(queue) for _ in range(degree)))
+
+class __SharedQueueServer__:
+    def __init__(self, queue):
+        self.queue = queue
+    
+    def serve(self):
+        pass
+
+class __SharedQueueClient__:
+    def __init__(self, queue):
+        self.queue = queue
+
+    def synchronize(self):
+        pass
+
+    def push(self, element, block=False):
+        self.queue.push(element)
+
+    def pop(self, block=False):
+        return self.queue.pop()
+
+    def length(self, local=True):
+        return len(self.queue)
+
+    def __repr__(self):
+        return repr(self.queue)
+
+    def __str__(self):
+        return str(self.queue)
+
+    def flush(self):
+        pass
+
+def QueueService(queue=None, degree=1, synchronization_cooldown=0, alpha=0.05, beta=0.05, manager=None):
     if queue == None:
         queue = HeapQueue()
+
+    if queue.lock != None:
+        return SharedQueueService(queue, degree=degree)
 
     global_length = Value('i', len(queue))
     clients = []
@@ -35,13 +73,13 @@ class __QueueServer__:
         self.queue = queue
         self.endpoints = endpoints
         self.global_length = global_length
-        self.clusters = tuple(CaptureCluster() for _ in endpoints)
+        self.clusters = tuple(PathCluster() for _ in endpoints)
         self.alpha = alpha
         self.online = True
 
     def optimal_cluster_index(self, element):
         optimum = -float('Inf')
-        optimizer = None
+        optimizer = randint(0, len(self.clusters)-1)
 
         max_size = -float('Inf')
         min_size = float('Inf')
@@ -52,7 +90,10 @@ class __QueueServer__:
         # Maximize proximity to cluster to prioritize cache locality (based on approximate measure of knowledge over dependencies)
         # Minimuze cluster size to prioritize even task distribution
         for i, cluster in enumerate(self.clusters):
-            score = cluster.proximity(element) - self.alpha * (len(cluster) - min_size) / max((max_size - min_size), 1)
+            if self.alpha == 0:
+                score = - (len(cluster) - min_size) / max((max_size - min_size), 1)
+            else:
+                score = self.alpha * cluster.proximity(element) - (len(cluster) - min_size) / max((max_size - min_size), 1)
             if score > optimum:
                 optimum = score
                 optimizer = i
@@ -69,6 +110,7 @@ class __QueueServer__:
         Stage 3: outbound
           sorted messages ready for distribution
         '''
+
         modified = False
         if self.online:
             # shuffle(self.endpoints)
@@ -83,8 +125,6 @@ class __QueueServer__:
                         break
 
                     cluster.remove(element)
-
-
                     key = element if not type(element) == Task else element.key()
                     if not key in seen:
                         seen.add(key)
@@ -137,25 +177,23 @@ class __QueueClient__:
                 self.global_length.value += self.delta
             self.delta = 0
 
-        target = self.global_length.value / self.degree
+        target = min(max(self.global_length.value / self.degree, 1), self.global_length.value)
         tolerance = floor(self.global_length.value * self.beta)
-        lower_target = floor(target) - tolerance
-        upper_target = ceil(target) + tolerance
-
-        if len(self.queue) > upper_target and len(self.queue) > 1:
+        lower_target = min(max(floor(target) - tolerance, 1), self.global_length.value)
+        upper_target = min(max(ceil(target) + tolerance, 1), self.global_length.value)
+        if len(self.queue) > upper_target:
             while len(self.queue) > target and len(self.queue) > 1:
                 element = self.queue.pop()
                 self.endpoint.push(element, block=False)
                 if self.visualizer != None:
                     self.visualizer.send(('queue', 'pop', element))
-        elif len(self.queue) < lower_target or len(self.queue) < 1:
-            while len(self.queue) < target or len(self.queue) < 1:
-                element = self.endpoint.pop(block=False)
-                if element == None:
-                    break
-                self.queue.push(element)
-                if self.visualizer != None:
-                    self.visualizer.send(('queue', 'push', element))
+        while True:
+            element = self.endpoint.pop(block=False)
+            if element == None:
+                break
+            self.queue.push(element)
+            if self.visualizer != None:
+                self.visualizer.send(('queue', 'push', element))
 
     def push(self, element, block=False):
         '''
@@ -163,11 +201,12 @@ class __QueueClient__:
         Returns True if successful
         Returns False if unsuccessful
         '''
-        self.synchronize()
+        
         self.queue.push(element)
         self.delta += 1
         if self.visualizer != None:
             self.visualizer.send(('queue', 'push', element))
+        self.synchronize()
         return
 
     def pop(self, block=False):
@@ -189,6 +228,9 @@ class __QueueClient__:
             return len(self.queue)
         else:
             return self.global_length.value
+
+    def __str__(self):
+        return str(self.queue)
 
     def flush(self):
         self.synchronize()

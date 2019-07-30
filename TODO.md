@@ -1,5 +1,6 @@
 # TODO
- - IRIS dataset run on both similarity implementation
+ - Encoder-Decoder
+ - Shared Memory Implementation
  - Dependency chains spread across many processes are causing issues
 
  - Decide how to get locality for dependency chains (reduce synchronization)

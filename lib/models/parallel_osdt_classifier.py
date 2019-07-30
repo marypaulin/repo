@@ -19,8 +19,8 @@ class ParallelOSDTClassifier:
                 workers = 1, # Parameter that varies based on how much computational resource is available
 
                 configuration = None, # More configurations around toggling optimizations and prioritization options
-                 visualize_model=False,  # Toggle whether a rule-list visualization is rendered
-                 visualize_training=False,  # Toggle whether a dependency visualization is streamed
+                visualize_model=False,  # Toggle whether a rule-list visualization is rendered
+                visualize_training=False,  # Toggle whether a dependency visualization is streamed
                 verbose = False, # Toggle whether event messages are printed
                 log = False,
                 profile = False): # Toggle whether processes log their events

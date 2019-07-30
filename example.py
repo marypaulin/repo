@@ -48,12 +48,12 @@ hyperparameters = {
     'visualize_training': False,  # Toggle whether a dependency graph is streamed at runtime
     'verbose': False,  # Toggle whether event messages are printed
     'log': False,  # Toggle whether client processes log to logs/work_<id>.log files
-    'profile': False,  # Toggle Snapshots for Profiling Memory Usage
+    'profile': True,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
         'priority_metric': 'depth',  # Decides how tasks are prioritized
         # Decides how much to push back a task if it has pending dependencies
-        'deprioritization': 0.01,
+        'deprioritization': 0.1,
 
         # Note that Leaf Permutation Bound (Theorem 6) is
         # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
@@ -81,7 +81,7 @@ hyperparameters = {
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
         'interval_look_ahead': True,
         # Cooldown timer (seconds) on synchornization operations
-        'synchronization_cooldown': 0.0,
+        'synchronization_cooldown': 0.1,
         # Cache Limit
         'independence': 0.5
     }

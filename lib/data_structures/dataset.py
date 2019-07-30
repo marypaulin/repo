@@ -132,7 +132,7 @@ class DataSet:
 
         reduced_rows = list(z.keys())
         compression_rate = len(rows) / len(reduced_rows)
-        print("Row Compression Factor: {}".format(round(compression_rate, 3)))
+        # print("Row Compression Factor: {}".format(round(compression_rate, 3)))
 
         if self.compression:
             # Greedy method of ordering rows to maximize trailing zeros in columns
