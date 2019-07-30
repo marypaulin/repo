@@ -595,7 +595,7 @@ class ParallelOSDT:
             propagator = None
         
         results = DictionaryService(
-            table=ResultTable(table=manager.dict()),
+            table=ResultTable(table=dict()),
             degree=workers, 
             synchronization_cooldown=cooldown,
             propagator=propagator)

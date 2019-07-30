@@ -137,35 +137,36 @@ class __ConnectionProducer__:
     def __init__(self, connection, lock):
         self.lock = lock
         self.connection = connection
+        self.buffer = deque([])
+
     def pop(self, block=False):
-        element = None
-        timeout = None if block else 0
-        if self.lock != None:
-            with self.lock:
-                if block:
+        if len(self.buffer) == 0:
+            timeout = None if block else 0
+            if self.lock != None:
+                with self.lock:
+                    while True:
+                        try:
+                            while self.connection.poll(timeout):
+                                self.buffer.appendleft(self.connection.recv())
+                        except EOFError:
+                            pass
+                        finally:
+                            if len(self.buffer) > 0 or not block:
+                                break
+            else:
+                while True:
                     try:
-                        element = self.connection.recv()
+                        while self.connection.poll(timeout):
+                            self.buffer.appendleft(self.connection.recv())
                     except EOFError:
                         pass
-                else: 
-                    try:
-                        if self.connection.poll(timeout):
-                            element = self.connection.recv()
-                    except EOFError:
-                        pass
+                    finally:
+                        if len(self.buffer) > 0 or not block:
+                            break
+        if len(self.buffer) == 0:
+            return None
         else:
-            if block:
-                try:
-                    element = self.connection.recv()
-                except EOFError:
-                    pass
-            else: 
-                try:
-                    if self.connection.poll(timeout):
-                        element = self.connection.recv()
-                except EOFError:
-                    pass
-        return element
+            return self.buffer.pop()
 
 class __QueueConsumer__:
     def __init__(self, queue):
