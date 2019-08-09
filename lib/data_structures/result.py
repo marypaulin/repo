@@ -13,6 +13,7 @@ class Result:
             raise Exception("ResultError: optimum class {} must be {}".format(type(self.optimum), Interval))
         self.optimizer = optimizer
         self.running = running
+        self.count = 1
 
     # This defines the precedence of results over the same problem
     # If the current result is None then any result can overwrite it

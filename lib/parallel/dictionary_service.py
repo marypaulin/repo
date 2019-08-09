@@ -192,23 +192,25 @@ class __DictionaryClient__:
                 break
             (key, value) = element
             if self.table.accepts(key, value):
-                self.table[key] = value
+                # Perform extrapolation
+                if self.propagator != None and type(value) == Result and not self.propagator.tracking(key):
+                    new_value = self.propagator.converge(key, value, self.table)
+                    if new_value.optimum == value.optimum:
+                        pass
+                        # self.propagator.track(key)
+                    else:
+                        value = new_value
+
                 if self.visualizer != None:
                     self.visualizer.send(('dictionary', 'put', (key, value)))
+
+                self.table[key] = value
+                
             # else:
             #     print("Rejected DictionaryTable Update table[{}] = from {} to {}".format(str(key), str(self.table[key]), str(value)))
 
-            # Perform information propagation
-            if self.propagator != None and type(value) == Result:
-                result = value
-                if result.optimizer == None and not self.propagator.tracking(key):
-                    self.propagator.track(key)
-                if result.optimizer != None and self.propagator.tracking(key):
-                    self.propagator.untrack(key)
-                
-                updates = self.propagator.propagate(key, result, self.table)
-                for update_key, update_value in updates.items():
-                    self.put(update_key, update_value)
+            
+
 
     def has(self, key):
         '''
@@ -242,11 +244,27 @@ class __DictionaryClient__:
         '''
 
         if self.table.accepts(key, value):
+            # Perform extrapolation
+            if self.propagator != None and type(value) == Result and not self.propagator.tracking(key):
+                new_value = self.propagator.converge(key, value, self.table)
+                if new_value.optimum == value.optimum:
+                    pass
+                    # self.propagator.track(key)
+                else:
+                    value = new_value
+
             if self.visualizer != None:
                 self.visualizer.send(('dictionary', 'put', (key, value)))
 
             self.table[key] = value
+
             return self.endpoint.push((key, value), block=block)
+
+    def converge(self, key, value):
+        if self.propagator != None and type(value) == Result and not self.propagator.tracking(key):
+            return self.propagator.converge(key, value, self.table)
+        else:
+            return value
     
     def shortest_prefix(self, key):
         if type(self.table) != PrefixTree:

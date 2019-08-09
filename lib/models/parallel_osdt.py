@@ -3,6 +3,8 @@ from random import random
 from memory_profiler import profile
 from pickle import dump, load
 from multiprocessing import Manager
+from math import factorial
+from scipy.special import comb
 
 from lib.parallel.cluster import Cluster
 from lib.parallel.queue_service import QueueService
@@ -11,7 +13,7 @@ from lib.models.similarity_propagator import SimilarityPropagator
 from lib.data_structures.prefix_tree import PrefixTree
 from lib.data_structures.heap_queue import HeapQueue
 from lib.data_structures.result_table import ResultTable
-from lib.data_structures.similarity_index import SimilarityIndex
+from lib.data_structures.similarity_index import SimilarityIndex, FullIndex
 from lib.data_structures.result import Result
 from lib.data_structures.task import Task
 from lib.data_structures.interval import Interval
@@ -255,9 +257,13 @@ class ParallelOSDT:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(task.path, task.capture, result))
 
+            print('Worker {} has seen {} problems and {} trees'.format(self.worker_id, len(self.results), self.results[self.root].count))            
+
         if self.profile:  # Data for worker analysis
             self.last_snapshot = 0
             self.snapshot()
+
+        print('Worker {} has seen {} problems and {} trees'.format(self.worker_id, len(self.results), self.results[self.root].count))            
 
         self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
 
@@ -288,7 +294,11 @@ class ParallelOSDT:
         return priority
 
     def find_or_create_result(self, capture, path):
-        if not capture in self.results:
+        if self.configuration['capture_equivalence']:
+            key = capture
+        else:
+            key = (capture, path)
+        if not key in self.results:
             bounding_interval, support, majority_label = self.compute_bounds(capture)
             if (self.configuration['accuracy_lowerbound'] and bounding_interval.lowerbound > support):
                 optimizer, optimum = None, Interval(float('Inf'))
@@ -326,12 +336,16 @@ class ParallelOSDT:
         # irrelevant_splits = generator of feature indixes represengint the set of indices that do not overlap with minimum_bounding_interval,
         #   and therefore cannot possibly contain the optimal objective
 
+        count = sum( (1 if not d in self.results else self.results[d].count) for d in set(sum([ self.dataset.split(j, capture=task.capture) for j in (tuple(relevant_splits) + tuple(irrelevant_splits)) ], ())) )
+        # count = sum( (1 if not left in self.results else self.results[left].count) * (1 if not right in self.results else self.results[right].count) for left, right in ( self.dataset.split(j, capture=task.capture) for j in (tuple(relevant_splits) + tuple(irrelevant_splits)) ) )
+
+
         # As this implementation asynchronously tries to solve for the optimal choice, early attempts may lack enough precise bounds on subproblems
         # in order to make a decisive choice. Below are possible cases one may encounter
         _bounding_interval, support, majority_label = self.compute_bounds(capture)
         if (self.configuration['accuracy_lowerbound'] and minimum_bounding_interval.lowerbound > support):
             # By Theorem 4, no possible choice would produce a subtree that could be part of a larger optimal subtree
-            # So the optimal choice doesn't matter since this whole problem is irrelevant
+            # So the optimal choice doesn't matter since this whole problem is irrelevant 
             result = Result(optimizer=None, optimum=Interval(float('Inf'))) # Makes parent minimization problems easier
             self.put(capture, path, result)
             self.prune(path[:-1])
@@ -351,8 +365,13 @@ class ParallelOSDT:
             # We might be able to prune subproblem paths that weren't previously pruned
             for j in irrelevant_splits:
                 self.prune(path + (j,))
+
             # Be sure to re-enqueue this task since it's not finished
-            self.enqueue(Task(priority + self.configuration['deprioritization'], capture, path))
+            if result.overwrites(current_result):
+                self.enqueue(Task(self.prioritize(capture, path), capture, path))
+            else:
+                self.enqueue(Task(priority + self.configuration['deprioritization'], capture, path))
+
             if self.configuration['independence'] < 1 and (self.configuration['independence'] == 0 or random() >= self.configuration['independence']) and current_result.running:
                 dependencies = tuple()
             else:
@@ -366,6 +385,7 @@ class ParallelOSDT:
             else:
                 optimizer = (minimizing_split, None)
             result = Result(optimizer=optimizer, optimum=minimum_bounding_interval)
+            result.count = count
             self.put(capture, path, result)
             self.prune(path)
             dependencies = tuple()
@@ -457,7 +477,7 @@ class ParallelOSDT:
             relevant_splits = (j for j in self.dataset.gini_index if not j in path)
             irrelevant_splits = tuple()
 
-        return minimum_bounding_interval, minimizing_split, relevant_splits, irrelevant_splits
+        return minimum_bounding_interval, minimizing_split, tuple(relevant_splits), tuple(irrelevant_splits)
 
     def compute_bounds(self, capture):
         total, zeros, ones, minority, _majority = self.dataset.label_distribution(capture)
@@ -470,12 +490,16 @@ class ParallelOSDT:
         upperbound = min(zeros, ones) / self.dataset.sample_size + self.lamb
         if not self.configuration['interval_look_ahead'] and lowerbound < upperbound:
             upperbound = float('Inf')
+
+        interval = Interval(lowerbound, upperbound)
+        if self.configuration['similarity_threshold'] > 0:
+            interval = self.results.converge(capture, Result(optimizer=None, optimum=interval)).optimum
         
         # Support
         support = total / self.dataset.sample_size
         majority_label = 0 if zeros >= ones else 1
 
-        return Interval(lowerbound, upperbound), support, majority_label
+        return interval, support, majority_label
 
     def is_pruned(self, path):
         if self.configuration['task_cancellation']:
@@ -585,11 +609,21 @@ class ParallelOSDT:
             degree=workers, 
             synchronization_cooldown=cooldown)
 
-        if self.configuration['similarity_threshold'] > 0:
+        if self.configuration['similarity_threshold'] > 0 and self.configuration['similarity_threshold'] != float('Inf'):
+            false_negative_rate = 1 - 0.02 ** (self.configuration['similarity_threshold'] - 1) # / self.dataset.height
+            max_tables = round(
+                comb(self.dataset.height, self.configuration['similarity_threshold'])
+            )
+            tables = max(1, round( (1 - false_negative_rate) * max_tables ))
+            print('height = {}; tables = {}'.format(self.dataset.height, tables))
             similarity_index = SimilarityIndex(
                 distance=self.configuration['similarity_threshold'],
                 dimensions=self.dataset.height,
-                tables=self.dataset.height)
+                tables=tables)
+            propagator = SimilarityPropagator(similarity_index, self.dataset, self.lamb, cooldown=cooldown)
+        elif self.configuration['similarity_threshold'] == float('Inf'):
+            print('Activating Full Index')
+            similarity_index = FullIndex()
             propagator = SimilarityPropagator(similarity_index, self.dataset, self.lamb, cooldown=cooldown)
         else:
             propagator = None
@@ -668,3 +702,19 @@ class ParallelOSDT:
             print(message)
         if self.logger != None:
             self.logger.log([time(), message])
+
+
+# def comb(N, k):  # from scipy.comb(), but MODIFIED!
+#     if (k > N) or (N < 0) or (k < 0):
+#         return 0L
+#     N, k = map(long, (N, k))
+#     top = N
+#     val = 1L
+#     while (top > (N-k)):
+#         val *= top
+#         top -= 1
+#     n = 1L
+#     while (n < k+1L):
+#         val /= n
+#         n += 1
+#     return val

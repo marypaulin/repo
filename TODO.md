@@ -1,10 +1,5 @@
 # TODO
  - Encoder-Decoder
- - Shared Memory Implementation
- - Dependency chains spread across many processes are causing issues
-
- - Decide how to get locality for dependency chains (reduce synchronization)
- - Okay so pruning seems to be "fine" but a bit slow
 
  - Benchmark Julia IPC
  - Adaptive Compression

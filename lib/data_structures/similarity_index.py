@@ -1,5 +1,5 @@
 from itertools import combinations
-from random import sample
+from random import sample, shuffle
 
 from lib.data_structures.vector import Vector
 
@@ -15,6 +15,37 @@ from lib.data_structures.vector import Vector
 # b in index.neighbours(a)
 # index.remove(b)
 # not b in index.neighbours(a)
+
+class FullIndex:
+
+    def __init__(self):
+        print('fullindex')
+        self.keys = set()
+        self.initialized = False  # Defer table generation until necessary
+
+    # Adds a key (vector) into the the index
+    def add(self, key):
+        self.keys.add(key)
+
+    # Removes a key (vector) from the the index
+    def remove(self, key):
+        self.keys.remove(key)
+
+    # Returns a subset of the vectors that are within a distance from key (vector)
+    def neighbours(self, key):
+        neighbours = self.keys
+        return neighbours
+
+    # Override for x in set operator, returns whether a key (vector) is a member of the index
+    def __contains__(self, key):
+        return key in self.keys
+
+    # Override for str(x) in set operator, displays the set of vectors in this index
+    def __str__(self):
+        return str(self.keys)
+
+    def __len__(self):
+        return len(self.keys)
 
 class SimilarityIndex:
     # Constructor Arguments:
@@ -37,6 +68,7 @@ class SimilarityIndex:
         self.dimensions = dimensions
         self.distance = distance
         self.table_count = tables
+        self.keys = set()
         self.size = 0
         self.initialized = False # Defer table generation until necessary
         
@@ -46,15 +78,28 @@ class SimilarityIndex:
     def __normalizer__(self, free_dimensions):
         normalizer = Vector([ int(not j in free_dimensions) for j in range(self.dimensions) ])
         return normalizer
+
+    def __build_normalizers__(self, dimensions, degrees_of_freedom, tables):
+        normalizers = set()
+        while len(normalizers) < tables:
+            free_dimensions = tuple(sample(range(dimensions), degrees_of_freedom))
+            normalizers.add(free_dimensions)
+        return normalizers
         
     # Creates tuples of (vector, dictionary) pairs where the vector indicates which bits are hashing for the respective table
     def __generate_tables__(self, degrees_of_freedom, tables):
-        return tuple((self.__normalizer__(combo), {}) for combo in sample(tuple(combinations(range(self.dimensions), degrees_of_freedom)), tables))
+        return tuple(
+            (self.__normalizer__(combo), {})
+            for combo in self.__build_normalizers__(self.dimensions, degrees_of_freedom, tables)
+        )
 
     def initialize(self):
         if self.initialized == False:
+            print('Initializing Similarity Index')
             self.tables = self.__generate_tables__(self.distance, self.table_count)
             self.initialized = True
+            print('Initialized Similarity Index')
+
 
     # Adds a key (vector) into the the index
     def add(self, key):
@@ -68,6 +113,7 @@ class SimilarityIndex:
                 table[normal_key] = set()
             table[normal_key].add(key)
         self.size += 1
+        self.keys.add(key)
 
     # Removes a key (vector) from the the index
     def remove(self, key):
@@ -80,6 +126,7 @@ class SimilarityIndex:
             if normal_key in table and key in table[normal_key]:
                 table[normal_key].remove(key)
         self.size -= 1
+        self.keys.remove(key)
 
     # Returns a subset of the vectors that are within a distance from key (vector)
     def neighbours(self, key):
@@ -87,7 +134,8 @@ class SimilarityIndex:
             self.initialize()
         if len(key) != self.dimensions:
             raise Exception("SimilarityIndexError: len(key) {} must be equal to dimension {}".format(len(key), self.dimensions))
-        return set.union(set(), *(table[key & normalizer] for normalizer, table in self.tables if ((key & normalizer) in table)))
+        neighbours = set.union(set(), *(table[key & normalizer] for normalizer, table in self.tables if ((key & normalizer) in table)))
+        return neighbours
 
     # Override for x in set operator, returns whether a key (vector) is a member of the index
     def __contains__(self, key):
@@ -95,13 +143,13 @@ class SimilarityIndex:
             self.initialize()
         if len(key) != self.dimensions:
             raise Exception("SimilarityIndexError: len(key) {} must be equal to dimension {}".format(len(key), self.dimensions))
-        return any(key in table[key & normalizer] for normalizer, table in self.tables if ((key & normalizer) in table))
+        return key in self.keys
 
     # Override for str(x) in set operator, displays the set of vectors in this index
     def __str__(self):
         if self.initialized == False:
             self.initialize()
-        return str(set.union(set(), *(bucket for bucket in self.tables[0].values())))
+        return str(self.keys)
 
     def __len__(self):
         return self.size

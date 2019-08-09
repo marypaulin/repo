@@ -58,8 +58,10 @@ class DataSet:
         # Precomputes column ranking, other methods use the ranking to prioritize splits
         self.gini_index = self.__gini_reduction_index__(rows, columns, y)
 
-        # self.minimum_group_size = min(z[i, 0] for i in range(self.height))
-        # self.maximum_group_size = max(z[i, 0] for i in range(self.height))
+
+        if self.compression:
+            self.minimum_group_size = min(sum([i]) for i in range(self.height))
+            self.maximum_group_size = max(sum(z[i]) for i in range(self.height))
 
     def split(self, j, capture=None):
         key = (j, capture)
