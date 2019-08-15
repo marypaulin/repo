@@ -144,7 +144,7 @@ class CacheLeaf:
     A data structure to cache every single leaf (symmetry aware)
     """
 
-    def __init__(self, ndata, rules, y_mpz, z_mpz, points_cap, num_captured, lamb, support, is_feature_dead):
+    def __init__(self, ndata, rules, label_idx, y_mpz, z_mpz, points_cap, num_captured, lamb, support, is_feature_dead):
         self.rules = rules
         self.points_cap = points_cap
         self.num_captured = num_captured
@@ -154,7 +154,7 @@ class CacheLeaf:
         # y_leaf = y[tag]
         # print("tag",tag)
         # print("y",y)
-        _, num_ones = rule_vand(points_cap, y_mpz)
+        # _, num_ones = rule_vand(points_cap, y_mpz)
 
         # b0 is defined in (28)
 
@@ -162,11 +162,15 @@ class CacheLeaf:
         self.B0 = num_errors / ndata
 
         if self.num_captured:
-            self.prediction = int(num_ones / self.num_captured >= 0.5)
-            if self.prediction == 1:
-                self.num_captured_incorrect = self.num_captured - num_ones
-            else:
-                self.num_captured_incorrect = num_ones
+            # all_ones = make_all_ones(ndata + 1)
+            y_captured = np.zeros(len(label_idx))
+            for i in label_idx:
+                _, num_ones = rule_vand(points_cap, y_mpz[i])
+                y_captured[i] = num_ones
+            pred_idx = np.argmax(y_captured)
+            self.prediction = pred_idx
+            self.num_captured_incorrect = self.num_captured - np.max(y_captured)
+
             self.p = self.num_captured_incorrect / self.num_captured
         else:
             self.prediction = 0
@@ -288,7 +292,7 @@ def gini_reduction(x, y, ndata, nrule):
 '''
 
 
-def gini_reduction(x_mpz, y_mpz, ndata, rule_idx, points_cap=None):
+def gini_reduction(x_mpz, y_mpz, ndata, rule_idx, lable_idx, points_cap=None):
     """
     calculate the gini reduction by each feature
     return the rank of by descending
@@ -297,28 +301,36 @@ def gini_reduction(x_mpz, y_mpz, ndata, rule_idx, points_cap=None):
     if points_cap == None:
         points_cap = make_all_ones(ndata + 1)
 
-    ndata0 = count_ones(points_cap)
-    _, ndata01 = rule_vand(y_mpz, points_cap)
+    gini0 = 1
+    for i in lable_idx:
+        yi = y_mpz[i]
+        _, ndata1 = rule_vand(yi, points_cap)
+        p = ndata1/ndata
+        gini0 -= p**2
 
-    p0 = ndata01 / ndata0
-    gini0 = 2 * p0 * (1 - p0)
 
     gr = []
     for i in rule_idx:
         xi = x_mpz[i]
-        l1_cap, ndata1 = rule_vand(points_cap, ~xi | mpz(pow(2, ndata)))
+        l1_cap, ndata1 = rule_vand(points_cap, ~xi | mpz(pow(2, ndata))) # ndata1 = number of data that xi = 0
 
-        _, ndata11 = rule_vand(l1_cap, y_mpz)
+        gini1 = 1
+        for j in lable_idx:
+            yj = y_mpz[j]
+            _, ndata11 = rule_vand(l1_cap, yj)
+            p1 = ndata11/ndata1 if ndata1 != 0 else 0
+            gini1 -= p1**2
 
-        l2_cap, ndata2 = rule_vand(points_cap, xi)
+        l2_cap, ndata2 = rule_vand(points_cap, xi) # ndata2 = number of data that xi = 1
 
-        _, ndata21 = rule_vand(l2_cap, y_mpz)
+        gini2 = 1
+        for j in lable_idx:
+            yj = y_mpz[j]
+            _, ndata21 = rule_vand(l2_cap, yj)
+            p2 = ndata21 / ndata2 if ndata2 != 0 else 0
+            gini1 -= p2 ** 2
 
-        p1 = ndata11 / ndata1 if ndata1 != 0 else 0
-        p2 = ndata21 / ndata2 if ndata2 != 0 else 0
-        gini1 = 2 * p1 * (1 - p1)
-        gini2 = 2 * p2 * (1 - p2)
-        gini_red = gini0 - ndata1 / ndata0 * gini1 - ndata2 / ndata0 * gini2
+        gini_red = gini0 - ndata1 / ndata * gini1 - ndata2 / ndata * gini2
         gr.append(gini_red)
 
     gr = np.array(gr)
@@ -406,18 +418,21 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     tic = time.time()
 
     nrule = x.shape[1]
-    ndata = len(y)
+    ndata = x.shape[0]
+    nlabel = y.shape[1]
+
     max_nleaves = 2**nrule
     print("nrule:", nrule)
     print("ndata:", ndata)
+    print("nlabel:", nlabel)
 
     x_mpz = [rule_vectompz(x[:, i]) for i in range(nrule)]
-    y_mpz = rule_vectompz(y)
+    y_mpz = [rule_vectompz(y[:, i]) for i in range(nlabel)]
     #print("x_mpz000",x_mpz)
     #print("y_mpz000", y_mpz)
 
     # order the columns by descending gini reduction
-    idx, dic = gini_reduction(x_mpz, y_mpz, ndata, range(nrule))
+    idx, dic = gini_reduction(x_mpz, y_mpz, ndata, range(nrule), range(nlabel))
     x = x[:, idx]
     x_mpz = [x_mpz[i] for i in idx]
     print("the order of x's columns: ", idx)
@@ -427,9 +442,10 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     """
     calculate z, which is for the equivalent points bound
     z is the vector defined in algorithm 5 of the CORELS paper
-    z is a binary vector indicating the data with a minority lable in its equivalent set
+    z is a binary vector indicating the data with a minority label in its equivalent set
     """
-    z = pd.DataFrame([-1] * ndata).values
+
+    z = pd.DataFrame([-1]*ndata).values
     # enumerate through theses samples
     for i in range(ndata):
         # if z[i,0]==-1, this sample i has not been put into its equivalent set
@@ -441,9 +457,13 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                 tag1 = (x[:, j] == rule_label) * tag1
 
             y_l = y[tag1]
-            pred = int(y_l.sum() / len(y_l) >= 0.5)
+            yl = np.sum(y_l,axis=0)
+            idx_common = np.argmax(yl)  # only one majority label for now
+            pred = np.zeros(nlabel)
+            pred[idx_common] = 1
+            tag2 = (y_l == pred).all(1)
             # tag2 indicates the samples in a equiv set which have the minority label
-            tag2 = (y_l != pred)
+            tag2 = ~tag2
             z[tag1, 0] = tag2
 
     z_mpz = rule_vectompz(z.reshape(1, -1)[0])
@@ -455,7 +475,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
     # initialize the queue to include just empty root
     queue = []
-    root_leaf = CacheLeaf(ndata, (), y_mpz, z_mpz, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
+    root_leaf = CacheLeaf(ndata, (), range(nlabel), y_mpz, z_mpz, make_all_ones(ndata + 1), ndata, lamb, support, [0] * nrule)
 
     d_c = CacheTree(leaves=[root_leaf], lamb=lamb)
     R_c = d_c.risk
@@ -548,7 +568,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
         '''
 
         COUNT_POP = COUNT_POP + 1
-
+        print(COUNT_POP)
         # print([leaf.rules for leaf in tree.leaves])
         # print("curio", curio)
         leaves = tree.cache_tree.leaves
@@ -620,7 +640,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                         # print("new_num_captured:", new_num_captured)
 
                         #parent_is_feature_dead =
-                        new_leaf = CacheLeaf(ndata, new_rules, y_mpz, z_mpz, new_points_cap, new_num_captured,
+                        new_leaf = CacheLeaf(ndata, new_rules, range(nlabel), y_mpz, z_mpz, new_points_cap, new_num_captured,
                                              lamb, support, removed_leaf.is_feature_dead.copy())
                         leaf_cache[new_rules] = new_leaf
                         new_leaves.append(new_leaf)
@@ -641,7 +661,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
                     # Lower bound on classification accuracy
                     # if (new_leaf.num_captured) / ndata <= lamb:
-                    if accu_support == True and (new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata <= lamb:
+                    if accu_support and (new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata <= lamb:
 
                         removed_leaf.is_feature_dead[rule_index] = 1
 
@@ -791,7 +811,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     print("time when the best tree is achieved: ", time_c)
     print("TOTAL COUNT: ", COUNT)
 
-    return leaves_c, prediction_c, dic, nleaves, nrule, ndata, totaltime, time_c, COUNT, C_c, accu, best_is_cart, clf
+    return leaves_c, prediction_c, dic, nleaves, nrule, ndata, totaltime, time_c, COUNT, C_c, accu, best_is_cart
 
 
 def predict(leaves_c, prediction_c, dic, x, y, best_is_cart, clf):
