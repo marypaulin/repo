@@ -405,7 +405,7 @@ class Similarity:
 def bbound_DFS(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=float('Inf'), niter=float('Inf'), logon=False,
            support=True, incre_support=True, accu_support=True, equiv_points=True,
            lookahead=True, lenbound=True, simil_support=True, R_c0 = 1, timelimit=float('Inf'), init_cart = True,
-           saveTree = False, readTree = False):
+           saveTree = False, readTree = False, corr_thres = 0):
     """
     An implementation of Algorithm
     ## multiple copies of tree
@@ -783,35 +783,37 @@ def bbound_DFS(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES
                 if COUNT % 1000000 == 0:
                     print("COUNT:", COUNT)
 
-        if n_removed_leaves == 1 and len(rules_for_leaf[0]) > 1:
-            n_children = len(temp_children)
+        rules0 = rules_for_leaf[0]
+        l_rules0 = len(rules0)
+        if n_removed_leaves == 1 and l_rules0 > 1:
+            rules0_list = list(rules0)
+            if any([np.corrcoef(x[rules0_list[i]-1],x[rules0_list[j]-1])[0][1] > corr_thres for i in range(l_rules0) for j in range(i,l_rules0)]):
+                n_children = len(temp_children)
 
-            t_similarity = []
+                t_similarity = []
 
-            for i in range(n_children):
-                t1 = temp_children[i]
+                for i in range(n_children):
+                    t1 = temp_children[i]
 
-                # use stack size to identify we have explored all the child trees
-                t_similarity.append(Similarity(t1.risk, temp_stackpositions[i]))
+                    # use stack size to identify we have explored all the child trees
+                    t_similarity.append(Similarity(t1.risk, temp_stackpositions[i]))
 
-            for i in range(n_children):
-                t1 = temp_children[i]
+                for i in range(n_children):
+                    t1 = temp_children[i]
 
-                # use stack size to identify we have explored all the child trees
-                t1_similarity = t_similarity[i]
+                    # use stack size to identify we have explored all the child trees
+                    t1_similarity = t_similarity[i]
 
-                for j in range(i+1, n_children):
-                    t2 = temp_children[j]
+                    for j in range(i+1, n_children):
+                        t2 = temp_children[j]
 
-                    t1.similarto.append(t_similarity[j])
+                        t1.similarto.append(t_similarity[j])
 
-                    omega = rule_vxor(t1.leaves[-1].points_cap, t2.leaves[-1].points_cap)/ndata
+                        omega = rule_vxor(t1.leaves[-1].points_cap, t2.leaves[-1].points_cap)/ndata
 
-                    t1.omega.append(omega)
+                        t1.omega.append(omega)
 
-                similar_dictionary[t1.sorted_leaves()] = t1_similarity
-
-                ### ??? how to update the minObj for child trees
+                    similar_dictionary[t1.sorted_leaves()] = t1_similarity
 
 
     totaltime = time.time() - tic
