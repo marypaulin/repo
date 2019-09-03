@@ -9,7 +9,9 @@ from lib.data_structures.dataset import read_dataframe
 
 # Using COMPAS as an example
 
-dataset = read_dataframe('data/preprocessed/compas-binary.csv')
+dataset = read_dataframe('data/preprocessed/dataset.csv')
+# dataset = read_dataframe('data/preprocessed/compas-binary.csv')
+
 regularization = 0.005
 
 # dataset = read_dataframe('data/preprocessed/census.csv')
@@ -28,7 +30,7 @@ if len(sys.argv) >= 4:
 if len(sys.argv) >= 5:
     regularization = float(sys.argv[4])
 
-print(regularization, n, m, workers)
+print('Regularization = {}, N = {}, M = {}, workers = {}'.format(regularization, n, m, workers))
 
 profile = False
 
@@ -40,7 +42,7 @@ hyperparameters = {
     'regularization': regularization,
 
     'max_depth': float('Inf'),  # User-specified limit on the model
-    'max_time': 300,  # User-specified limit on the runtime
+    'max_time': float('Inf'),  # User-specified limit on the runtime
 
     'workers': workers,  # Parameter that varies based on how much computational resource is available
 
@@ -83,7 +85,7 @@ hyperparameters = {
         # Cooldown timer (seconds) on synchornization operations
         'synchronization_cooldown': 0.1,
         # Cache Limit
-        'independence': 0.25
+        'independence': float('Inf')
     }
 }
 
@@ -99,3 +101,6 @@ print('Runtime: {} Seconds'.format(time() - start))
 print('Prediction: \n{}'.format(prediction))
 print('Training Accuracy: {}'.format(model.score(X, y)))
 print('Visualization: \n{}'.format(model.model.visualization))
+
+pickle.dump(model, open('model.pkl', 'wb'))
+# pickle.load(open('model.pkl', 'rb'))
