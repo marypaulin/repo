@@ -2,6 +2,7 @@
 import cProfile
 from time import time
 import sys
+import pickle
 
 # local imports
 from lib.models.parallel_osdt_classifier import ParallelOSDTClassifier
@@ -103,4 +104,4 @@ print('Training Accuracy: {}'.format(model.score(X, y)))
 print('Visualization: \n{}'.format(model.model.visualization))
 
 pickle.dump(model, open('model.pkl', 'wb'))
-# pickle.load(open('model.pkl', 'rb'))
+pickle.load(open('model.pkl', 'rb'))
