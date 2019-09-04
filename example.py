@@ -54,9 +54,9 @@ hyperparameters = {
     'profile': False,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
-        'priority_metric': 'uniform',  # Decides how tasks are prioritized
+        'priority_metric': 'depth',  # Decides how tasks are prioritized
         # Decides how much to push back a task if it has pending dependencies
-        'deprioritization': 0,
+        'deprioritization': 0.1,
 
         # Note that Leaf Permutation Bound (Theorem 6) is
         # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
