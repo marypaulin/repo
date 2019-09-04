@@ -52,19 +52,37 @@ def QueueService(queue=None, degree=1, synchronization_cooldown=0, alpha=0.05, b
     if queue.lock != None:
         return SharedQueueService(queue, degree=degree)
 
-    global_length = Value('i', len(queue))
-    clients = []
-    server_endpoints = []
-    for i in range(degree):
-        client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
+    if degree > 1:
+        global_length = Value('i', len(queue))
+        clients = []
+        server_endpoints = []
+        for i in range(degree):
+            client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
 
-        client = __QueueClient__(queue.new(), client_endpoint, global_length, 
-            degree=degree, synchronization_cooldown=synchronization_cooldown, beta=beta)
-        clients.append(client)
+            client = __QueueClient__(queue.new(), client_endpoint, global_length, 
+                degree=degree, synchronization_cooldown=synchronization_cooldown, beta=beta)
+            clients.append(client)
 
-        server_endpoints.append(server_endpoint)
+            server_endpoints.append(server_endpoint)
 
-    server = __QueueServer__(queue, server_endpoints, global_length, alpha=alpha)
+        server = __QueueServer__(queue, server_endpoints, global_length, alpha=alpha)
+
+    else:
+        global_length = Value('i', len(queue))
+        clients = []
+        server_endpoints = []
+        for i in range(degree):
+            client_endpoint, server_endpoint = Channel(duplex=True, channel_type='pipe')
+
+            client = __QueueClient__(queue, client_endpoint, global_length, 
+                degree=degree, synchronization_cooldown=synchronization_cooldown, beta=beta)
+            client.online = False
+            clients.append(client)
+
+            server_endpoints.append(server_endpoint)
+
+        server = __QueueServer__(queue.new(), server_endpoints, global_length, alpha=alpha)
+        server.online = False
 
     return (server, tuple(clients))
 
