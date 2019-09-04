@@ -52,7 +52,7 @@ def QueueService(queue=None, degree=1, synchronization_cooldown=0, alpha=0.05, b
     if queue.lock != None:
         return SharedQueueService(queue, degree=degree)
 
-    if degree > 1:
+    if degree > 0:
         global_length = Value('i', len(queue))
         clients = []
         server_endpoints = []
