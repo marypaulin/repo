@@ -78,7 +78,7 @@ hyperparameters = {
         'equivalent_point_lowerbound': True,
 
         # Toggles compression of dataset based on equivalent point aggregation
-        'equivalent_point_compression': True,
+        'equivalent_point_compression': False,
         # Toggles whether asynchronous tasks can be cancelled after being issued
         'task_cancellation': False,
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
