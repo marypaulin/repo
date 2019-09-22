@@ -2,81 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1977c617-ecfc-4fcc-8f6b-2859e48be6d6" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/accuracy/osdt_compas_2.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/.\accuracy\cart_compas.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/accuracy/.\accuracy\cart_compas.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/.\accuracy\osdt_compas.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/0allbound.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/0allbound.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/1nosupport.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/1nosupport.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/2noaccu_support.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/2noaccu_support.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/3noincre_support.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/3noincre_support.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/4nolookahead.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/4nolookahead.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/5noequi_points.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/5noequi_points.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Test_Scalability.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/notebooks/Test_Scalability.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vis_accuracy.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/notebooks/Vis_accuracy.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vis_converge.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/notebooks/Vis_converge.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vis_memory.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/notebooks/Vis_memory.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/accu_lamb.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/accu_lamb.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/car_traces.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/car_traces.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/compare_algorithms.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/notebooks/compare_algorithms.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/compas1.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/compas1.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/compas2.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/compas2.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/compas3.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/compas3.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/compas_traces.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/compas_traces.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/corels_dt.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/notebooks/corels_dt.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fico_traces.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/fico_traces.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fig1a.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/fig1a.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fig1a.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/fig1a.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fig1b.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/fig1b.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fig1c.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/fig1c.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fig1d.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/fig1d.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/foo.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/foo.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/leaf_cache.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/src/tree/leaf_cache.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/log_maxnleaves5.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tree/log_maxnleaves5.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/log_null.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tree/log_null.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/log_warmstart4.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tree/log_warmstart4.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/log_warmstartself.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tree/log_warmstartself.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/monk1_traces.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/monk1_traces.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/monk2_traces.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/monk2_traces.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/monk3_traces.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/monk3_traces.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181207232006.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181207232006.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181207233309.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181207233309.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181207233819.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181207233819.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181207234558.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181207234558.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181207235012.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181207235012.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181207235515.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181207235515.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181208000729.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181208000729.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181208002048.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181208002048.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181208002450.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181208002450.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181208003255.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181208003255.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181208043652.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181208043652.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mprofile_20181208221458.dat" beforeDir="false" afterPath="$PROJECT_DIR$/src/memory/tests/mprofile_20181208221458.dat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/queue_bound.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/queue_bound.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/queue_curiosity.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/queue_curiosity.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/queue_entropy.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/queue_entropy.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/queue_gini.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/queue_gini.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/queue_objective.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/queue_objective.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scal_count.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/scal_count.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scal_ndata.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/scal_ndata.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scal_nfeature.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/scal_nfeature.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scal_time.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/scal_time.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_accuracy.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_accuracy.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_bound.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_bound.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_memory.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_memory.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_memory_entropy.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_memory_entropy.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_memory_lbound.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_memory_lbound.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_memory_noaccu.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_memory_noaccu.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_memory_noequivp.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_memory_noequivp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_memory_noincreaccu.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_memory_noincreaccu.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_memory_nolookahead.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_memory_nolookahead.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_memory_nosupport.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_memory_nosupport.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_memory_objective.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_memory_objective.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test_nolookahead_queuemetric" beforeDir="false" afterPath="$PROJECT_DIR$/src/test_scripts/test_nolookahead_queuemetric" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tictactoe_traces.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/tictactoe_traces.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/trace_Curiosity.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/trace_Curiosity.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/trace_Lower Bound.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/src/images/trace_Lower Bound.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tree.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/src/tree/tree.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tree_cache.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/src/tree/tree_cache.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/visualization.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/notebooks/visualization.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/parallel_osdt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/osdt.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/osdt.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -85,50 +13,41 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/tree/log_maxnleaves5.txt">
-          <provider selected="true" editor-type-id="text-editor" />
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/tree/log_null.txt">
-          <provider selected="true" editor-type-id="LargeFileEditor" />
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/tree/log_warmstart4.txt">
-          <provider selected="true" editor-type-id="LargeFileEditor" />
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/tree/log_warmstartself.txt">
-          <provider selected="true" editor-type-id="LargeFileEditor" />
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/memory/tests/mprofile_20181207232006.dat">
+        <entry file="file://$PROJECT_DIR$/src/rule.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="15">
-              <caret line="1" column="21" selection-start-line="1" selection-start-column="21" selection-end-line="1" selection-end-column="21" />
+            <state relative-caret-position="4125">
+              <caret line="279" selection-start-line="279" selection-end-line="279" />
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test_scripts/test_memory_noaccu.py">
+        <entry file="file://$PROJECT_DIR$/src/osdt.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state>
+            <state relative-caret-position="248">
+              <caret line="796" column="53" selection-start-line="796" selection-start-column="53" selection-end-line="796" selection-end-column="53" />
               <folding>
-                <element signature="e#0#19#0" expanded="true" />
+                <element signature="e#0#18#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/osdt.csv">
-          <provider selected="true" editor-type-id="text-editor" />
+        <entry file="file://$PROJECT_DIR$/src/parallel_osdt.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="10830">
+              <caret line="722" column="46" lean-forward="true" selection-start-line="722" selection-start-column="46" selection-end-line="722" selection-end-column="46" />
+              <folding>
+                <element signature="e#0#28#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
         </entry>
       </file>
     </leaf>
@@ -136,8 +55,16 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/src/osdt.py" />
+        <option value="$PROJECT_DIR$/src/parallel_osdt.py" />
+      </list>
+    </option>
+  </component>
   <component name="ProjectFrameBounds" fullScreen="true">
-    <option name="width" value="1680" />
+    <option name="width" value="838" />
     <option name="height" value="1050" />
   </component>
   <component name="ProjectView">
@@ -155,13 +82,12 @@
             <path>
               <item name="repo" type="b2602c69:ProjectViewProjectNode" />
               <item name="repo" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="data" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="repo" type="b2602c69:ProjectViewProjectNode" />
               <item name="repo" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="test_scripts" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -178,11 +104,11 @@
       <recent name="$PROJECT_DIR$/src/accuracy" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/test_scripts/output" />
       <recent name="$PROJECT_DIR$/src/tree" />
-      <recent name="$PROJECT_DIR$/src/notebooks" />
-      <recent name="$PROJECT_DIR$/src/memory/tests" />
+      <recent name="$PROJECT_DIR$/src/test_scripts" />
       <recent name="$PROJECT_DIR$/src/images" />
-      <recent name="$PROJECT_DIR$/src/accuracy" />
+      <recent name="$PROJECT_DIR$/src/notebooks" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -212,14 +138,11 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1680" height="1050" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info id="Favorites" side_tool="true" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24358974" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.17338218" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info anchor="bottom" id="Version Control" />
-      <window_info anchor="bottom" id="Python Console" />
-      <window_info anchor="bottom" id="Terminal" />
-      <window_info anchor="bottom" id="Event Log" side_tool="true" />
+      <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" />
@@ -227,20 +150,19 @@
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
-      <window_info anchor="right" id="R Packages" />
-      <window_info anchor="right" id="R Graphics" />
+      <window_info anchor="bottom" id="Version Control" order="7" />
+      <window_info anchor="bottom" id="Terminal" order="8" />
+      <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
+      <window_info anchor="bottom" id="Python Console" order="10" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="R Graphics" order="3" />
+      <window_info anchor="right" id="R Packages" order="4" />
     </layout>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/accuracy/.\accuracy\cart_compas.txt">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/accuracy/osdt_compas.txt">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
+    <entry file="file://$PROJECT_DIR$/src/accuracy/./accuracy/cart_compas.txt" />
     <entry file="file://$PROJECT_DIR$/src/accuracy/osdt_compas.txt">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -310,6 +232,21 @@
         <state relative-caret-position="-7931" />
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/osdt_penalize_depth.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-11517">
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test_scripts/output/osdt.txt">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test_scripts/output/osdt.csv">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/test_scripts/test_memory_noaccu.py">
       <provider selected="true" editor-type-id="text-editor">
         <state>
@@ -319,8 +256,52 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/osdt.csv">
+    <entry file="file://$PROJECT_DIR$/src/osdt_similar_DFS_v2.py">
       <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test_scripts/output/output">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-592" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/osdt_similar_DFS.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/osdt_similar_DFS_v3.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/data/compas-binary1.csv">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/rule.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4125">
+          <caret line="279" selection-start-line="279" selection-end-line="279" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/osdt.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="248">
+          <caret line="796" column="53" selection-start-line="796" selection-start-column="53" selection-end-line="796" selection-end-column="53" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/parallel_osdt.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="10830">
+          <caret line="722" column="46" lean-forward="true" selection-start-line="722" selection-start-column="46" selection-end-line="722" selection-end-column="46" />
+          <folding>
+            <element signature="e#0#28#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
     </entry>
   </component>
 </project>

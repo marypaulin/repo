@@ -793,6 +793,8 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
     return leaves_c, prediction_c, dic, nleaves, nrule, ndata, totaltime, time_c, COUNT, C_c, accu, best_is_cart, clf
 
+#lib/models/parallel_osdt.py
+# 13 features, 7000 points, 15 min, within 3% opt gap
 
 def predict(leaves_c, prediction_c, dic, x, y, best_is_cart, clf):
     """
