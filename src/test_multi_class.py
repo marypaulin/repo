@@ -46,6 +46,7 @@ def test_multi(file, lambs, timelimit=1800):
             print("CART Test Accuracy:", testaccu_CART)
             yhat, accu = predict(leaves_c, prediction_c, dic, X_test, y_test)
             count += 1
+            # 
 
 lambs1 = [0.1, 0.05, 0.025, 0.01, 0.005, 0.0025]
 #test_multi('../data/preprocessed/monk1_multi_small.csv', lambs=0.025)
