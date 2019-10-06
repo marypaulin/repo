@@ -107,25 +107,17 @@ class CacheLeaf:
         self.num_captured = num_captured
         self.is_feature_dead = is_feature_dead
 
-        # the y's of these data captured by leaf antecedent[0]
-        # y_leaf = y[tag]
-        # print("tag",tag)
-        # print("y",y)
-        # _, num_ones = rule_vand(points_cap, y_mpz)
-
-        # b0 is defined in (28)
-
         _, num_errors = rule_vand(points_cap, z_mpz)
         self.B0 = num_errors / ndata
 
         if self.num_captured:
-            # all_ones = make_all_ones(ndata + 1)
             y_captured = np.zeros(len(label_idx))
             for i in label_idx:
                 _, num_ones = rule_vand(points_cap, y_mpz[i])
                 y_captured[i] = num_ones
+            # if there are two dominating labels, choose either one
             pred_idx = np.argmax(y_captured)
-            self.prediction = pred_idx
+            self.prediction = pred_idx + 1
             self.num_captured_incorrect = self.num_captured - np.max(y_captured)
 
             self.p = self.num_captured_incorrect / self.num_captured
@@ -138,7 +130,6 @@ class CacheLeaf:
 
         # Lower bound on leaf support
         if support:
-            # self.is_dead = self.num_captured / len(y) / 2 <= lamb
             self.is_dead = self.loss <= lamb
         else:
             self.is_dead = 0
@@ -183,7 +174,7 @@ def log(tic, lines, COUNT_POP, COUNT, queue, metric, R_c, tree_old, tree_new, so
 def generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves, lamb,
                            R_c, incre_support):
     """
-    generate the new splitleaf for the new tree
+    generate the new leaf to split for the new tree
     """
 
     n_removed_leaves = len(removed_leaves)
@@ -193,7 +184,7 @@ def generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves, lamb,
     n_new_tree_leaves = n_unchanged_leaves + n_new_leaves
 
     splitleaf1 = [0] * n_unchanged_leaves + [1] * n_new_leaves  # all new leaves labeled as to be split
-
+    splitleaf1 = tuple(splitleaf1)
     sl = []
     for i in range(n_removed_leaves):
 
@@ -211,42 +202,15 @@ def generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves, lamb,
         if a_l <= lamb:
             splitleaf[n_unchanged_leaves + idx1] = 1
             splitleaf[n_unchanged_leaves + idx2] = 1
+            splitleaf = tuple(splitleaf)
             sl.append(splitleaf)
         else:
             sl.append(splitleaf1)
-
+    # remove duplicates
+    sl = list(set(sl))
     return sl
 
-'''
-def gini_reduction(x, y, ndata, nrule):
-    """
-    calculate the gini reduction by each feature
-    return the rank of by descending
-    """
 
-    p0 = sum(y == 1) / ndata
-    gini0 = 2 * p0 * (1 - p0)
-
-    gr = []
-    for i in range(nrule):
-        xi = x[:, i]
-        y1 = y[xi == 0]
-        y2 = y[xi == 1]
-        ndata1 = len(y1)
-        ndata2 = len(y2)
-        p1 = sum(y1 == 1) / ndata1 if ndata1 != 0 else 0
-        p2 = sum(y2 == 1) / ndata2 if ndata2 != 0 else 0
-        gini1 = 2 * p1 * (1 - p1)
-        gini2 = 2 * p2 * (1 - p2)
-        gini_red = gini0 - ndata1 / ndata * gini1 - ndata2 / ndata * gini2
-        gr.append(gini_red)
-
-    gr = pd.Series(gr)
-    rk = list(map(lambda x: int(x) - 1, list(gr.rank(method='first'))[::-1]))
-
-    print("the rank of x's columns: ", rk)
-    return rk
-'''
 
 
 def gini_reduction(x_mpz, y_mpz, ndata, rule_idx, lable_idx, points_cap=None):
@@ -292,17 +256,7 @@ def gini_reduction(x_mpz, y_mpz, ndata, rule_idx, lable_idx, points_cap=None):
 
     gr = np.array(gr)
     order = list(gr.argsort()[::-1])
-
     odr = [rule_idx[r] for r in order]
-
-    #print("ndata0:", ndata0)
-    #print("ndata1:", ndata1)
-    #print("ndata2:", ndata2)
-    print("gr:", gr)
-    print("order:", order)
-    print("odr:", odr)
-    #print("the rank of x's columns: ", rank)
-
     dic = dict(zip(np.array(rule_idx)+1, odr))
 
     return odr, dic
@@ -368,10 +322,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     x0 = copy.deepcopy(x)
     y0 = copy.deepcopy(y)
 
-    # Initialize best rule list and objective
-    # d_c = None
-    # R_c = 1
-
+    # start the timer
     tic = time.time()
 
     nrule = x.shape[1]
@@ -385,16 +336,12 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
     x_mpz = [rule_vectompz(x[:, i]) for i in range(nrule)]
     y_mpz = [rule_vectompz(y[:, i]) for i in range(nlabel)]
-    #print("x_mpz000",x_mpz)
-    #print("y_mpz000", y_mpz)
 
     # order the columns by descending gini reduction
     idx, dic = gini_reduction(x_mpz, y_mpz, ndata, range(nrule), range(nlabel))
     x = x[:, idx]
     x_mpz = [x_mpz[i] for i in idx]
     print("the order of x's columns: ", idx)
-    #print("x_mpz111", x_mpz)
-    #print("y_mpz111", y_mpz)
 
     """
     calculate z, which is for the equivalent points bound
@@ -423,7 +370,6 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
             tag2 = np.full((y_l.shape[0]), False)
             for i in range(pred.shape[0]):
                 tag2 = tag2 | (y_l == pred[i]).all(1)
-            # tag2 = (y_l == pred).all(1)
             # tag2 indicates the samples in a equiv set which have the minority label
             tag2 = ~tag2
             z[tag1, 0] = tag2
@@ -446,30 +392,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                  ndata=ndata, splitleaf=[1], prior_metric=prior_metric)
 
     heapq.heappush(queue, (tree0.metric, tree0))
-    # heapq.heappush(queue, (2*tree0.metric - R_c, tree0))
-    # queue.append(tree0)
 
-    best_is_cart = False  # a flag for whether or not the best is the initial CART
-    if init_cart: # if warm start
-        # CART
-        clf = sklearn.tree.DecisionTreeClassifier(max_depth=None if MAXDEPTH == float('Inf') else MAXDEPTH,
-                                                  min_samples_split=max(math.ceil(lamb * 2 * len(y)), 2),
-                                          min_samples_leaf=math.ceil(lamb * len(y)),
-                                          max_leaf_nodes=math.floor(1 / (2 * lamb)),
-                                          min_impurity_decrease=lamb
-                                          )
-        clf = clf.fit(x0, y0)
-
-        nleaves_CART = (clf.tree_.node_count + 1) / 2
-        trainaccu_CART = clf.score(x0, y0)
-
-        R_c = 1 - trainaccu_CART + lamb*nleaves_CART
-        d_c = clf
-
-        C_c = 0
-        time_c = time.time() - tic
-
-        best_is_cart = True
 
     # read Tree from the preserved one, and only explore the children of the preserved one
     if readTree:
@@ -520,34 +443,19 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
             f.write('%s\n' % ";".join(header))
 
     while queue and COUNT < niter and time.time() - tic < timelimit:
-        # tree = queue.pop(0)
         metric, tree = heapq.heappop(queue)
-        # toc = time.time()
-        '''
-        if prior_metric == "bound":
-            if tree.lb + lamb*len(tree.splitleaf) >= R_c:
-                break
-        '''
 
         COUNT_POP = COUNT_POP + 1
-        # print(COUNT_POP)
-        # print([leaf.rules for leaf in tree.leaves])
-        # print("curio", curio)
+
         leaves = tree.cache_tree.leaves
-
-        # print("=======COUNT=======",COUNT)
-        # print("d",d)
-        # print("R",tree.lbound[0]+(tree.num_captured_incorrect[0])/len(y))
-
         leaf_split = tree.splitleaf
         removed_leaves = list(compress(leaves, leaf_split))
         old_tree_length = len(leaf_split)
-        new_tree_length = len(leaf_split) + sum(leaf_split)
+        new_tree_length = old_tree_length + sum(leaf_split)
 
         # prefix-specific upper bound on number of leaves
         if lenbound and new_tree_length >= min(old_tree_length + math.floor((R_c - tree.lb) / lamb),
                                                max_nleaves):
-            #print("toolong===COUNT:", COUNT)
             continue
 
         n_removed_leaves = sum(leaf_split)
@@ -562,9 +470,6 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
         leaf_no_split = [not split for split in leaf_split]
         unchanged_leaves = list(compress(leaves, leaf_no_split))
-
-        # lb = sum(l.loss for l in unchanged_leaves)
-        # b0 = sum(l.b0 for l in removed_leaves)
 
         # Generate all assignments of rules to the leaves that are due to be split
 
@@ -584,7 +489,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                 rule_index = rule - 1
                 tag = removed_leaf.points_cap  # points captured by the leaf's parent leaf
 
-                for new_rule in (-rule, rule):
+                for new_rule in (-rule, rule):  # 0 or 1 feature label
                     new_rule_label = int(new_rule > 0)
                     new_rules = tuple(
                         sorted(removed_leaf.rules + (new_rule,)))
@@ -593,17 +498,11 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                         COUNT_UNIQLEAVES = COUNT_UNIQLEAVES+1
 
                         tag_rule = x_mpz[rule_index] if new_rule_label == 1 else ~(x_mpz[rule_index]) | mpz(pow(2, ndata))
-                        #print("x_mpz",x_mpz)
-                        #print("tag_rule",tag_rule)
-                        new_points_cap, new_num_captured = rule_vand(tag, tag_rule)
-                        # print("tag:", tag)
-                        # print("tag_rule:", tag_rule)
-                        # print("new_points_cap:", new_points_cap)
-                        # print("new_num_captured:", new_num_captured)
 
-                        #parent_is_feature_dead =
-                        new_leaf = CacheLeaf(ndata, new_rules, range(nlabel), y_mpz, z_mpz, new_points_cap, new_num_captured,
-                                             lamb, support, removed_leaf.is_feature_dead.copy())
+                        new_points_cap, new_num_captured = rule_vand(tag, tag_rule)
+                        # generate new leaves
+                        new_leaf = CacheLeaf(ndata, new_rules, range(nlabel), y_mpz, z_mpz, new_points_cap,
+                                             new_num_captured, lamb, support, removed_leaf.is_feature_dead.copy())
                         leaf_cache[new_rules] = new_leaf
                         new_leaves.append(new_leaf)
                     else:
@@ -613,16 +512,6 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                         new_leaf = leaf_cache[new_rules]
                         new_leaves.append(new_leaf)
 
-                    # print("new_leaf:", new_leaf.rules)
-                    # print("leaf loss:", new_leaf.loss)
-                    # print("new_leaf.num_captured:",new_leaf.num_captured)
-                    # print("new_leaf.num_captured_incorrect",new_leaf.num_captured_incorrect)
-
-                    # print("******* old_rules:", removed_leaf.rules)
-                    # print("******* new_rules:", new_rules)
-
-                    # Lower bound on classification accuracy
-                    # if (new_leaf.num_captured) / ndata <= lamb:
                     if accu_support and (new_leaf.num_captured - new_leaf.num_captured_incorrect) / ndata <= lamb:
 
                         removed_leaf.is_feature_dead[rule_index] = 1
@@ -640,9 +529,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
             sorted_new_tree_rules = tuple(sorted(leaf.rules for leaf in new_tree_leaves))
 
-            if sorted_new_tree_rules in tree_cache:
-                # print("====== New Tree Duplicated!!! ======")
-                # print("sorted_new_tree_rules:", sorted_new_tree_rules)
+            if sorted_new_tree_rules in tree_cache:  # have explored the same subtree
                 continue
             else:
                 tree_cache[sorted_new_tree_rules] = True
@@ -650,20 +537,16 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
             child = CacheTree(leaves=new_tree_leaves, lamb=lamb)
 
             R = child.risk
-            # print("child:", child.sorted_leaves())
-            # print("R:",R)
             if R < R_c:
+                # current optimal tree
                 d_c = child
                 R_c = R
                 C_c = COUNT + 1
                 time_c = time.time() - tic
 
-                best_is_cart = False
-
             # generate the new splitleaf for the new tree
             sl = generate_new_splitleaf(unchanged_leaves, removed_leaves, new_leaves,
                                         lamb, R_c, incre_support)
-            # print("sl:", sl)
 
             # A leaf cannot be split if
             # 1. the MAXDEPTH has been reached
@@ -674,26 +557,18 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                                  if r not in map(abs, l.rules)])
                             for l in new_tree_leaves]
 
-            # if len(new_tree_leaves)!=new_tree_length:
-            #    print("len(new_tree_leaves):",len(new_tree_leaves))
-            #    print("new_tree_length:", new_tree_length)
-
             # For each copy, we don't split leaves which are not split in its parent tree.
             # In this way, we can avoid duplications.
             can_split_leaf = [(0,)] * n_unchanged_leaves + \
                              [(0,) if cannot_split[i]
                               else (0, 1) for i in range(n_unchanged_leaves, new_tree_length)]
             # Discard the first element of leaf_splits, since we must split at least one leaf
-            new_leaf_splits0 = np.array(list(product(*can_split_leaf))[1:])#sorted(product(*can_split_leaf))[1:]
+            new_leaf_splits0 = np.array(list(product(*can_split_leaf))[1:])
             len_sl = len(sl)
             if len_sl == 1:
                 # Filter out those which split at least one leaf in dp (d0)
                 new_leaf_splits = [ls for ls in new_leaf_splits0
                                    if np.dot(ls, sl[0]) > 0]
-                # print("n_unchanged_leaves:",n_unchanged_leaves)
-                # print("cannot_split:", cannot_split)
-                # print("can_split_leaf:",can_split_leaf)
-                # print("new_leaf_splits:",new_leaf_splits)
             else:
                 # Filter out those which split at least one leaf in dp and split at least one leaf in d0
                 new_leaf_splits = [ls for ls in new_leaf_splits0
@@ -707,9 +582,8 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
                 # MAX Number of leaves
                 if len(new_leaf_split)+sum(new_leaf_split) > MAX_NLEAVES:
                     continue
-
+                # tree counter
                 COUNT = COUNT + 1
-                # heapq.heappush(queue, (2*tree_new.metric - R_c, tree_new))
                 heapq.heappush(queue, (tree_new.metric, tree_new))
 
                 if logon:
@@ -717,29 +591,19 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
                 if COUNT % 1000000 == 0:
                     print("COUNT:", COUNT)
-        # print(time.time() - toc)
+
     totaltime = time.time() - tic
 
-    if not best_is_cart:
+    accu = 1-(R_c-lamb*len(d_c.leaves))
 
-        accu = 1-(R_c-lamb*len(d_c.leaves))
+    leaves_c = [leaf.rules for leaf in d_c.leaves]
+    prediction_c = [leaf.prediction for leaf in d_c.leaves]
 
-        leaves_c = [leaf.rules for leaf in d_c.leaves]
-        prediction_c = [leaf.prediction for leaf in d_c.leaves]
+    num_captured = [leaf.num_captured for leaf in d_c.leaves]
 
-        num_captured = [leaf.num_captured for leaf in d_c.leaves]
+    num_captured_incorrect = [leaf.num_captured_incorrect for leaf in d_c.leaves]
 
-        num_captured_incorrect = [leaf.num_captured_incorrect for leaf in d_c.leaves]
-
-        nleaves = len(leaves_c)
-    else:
-        accu = trainaccu_CART
-        leaves_c = 'NA'
-        prediction_c = 'NA'
-        get_code(d_c, ['x'+str(i) for i in range(1, nrule+1)], [0, 1])
-        num_captured = 'NA'
-        num_captured_incorrect = 'NA'
-        nleaves = nleaves_CART
+    nleaves = len(leaves_c)
 
     if saveTree:
         with open('tree.pkl', 'wb') as f:
@@ -764,8 +628,6 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     print("leaves: ", leaves_c)
     print("num_captured: ", num_captured)
     print("num_captured_incorrect: ", num_captured_incorrect)
-    # print("lbound: ", d_c.cache_tree.lbound)
-    # print("d_c.num_captured: ", [leaf.num_captured for leaf in d_c.cache_tree.leaves])
     print("prediction: ", prediction_c)
     print("Objective: ", R_c)
     print("Accuracy: ", accu)
@@ -773,26 +635,16 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
     print("time when the best tree is achieved: ", time_c)
     print("TOTAL COUNT: ", COUNT)
 
-    return leaves_c, prediction_c, dic, nleaves, nrule, ndata, totaltime, time_c, COUNT, C_c, accu, best_is_cart
+    return leaves_c, prediction_c, dic, nleaves, nrule, ndata, totaltime, time_c, COUNT, C_c, accu
 
 
-def predict(leaves_c, prediction_c, dic, x, y, best_is_cart, clf):
+def predict(leaves_c, prediction_c, dic, x, y):
     """
 
     :param leaves_c:
     :param dic:
     :return:
     """
-
-    if best_is_cart:
-        #print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        yhat = clf.predict(x)
-        accu = clf.score(x, y)
-
-        #print("yhat~~~:", yhat)
-        #print("y~~~:", y)
-
-        return yhat, accu
 
     ndata = x.shape[0]
 
@@ -806,7 +658,7 @@ def predict(leaves_c, prediction_c, dic, x, y, best_is_cart, clf):
             cap = (x[:, idx] == feature_label) * cap
         caps.append(cap)
 
-    yhat = np.array([1] * ndata)
+    yhat = np.array([0] * ndata)
 
     for j in range(len(caps)):
         idx_cap = [i for i in range(ndata) if caps[j][i] == 1]
