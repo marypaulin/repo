@@ -387,7 +387,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
 
     d_c = CacheTree(leaves=[root_leaf], lamb=lamb)
     R_c = d_c.risk
-
+    C_c = 0
     tree0 = Tree(cache_tree=d_c, lamb=lamb,
                  ndata=ndata, splitleaf=[1], prior_metric=prior_metric)
 
@@ -537,7 +537,7 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
             child = CacheTree(leaves=new_tree_leaves, lamb=lamb)
 
             R = child.risk
-            if R < R_c:
+            if R <= R_c:
                 # current optimal tree
                 d_c = child
                 R_c = R

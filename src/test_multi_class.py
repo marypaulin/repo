@@ -33,6 +33,7 @@ def test_multi(file, lambs, timelimit=1800):
             nleaves_CART = (clf.tree_.node_count + 1) / 2
             trainaccu_CART = clf.score(X_train, y_train)
             print("CART Objective score:",1 - trainaccu_CART + lamb*nleaves_CART)
+            R_c0 = 1 - trainaccu_CART + lamb*nleaves_CART
             print("CART Training Accuracy:", trainaccu_CART)
             print("Number of CART leaves:", nleaves_CART)
             testaccu_CART = clf.score(X_test, y_test)
@@ -46,12 +47,76 @@ def test_multi(file, lambs, timelimit=1800):
             print("CART Test Accuracy:", testaccu_CART)
             yhat, accu = predict(leaves_c, prediction_c, dic, X_test, y_test)
             count += 1
-            # 
+            #
 
 lambs1 = [0.1, 0.05, 0.025, 0.01, 0.005, 0.0025]
+lambs2 = [0.005, 0.0025]
+lambs3 = [0.0025]
+lambs4 = [0.1, 0.05, 0.025]
+lambs5 = [0.01, 0.005, 0.0025]
 #test_multi('../data/preprocessed/monk1_multi_small.csv', lambs=0.025)
 #test_multi('../data/preprocessed/monk1_very_small.csv', lambs=0.025)
 #test_multi('../data/preprocessed/car_multi', lambs=0.025)
 
-test_multi('../data/multi-class/iris-multi-class.csv', lambs=lambs1)
+#test_multi('../data/multi-class/iris-multi-class.csv', lambs1)
+#test_multi('../data/multi-class/glass.csv', lambs1)
+def test_onlytrain(file, lambs, timelimit=1800):
+    for lamb in lambs:
+        data_train = pd.DataFrame(pd.read_csv(file, sep=","))
+        X = data_train.values[:, :-1]
+        y = data_train.values[:, -1]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=0)
 
+        # CART
+        clf = tree.DecisionTreeClassifier(max_depth=None, min_samples_split=max(math.ceil(lamb * 2 * len(y_train)), 2),
+                                      min_samples_leaf=math.ceil(lamb * len(y_train)),
+                                      max_leaf_nodes=math.floor(1 / (2 * lamb)),
+                                      min_impurity_decrease=lamb
+                                      )
+        clf = clf.fit(X_train, y_train)
+        nleaves_CART = (clf.tree_.node_count + 1) / 2
+        trainaccu_CART = clf.score(X_train, y_train)
+        print("CART Objective score:", 1 - trainaccu_CART + lamb * nleaves_CART)
+        print("CART Training Accuracy:", trainaccu_CART)
+        print("Number of CART leaves:", nleaves_CART)
+        R_c0 = 1 - trainaccu_CART + lamb * nleaves_CART
+        # OSDT
+        y_train = pd.get_dummies(y_train).values
+        leaves_c, prediction_c, dic, nleaves_OSDT, nrule, ndata, totaltime, time_c, COUNT, C_c, trainaccu_OSDT = \
+            bbound(X_train, y_train, lamb=lamb, prior_metric="curiosity", timelimit=timelimit, init_cart=False)
+
+        print("Number of OSDT leaves:", nleaves_OSDT)
+
+def test_onefold(file, lambs, timelimit=1800):
+    for lamb in lambs:
+        data_train = pd.DataFrame(pd.read_csv(file, sep=","))
+        X = data_train.values[:, :-1]
+        y = data_train.values[:, -1]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=0)
+        # CART
+        clf = tree.DecisionTreeClassifier(max_depth=None, min_samples_split=max(math.ceil(lamb * 2 * len(y_train)), 2),
+                                          min_samples_leaf=math.ceil(lamb * len(y_train)),
+                                          max_leaf_nodes=math.floor(1 / (2 * lamb)),
+                                          min_impurity_decrease=lamb
+                                          )
+        clf = clf.fit(X_train, y_train)
+        nleaves_CART = (clf.tree_.node_count + 1) / 2
+        trainaccu_CART = clf.score(X_train, y_train)
+        print("CART Objective score:", 1 - trainaccu_CART + lamb * nleaves_CART)
+        R_c0 = 1 - trainaccu_CART + lamb * nleaves_CART
+        print("CART Training Accuracy:", trainaccu_CART)
+        print("Number of CART leaves:", nleaves_CART)
+
+        testaccu_CART = clf.score(X_test, y_test)
+        print("CART Test Accuracy:", testaccu_CART)
+
+        # OSDT
+        y_train = pd.get_dummies(y_train).values
+        leaves_c, prediction_c, dic, nleaves_OSDT, nrule, ndata, totaltime, time_c, COUNT, C_c, trainaccu_OSDT = \
+            bbound(X_train, y_train, lamb=lamb, prior_metric="curiosity", timelimit=timelimit, init_cart=False)
+
+        print("Number of OSDT leaves:", nleaves_OSDT)
+        print("CART Test Accuracy:", testaccu_CART)
+        yhat, accu = predict(leaves_c, prediction_c, dic, X_test, y_test)
+test_onefold('../data/multi-class/glass.csv', lambs3)
+#test_onlytrain('../data/multi-class/iris-multi-class.csv', lambs=lambs4)
