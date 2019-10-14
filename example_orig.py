@@ -46,16 +46,16 @@ hyperparameters = {
     'max_depth': float('Inf'),  # User-specified limit on the model
     'max_time': float('Inf'),  # User-specified limit on the runtime
 
-    #'workers': workers,  # Parameter that varies based on how much computational resource is available
+    'workers': workers,  # Parameter that varies based on how much computational resource is available
 
-    #'visualize_model': True,  # Toggle whether a rule-list visualization is rendered
-    #'visualize_training': False,  # Toggle whether a dependency graph is streamed at runtime
+    'visualize_model': True,  # Toggle whether a rule-list visualization is rendered
+    'visualize_training': False,  # Toggle whether a dependency graph is streamed at runtime
     'verbose': False,  # Toggle whether event messages are printed
     'log': False,  # Toggle whether client processes log to logs/work_<id>.log files
-    #'profile': False,  # Toggle Snapshots for Profiling Memory Usage
+    'profile': False,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
-        'priority_metric': ['curiosity', 'curiosity'],  # Decides how tasks are prioritized
+        'priority_metric': 'depth',  # Decides how tasks are prioritized
         # Decides how much to push back a task if it has pending dependencies
         'deprioritization': 0.1,
 
@@ -91,8 +91,8 @@ hyperparameters = {
 }
 
 start = time()
-# model = ParallelOSDTClassifier(**hyperparameters)
-model = OSDTMetricsClassifier(**hyperparameters)
+model = ParallelOSDTClassifier(**hyperparameters)
+# model = OSDTMetricsClassifier(**hyperparameters)
 
 if profile:
     cProfile.run('model.fit(X, y)', sort='tottime')
