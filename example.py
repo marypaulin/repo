@@ -10,8 +10,8 @@ from lib.data_structures.dataset import read_dataframe
 
 # Using COMPAS as an example
 
-dataset = read_dataframe('data/preprocessed/dataset.csv')
-# dataset = read_dataframe('data/preprocessed/compas-binary.csv')
+# dataset = read_dataframe('data/preprocessed/dataset.csv')
+dataset = read_dataframe('data/preprocessed/compas-binary.csv')
 
 regularization = 0.005
 
@@ -54,6 +54,10 @@ hyperparameters = {
     'profile': False,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
+
+        'objective': 'balanced_accuracy', # Choose from accuracy, balanced_accuracy, weighted_accuracy
+        'accuracy_weight': 0.7, # Only used for weighted accuracy
+
         'priority_metric': 'depth',  # Decides how tasks are prioritized
         # Decides how much to push back a task if it has pending dependencies
         'deprioritization': 0.1,
@@ -78,7 +82,7 @@ hyperparameters = {
         'equivalent_point_lowerbound': True,
 
         # Toggles compression of dataset based on equivalent point aggregation
-        'equivalent_point_compression': False,
+        'equivalent_point_compression': True,
         # Toggles whether asynchronous tasks can be cancelled after being issued
         'task_cancellation': False,
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)

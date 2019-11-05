@@ -37,10 +37,12 @@ class DataSet:
         y = dataframe[:, -1]
         return Dataset(X, y)
 
-    def __init__(self, X, y, compression=True):
+    def __init__(self, X, y, compression=True, objective='accuracy', accuracy_weight=1.0):
         self.split_cache = {}
         self.label_distribution_cache = {}
         self.compression = compression
+        self.objective = objective
+        self.accuracy_weight = accuracy_weight
 
         (n, m) = X.shape
         self.sample_size = n  # Number of rows (non-unique)
@@ -94,10 +96,20 @@ class DataSet:
             else:
                 if capture == None:
                     capture = Vector.ones(self.sample_size)
-                zeros = (capture & (~self.y)).count() # Rows that are both captured and labeled false
-                ones = (capture & self.y).count() # Rows that are both captured and labeled True
-                minority = (capture & (~self.z)).count() # Rows that are both captured and not in majority
-                majority = (capture & self.z).count() # Rows that are both capures and in majority
+                zeros = self.weights[0] * (capture & (~self.y)).count() # Rows that are both captured and labeled false
+                ones = self.weights[1] * (capture & self.y).count() # Rows that are both captured and labeled True
+                if self.objective == 'balanced_accuracy' or self.objective == 'weighted_accuracy':
+                    minority = 0
+                    majority = 0
+                    for i in range(len(self.z)):
+                        if capture[i] == 1:
+                            if self.z[i] == 1:
+                                majority += self.weights[self.y[i]]
+                            else:
+                                minority += self.weights[self.y[i]]
+                else:
+                    minority = (capture & (~self.z)).count() # Rows that are both captured and not in majority
+                    majority = (capture & self.z).count() # Rows that are both capures and in majority
                 total = zeros + ones
                 cache[key] = (total, zeros, ones, minority, majority)
         return cache[key]
@@ -120,7 +132,25 @@ class DataSet:
         columns = tuple(Vector(X[:, j]) for j in range(m))
         rows = tuple(Vector(X[i, :]) for i in range(n))
 
-        
+        zeros_total = float(sum( int(y[i] == 0) for i in range(n)))
+        ones_total = float(sum( int(y[i] == 1) for i in range(n)))
+        if self.objective == 'accuracy':
+            self.weights = [1.0, 1.0]
+        elif self.objective == 'balanced_accuracy':
+            zeros_weight = 0.5 * (n / zeros_total)
+            ones_weight = 0.5 * (n / ones_total)
+            self.weights = [zeros_weight, ones_weight]
+            # [0.930611694960927, 1.080569461827284]
+        elif self.objective == 'weighted_accuracy':
+            balance_factor = self.accuracy_weight
+            zeros_weight = zeros_total / (balance_factor * ones_total + zeros_total)  * (n / zeros_total)
+            ones_weight = balance_factor * ones_total / (balance_factor * ones_total + zeros_total) * (n / ones_total)
+            self.weights = [zeros_weight, ones_weight]
+        else:
+            print(self.objective == 'accuracy')
+            raise Exception("Unrecognized objective name '{}'".format(self.objective))
+
+        print('weights = ', self.weights)
         z = {}
         for i in range(n):
             row = rows[i]
@@ -130,7 +160,7 @@ class DataSet:
                 z[row] = [0, 0]
 
             # Increment the corresponding label frequency in the equivalent point set
-            z[row][y[i]] += 1
+            z[row][y[i]] += self.weights[y[i]]
 
         reduced_rows = list(z.keys())
         compression_rate = len(rows) / len(reduced_rows)

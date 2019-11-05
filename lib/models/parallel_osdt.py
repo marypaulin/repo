@@ -151,7 +151,10 @@ class ParallelOSDT:
         self.configuration = default_configuration
 
         # These define the problem
-        self.dataset = DataSet(X, y, compression=self.configuration['equivalent_point_compression'])
+        self.dataset = DataSet(X, y,
+            compression=self.configuration['equivalent_point_compression'],
+            objective=self.configuration['objective'],
+            accuracy_weight=self.configuration['accuracy_weight'])
         self.lamb = regularization
 
         # These are additional specifications that the user may pose
@@ -257,13 +260,13 @@ class ParallelOSDT:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(task.path, task.capture, result))
 
-            print('Worker {} has seen {} problems and {} trees'.format(self.worker_id, len(self.results), self.results[self.root].count))            
-
         if self.profile:  # Data for worker analysis
             self.last_snapshot = 0
             self.snapshot()
 
-        print('Worker {} has seen {} problems and {} trees'.format(self.worker_id, len(self.results), self.results[self.root].count))            
+        # print('Worker {} has seen {} problems and {} trees'.format(self.worker_id, len(self.results), self.results[self.root].count))    
+        print('Worker {} has seen {} problems'.format(self.worker_id, len(self.results)))            
+
 
         self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
 
@@ -661,6 +664,9 @@ class ParallelOSDT:
 
     def __default_configuration__(self):
         return {
+            'objective': 'accuracy', # Choose from accuracy, balanced_accuracy, weighted_accuracy
+            'accuracy_weight': 1.0, # Only used for weighted accuracy
+
             'priority_metric': 'depth', # Decides how tasks are prioritized
             'deprioritization': 0.1, # Decides how much to push back a task if it has pending dependencies
 

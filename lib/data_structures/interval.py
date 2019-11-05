@@ -1,3 +1,4 @@
+import numpy
 # Defines the behaviour of a floating point interval
 # Used to represent the possible values of the optimal objective to a particular problem
 
@@ -12,7 +13,7 @@ class Interval:
         else:
             self.lowerbound = lowerbound
             self.upperbound = upperbound
-        if self.lowerbound > self.upperbound:
+        if self.lowerbound - numpy.finfo(numpy.float32).eps > self.upperbound:
             raise Exception("Invalid Interval Bounds [{}, {}]".format(lowerbound, upperbound))
         if self.lowerbound == self.upperbound: # Special case to deal with infinities
             self.uncertainty = 0
