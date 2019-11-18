@@ -38,6 +38,7 @@ class DataSet:
         return Dataset(X, y)
 
     def __init__(self, X, y, compression=True, objective='accuracy', accuracy_weight=1.0):
+        self.original = (X, y)
         self.split_cache = {}
         self.label_distribution_cache = {}
         self.compression = compression

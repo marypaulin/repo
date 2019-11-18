@@ -62,6 +62,8 @@ hyperparameters = {
         # Decides how much to push back a task if it has pending dependencies
         'deprioritization': 0.1,
 
+        'warm_start': True, # Warm start with cart tree's risk as upperbound
+
         # Note that Leaf Permutation Bound (Theorem 6) is
         # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
         # Disabling this actually breaks convergence due to information loss
