@@ -497,7 +497,7 @@ class ParallelOSDT:
         if not self.configuration['interval_look_ahead'] and lowerbound < upperbound:
             upperbound = float('Inf')
 
-        if self.configuration['warm_start']:
+        if self.configuration['warm_start'] and capture.count() == len(capture):
             if self.initial_upperbound < upperbound:
                 upperbound = min(upperbound, self.initial_upperbound)
 
