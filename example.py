@@ -6,13 +6,14 @@ import pickle
 
 # local imports
 from lib.models.parallel_osdt_classifier import ParallelOSDTClassifier
+from lib.models.osdt_metrics_classifier import OSDTMetricsClassifier
 from lib.data_structures.dataset import read_dataframe
 
 # Using COMPAS as an example
 
-# dataset = read_dataframe('data/preprocessed/dataset.csv')
-dataset = read_dataframe('data/preprocessed/compas-binary.csv')
-
+dataset = read_dataframe('data/preprocessed/fico_binary.csv')
+# dataset = read_dataframe('data/preprocessed/compas-binary.csv')
+# dataset = read_dataframe('data/preprocessed/small_example.csv')
 regularization = 0.005
 
 # dataset = read_dataframe('data/preprocessed/census.csv')
@@ -45,25 +46,24 @@ hyperparameters = {
     'max_depth': float('Inf'),  # User-specified limit on the model
     'max_time': float('Inf'),  # User-specified limit on the runtime
 
-    'workers': workers,  # Parameter that varies based on how much computational resource is available
+    #'workers': workers,  # Parameter that varies based on how much computational resource is available
 
-    'visualize_model': True,  # Toggle whether a rule-list visualization is rendered
-    'visualize_training': False,  # Toggle whether a dependency graph is streamed at runtime
+    #'visualize_model': True,  # Toggle whether a rule-list visualization is rendered
+    #'visualize_training': False,  # Toggle whether a dependency graph is streamed at runtime
     'verbose': False,  # Toggle whether event messages are printed
     'log': False,  # Toggle whether client processes log to logs/work_<id>.log files
-    'profile': False,  # Toggle Snapshots for Profiling Memory Usage
+    #'profile': False,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
 
         'objective': 'balanced_accuracy', # Choose from accuracy, balanced_accuracy, weighted_accuracy
         'accuracy_weight': 0.7, # Only used for weighted accuracy
 
-        'priority_metric': 'depth',  # Decides how tasks are prioritized
+        'priority_metric': ['depth'],  # Decides how tasks are prioritized
         # Decides how much to push back a task if it has pending dependencies
         'deprioritization': 0.1,
 
         'warm_start': True, # Warm start with cart tree's risk as upperbound
-
         # Note that Leaf Permutation Bound (Theorem 6) is
         # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
         # Disabling this actually breaks convergence due to information loss
@@ -82,7 +82,6 @@ hyperparameters = {
         "similarity_threshold": 0,
         # Toggles whether equivalent points contribute to the lowerbound (Proposition 8 and Theorem 9)
         'equivalent_point_lowerbound': True,
-
         # Toggles compression of dataset based on equivalent point aggregation
         'equivalent_point_compression': True,
         # Toggles whether asynchronous tasks can be cancelled after being issued
@@ -98,16 +97,19 @@ hyperparameters = {
 
 start = time()
 model = ParallelOSDTClassifier(**hyperparameters)
-if profile:
-    cProfile.run('model.fit(X, y)', sort='tottime')
-else:
-    model.fit(X, y)
-prediction = model.predict(X)
-prediction = prediction.reshape(1, n)[0]
-print('Runtime: {} Seconds'.format(time() - start))
-print('Prediction: \n{}'.format(prediction))
-print('Training Accuracy: {}'.format(model.score(X, y)))
-print('Visualization: \n{}'.format(model.model.visualization))
+# model = OSDTMetricsClassifier(**hyperparameters)
 
-pickle.dump(model, open('model.pkl', 'wb'))
-pickle.load(open('model.pkl', 'rb'))
+if __name__ == "__main__":
+    if profile:
+        cProfile.run('model.fit(X, y)', sort='tottime')
+    else:
+        model.fit(X, y)
+    prediction = model.predict(X)
+    prediction = prediction.reshape(1, n)[0]
+    print('Runtime: {} Seconds'.format(time() - start))
+    print('Prediction: \n{}'.format(prediction))
+    print('Training Accuracy: {}'.format(model.score(X, y)))
+    # print('Visualization: \n{}'.format(model.model.visualization))
+
+    pickle.dump(model, open('model.pkl', 'wb'))
+    pickle.load(open('model.pkl', 'rb'))

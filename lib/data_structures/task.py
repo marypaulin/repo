@@ -1,8 +1,11 @@
 class Task:
     def __init__(self, priority, capture, path):
-        self.priority = priority
+        self.set_priority(priority)
         self.capture = capture
         self.path = path
+
+    def set_priority(self, priority):
+        self.priority = priority
 
     def key(self):
         return (self.capture, self.path)

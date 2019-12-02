@@ -24,7 +24,17 @@ def read_dataframe(path, sep=None, randomize=False):
         else:
             sep = ','
 
-    dataframe = pd.DataFrame(pd.read_csv(path, sep=sep))
+    # TODO: remove nrows restriction and iloc restriction
+    dataframe = pd.DataFrame(pd.read_csv(path, sep=sep, nrows=7000))
+    dataframe = dataframe.iloc[:, 3:]
+
+    # TODO: remove this (shuffles column order, keeping last one in place)
+    cols = list(dataframe.columns.values)
+    cols[:-1] = shuffle(cols[:-1])
+    with open('feature_order.csv', 'a') as f:
+        f.write(str(cols) + '\n')
+    dataframe = dataframe[cols]
+
     if randomize:
         dataframe = shuffle(dataframe)
     return dataframe
