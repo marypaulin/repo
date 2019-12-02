@@ -552,14 +552,14 @@ def bbound(x, y, lamb, prior_metric=None, MAXDEPTH=float('Inf'), MAX_NLEAVES=flo
         with open(fname, 'w') as f:
             f.write('%s\n' % ";".join(header))
 
-    switcher = 0
+    switcher = time.time()
 
     while queue and COUNT < niter and time.time() - tic < timelimit:
         # reorder priority queue
         if time.time() - switcher >= switch_time:
             metric_dex = (metric_dex+1) % len(prior_metric)
             queue = switch_metrics(prior_metric[metric_dex], queue)
-            switcher = 0
+            switcher = time.time()
 
         # tree = queue.pop(0)
         metric, tree = heapq.heappop(queue)

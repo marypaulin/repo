@@ -227,6 +227,12 @@ class __QueueClient__:
         self.synchronize()
         return
 
+    def mod(self, function):
+        self.queue.mod(function)
+
+    def get_bubble(self):
+        print("Total bubble time: {}".format(self.queue.get_bubble()))
+
     def pop(self, block=False):
         '''
         Pops object from pipeline
@@ -248,7 +254,14 @@ class __QueueClient__:
             return self.global_length.value
 
     def __str__(self):
+        self.queue.plot()
         return str(self.queue)
+
+    def __len__(self):
+        return len(self.queue)
+
+    # def __plot__(self):
+    #     self.queue.plot()
 
     def flush(self):
         self.synchronize()

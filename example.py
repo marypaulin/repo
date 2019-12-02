@@ -11,9 +11,9 @@ from lib.data_structures.dataset import read_dataframe
 
 # Using COMPAS as an example
 
-dataset = read_dataframe('data/preprocessed/dataset.csv')
+dataset = read_dataframe('data/preprocessed/fico_binary.csv')
 # dataset = read_dataframe('data/preprocessed/compas-binary.csv')
-
+# dataset = read_dataframe('data/preprocessed/small_example.csv')
 regularization = 0.005
 
 # dataset = read_dataframe('data/preprocessed/census.csv')
@@ -55,10 +55,10 @@ hyperparameters = {
     #'profile': False,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
-        'priority_metric': ['curiosity', 'curiosity'],  # Decides how tasks are prioritized
+        # 'priority_metric': ['depth', 'lowerbound', 'support'],  # Decides how tasks are prioritized
+        'priority_metric': ['depth'],
         # Decides how much to push back a task if it has pending dependencies
         'deprioritization': 0.1,
-
         # Note that Leaf Permutation Bound (Theorem 6) is
         # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
         # Disabling this actually breaks convergence due to information loss
@@ -91,19 +91,20 @@ hyperparameters = {
 }
 
 start = time()
-# model = ParallelOSDTClassifier(**hyperparameters)
-model = OSDTMetricsClassifier(**hyperparameters)
+model = ParallelOSDTClassifier(**hyperparameters)
+# model = OSDTMetricsClassifier(**hyperparameters)
 
-if profile:
-    cProfile.run('model.fit(X, y)', sort='tottime')
-else:
-    model.fit(X, y)
-prediction = model.predict(X)
-prediction = prediction.reshape(1, n)[0]
-print('Runtime: {} Seconds'.format(time() - start))
-print('Prediction: \n{}'.format(prediction))
-print('Training Accuracy: {}'.format(model.score(X, y)))
-print('Visualization: \n{}'.format(model.model.visualization))
+if __name__ == "__main__":
+    if profile:
+        cProfile.run('model.fit(X, y)', sort='tottime')
+    else:
+        model.fit(X, y)
+    prediction = model.predict(X)
+    prediction = prediction.reshape(1, n)[0]
+    print('Runtime: {} Seconds'.format(time() - start))
+    print('Prediction: \n{}'.format(prediction))
+    print('Training Accuracy: {}'.format(model.score(X, y)))
+    # print('Visualization: \n{}'.format(model.model.visualization))
 
-pickle.dump(model, open('model.pkl', 'wb'))
-pickle.load(open('model.pkl', 'rb'))
+    pickle.dump(model, open('model.pkl', 'wb'))
+    pickle.load(open('model.pkl', 'rb'))

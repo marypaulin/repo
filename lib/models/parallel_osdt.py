@@ -3,6 +3,7 @@ from random import random
 from memory_profiler import profile
 from pickle import dump, load
 from multiprocessing import Manager
+import numpy as np
 from math import factorial
 from scipy.special import comb
 
@@ -22,7 +23,7 @@ from lib.data_structures.vector import Vector
 from lib.data_structures.tree import Tree
 from lib.experiments.logger import Logger
 from lib.experiments.visualizer import Visualizer
-
+import matplotlib.pyplot as plt
 # Theorems Applied
 
 # Notes:
@@ -157,6 +158,8 @@ class ParallelOSDT:
         # These are additional specifications that the user may pose
         self.max_depth = min(max_depth, self.dataset.width)
         self.max_time = max_time
+        self.max_switch = float('Inf') # TODO: make this settable
+        self.priority_index = 0 # TODO: make this more robust
         self.verbose = verbose
         self.profile = profile
         self.log = log
@@ -168,6 +171,7 @@ class ParallelOSDT:
         self.memory_logger = None
         self.visualizer = None
         self.interrupt = False
+        self.switch_amounts = []
 
         # Global Upperbound
         _total, zeros, ones, minority, _majority = self.dataset.label_distribution()
@@ -218,6 +222,15 @@ class ParallelOSDT:
         while not self.complete() and not self.timeout(): #  and peers.value == self.workers:
             # print("Client {} queue has {} items".format(self.worker_id, len(self.tasks.queue)))
 
+            if self.timeswitch():
+                self.switch_time = time()
+                self.priority_index = (self.priority_index + 1) % (len(self.configuration['priority_metric']))
+                switch_start = time()
+                self.tasks.mod(self.reprioritize())
+                switch_end = time()
+                spent = switch_end - switch_start
+                self.switch_amounts.append(spent)
+
             if self.profile: # Data for worker analysis
                 self.snapshot()
 
@@ -267,10 +280,30 @@ class ParallelOSDT:
 
         self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
 
+        if len(self.switch_amounts) != 0:
+            self.switch_amounts = np.array(self.switch_amounts)
+            print("Total switch time: {}".format(np.sum(self.switch_amounts)))
+            print("Average switch time: {}".format(np.mean(self.switch_amounts)))
+            print("Variance in switch time: {}".format(np.var(self.switch_amounts)))
+            print("Number of switches: {}".format(len(self.switch_amounts)))
+        self.tasks.get_bubble()
+
+        # plt.plot(tree_dex, num_trees)
+        # plt.savefig('trees_in_queue.png')
+
         return self.output() if self.complete() else None
 
+    def reprioritize(self):
+        def rep(task):
+            capture = task.capture
+            path = task.path
+            new_pri = self.prioritize(capture, path)
+            task.set_priority(new_pri)
+
+        return rep
+
     def prioritize(self, capture, path):
-        priority_metric = self.configuration['priority_metric']
+        priority_metric = self.configuration['priority_metric'][self.priority_index]
         if priority_metric == 'uniform':
             priority = 0
         elif priority_metric == 'random':
@@ -564,6 +597,9 @@ class ParallelOSDT:
     def timeout(self):
         return self.elapsed_time() > self.max_time
 
+    def timeswitch(self):
+        return self.elapsed_switch() > self.max_switch
+
     # Method run by worker nodes to decide when to terminate
     def complete(self):
         # Termination condition
@@ -598,6 +634,7 @@ class ParallelOSDT:
         self.visualize_model = visualize_model
         self.workers = workers
         self.start_time = time()
+        self.switch_time = time()
         self.root = Vector.ones(self.dataset.height)  # Root capture
         cooldown = self.configuration['synchronization_cooldown']
 
@@ -645,6 +682,8 @@ class ParallelOSDT:
         # Initialize and run the cluster
         model = Cluster(self.task, services, size=workers, server_period=cooldown).compute(self.max_time)
 
+        # print(str(tasks[1]))
+
         if model != None:
             if self.verbose or self.log:
                 self.print("Finishing Parallel OSDT in {} seconds".format(round(self.elapsed_time(), 3)))
@@ -687,7 +726,7 @@ class ParallelOSDT:
             'task_cancellation': True,
             # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)
             'interval_look_ahead': True,
-            # Cooldown timer (seconds) on synchornization operations
+            # Cooldown timer (seconds) on synchronization operations
             'synchronization_cooldown': 0.1,
             # Cache Limit
             'independence': 0.5
@@ -695,6 +734,9 @@ class ParallelOSDT:
 
     def elapsed_time(self):
         return time() - self.start_time
+
+    def elapsed_switch(self):
+        return time() - self.switch_time
 
     def print(self, message):
         # Internal print method to deal with verbosity and logging
