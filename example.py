@@ -55,10 +55,15 @@ hyperparameters = {
     #'profile': False,  # Toggle Snapshots for Profiling Memory Usage
 
     'configuration': {  # More configurations around toggling optimizations and prioritization options
-        # 'priority_metric': ['depth', 'lowerbound', 'support'],  # Decides how tasks are prioritized
-        'priority_metric': ['depth'],
+
+        'objective': 'balanced_accuracy', # Choose from accuracy, balanced_accuracy, weighted_accuracy
+        'accuracy_weight': 0.7, # Only used for weighted accuracy
+
+        'priority_metric': ['depth'],  # Decides how tasks are prioritized
         # Decides how much to push back a task if it has pending dependencies
         'deprioritization': 0.1,
+
+        'warm_start': True, # Warm start with cart tree's risk as upperbound
         # Note that Leaf Permutation Bound (Theorem 6) is
         # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
         # Disabling this actually breaks convergence due to information loss
@@ -78,7 +83,7 @@ hyperparameters = {
         # Toggles whether equivalent points contribute to the lowerbound (Proposition 8 and Theorem 9)
         'equivalent_point_lowerbound': True,
         # Toggles compression of dataset based on equivalent point aggregation
-        'equivalent_point_compression': False,
+        'equivalent_point_compression': True,
         # Toggles whether asynchronous tasks can be cancelled after being issued
         'task_cancellation': False,
         # Toggles whether look_ahead prunes using objective upperbounds (This builds on top of look_ahead)

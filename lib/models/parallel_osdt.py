@@ -3,9 +3,14 @@ from random import random
 from memory_profiler import profile
 from pickle import dump, load
 from multiprocessing import Manager
+<<<<<<< HEAD
+from math import factorial, ceil, floor
+=======
 import numpy as np
 from math import factorial
+>>>>>>> parallel_diane
 from scipy.special import comb
+from sklearn.tree import DecisionTreeClassifier
 
 from lib.parallel.cluster import Cluster
 from lib.parallel.queue_service import QueueService
@@ -23,7 +28,7 @@ from lib.data_structures.vector import Vector
 from lib.data_structures.tree import Tree
 from lib.experiments.logger import Logger
 from lib.experiments.visualizer import Visualizer
-import matplotlib.pyplot as plt
+from lib.experiments.accuracy import compute_width
 # Theorems Applied
 
 # Notes:
@@ -152,7 +157,10 @@ class ParallelOSDT:
         self.configuration = default_configuration
 
         # These define the problem
-        self.dataset = DataSet(X, y, compression=self.configuration['equivalent_point_compression'])
+        self.dataset = DataSet(X, y,
+            compression=self.configuration['equivalent_point_compression'],
+            objective=self.configuration['objective'],
+            accuracy_weight=self.configuration['accuracy_weight'])
         self.lamb = regularization
 
         # These are additional specifications that the user may pose
@@ -270,13 +278,13 @@ class ParallelOSDT:
                 if self.verbose or self.log:
                     self.print('Case: Cached, Problem: {}:{} => {}'.format(task.path, task.capture, result))
 
-            print('Worker {} has seen {} problems and {} trees'.format(self.worker_id, len(self.results), self.results[self.root].count))            
-
         if self.profile:  # Data for worker analysis
             self.last_snapshot = 0
             self.snapshot()
 
-        print('Worker {} has seen {} problems and {} trees'.format(self.worker_id, len(self.results), self.results[self.root].count))            
+        # print('Worker {} has seen {} problems and {} trees'.format(self.worker_id, len(self.results), self.results[self.root].count))    
+        print('Worker {} has seen {} problems'.format(self.worker_id, len(self.results)))            
+
 
         self.print('Worker {} Finishing (Complete: {}, Timeout: {})'.format(self.worker_id, self.complete(), self.timeout()))
 
@@ -524,6 +532,10 @@ class ParallelOSDT:
         if not self.configuration['interval_look_ahead'] and lowerbound < upperbound:
             upperbound = float('Inf')
 
+        if self.configuration['warm_start'] and capture.count() == len(capture):
+            if self.initial_upperbound < upperbound:
+                upperbound = min(upperbound, self.initial_upperbound)
+
         interval = Interval(lowerbound, upperbound)
         if self.configuration['similarity_threshold'] > 0:
             interval = self.results.converge(capture, Result(optimizer=None, optimum=interval)).optimum
@@ -638,6 +650,25 @@ class ParallelOSDT:
         self.root = Vector.ones(self.dataset.height)  # Root capture
         cooldown = self.configuration['synchronization_cooldown']
 
+        self.initial_upperbound = 1.0
+        if self.configuration['warm_start']:
+            # Warm start using cart
+            cart = DecisionTreeClassifier(**{
+                'max_depth': None,
+                'min_samples_split': ceil(self.lamb * 2 * self.dataset.sample_size),
+                'min_samples_leaf': ceil(self.lamb * self.dataset.sample_size),
+                'max_leaf_nodes': max(2, floor(1 / (2 * self.lamb))),
+                'min_impurity_decrease': self.lamb
+            })
+            cart.fit(self.dataset.original[0], self.dataset.original[1])
+            loss = 1.0 - cart.score(self.dataset.original[0], self.dataset.original[1])
+            width = compute_width(cart)
+            cart_risk = loss + self.lamb * width
+            self.initial_upperbound = cart_risk
+            print("Initializing Uppbound as {}".format(self.initial_upperbound))
+        else:
+            print("Initializing Uppbound as {}".format(self.initial_upperbound))
+
         manager = Manager()
 
         # Set of "services" which are data structures that require management by a server process and get consumed by client processes
@@ -700,8 +731,13 @@ class ParallelOSDT:
 
     def __default_configuration__(self):
         return {
+            'objective': 'accuracy', # Choose from accuracy, balanced_accuracy, weighted_accuracy
+            'accuracy_weight': 1.0, # Only used for weighted accuracy
+
             'priority_metric': 'depth', # Decides how tasks are prioritized
             'deprioritization': 0.1, # Decides how much to push back a task if it has pending dependencies
+
+            'warm_start': True, # Warm start with cart tree's risk as upperbound
 
             # Toggles the assumption about objective independence when composing subtrees (Theorem 1)
             'hierarchical_lowerbound': True, 
